@@ -733,12 +733,14 @@ async Task ShowWinAsync()
 
 顔は、`Game.Status` と `IsPressing` から決める: 勝利なら `FaceWon`、敗北なら `FaceLost`、押下中なら `FaceSurprised`、それ以外は `FaceNormal`。
 
+**上バーと横バーの切り替え**: 切り替えの条件（メディアクエリー）は `GamePage.razor.css` の 1 か所に置き、`GamePage` はツールバーを置く場所（`toolbar-area`）を上か左に置くだけにする。`toolbar-area` を CSS のコンテナー（`container-type: size`）にし、`Toolbar` と `ToolbarCounter` は、置き場所が縦長（`@container (orientation: portrait)`）かどうかで自分の並べ方を決める。ページの CSS が部品の中のクラス名に踏み込まずに済む（docs/reviews/code-review.md の区切り 4 の指摘 1）。
+
 #### `ToolbarCounter`
 
 | 項目 | 内容 |
 |------|------|
-| 引数 | `IconKind Icon`、`int Value`、`string AccessibleName` |
-| 描くもの | アイコンと数字。数字が 4 文字（-100 以下）のときは、幅に収まるように小さくするクラスを付ける（UI デザイン 2.2） |
+| 引数 | `IconKind Icon`、`int Value`、`string AccessibleName`、`string? Class`（置く場所ごとのクラス。`remaining-mines`・`elapsed-time`） |
+| 描くもの | アイコンと数字。数字が 4 文字（-100 以下）のときは、幅に収まるように小さくするクラスを付ける（UI デザイン 2.2）。読み上げの名前は見えない文字で置き、見える数字は `aria-hidden` にする。数字はインバリアント カルチャーで書く（マイナスを「-」にするため） |
 
 残り地雷数と経過時間で、数字の書式を 1 か所にするための部品である。
 
@@ -751,7 +753,7 @@ async Task ShowWinAsync()
 | 描くもの | `ToolbarCounter`（`Clock`、`Game.ElapsedSeconds`、「経過時間 {n} 秒」） |
 | 後片付け | タイマーを止める（`IDisposable`） |
 
-- 250 ミリ秒ごとに `Game.ElapsedSeconds` を読み、前に描いた秒と違うときだけ描き直す（`ShouldRender`）。1 秒ごとのタイマーでは、秒の変わり目とタイマーの周期がずれて、表示が最大 1 秒遅れるからである（9 章の決定 A5）。描き直すのは、これまでどおり 1 秒に 1 回である。
+- 250 ミリ秒ごとに `Game.ElapsedSeconds` を読み、前に描いた秒と違うときだけ `StateHasChanged` で描き直す（`ShouldRender` は使わない。変わったときだけ描き直しを求めれば足りる）。1 秒ごとのタイマーでは、秒の変わり目とタイマーの周期がずれて、表示が最大 1 秒遅れるからである（9 章の決定 A5）。描き直すのは、これまでどおり 1 秒に 1 回である。
 
 #### `BoardArea`
 
@@ -856,7 +858,7 @@ async Task ShowWinAsync()
 | 項目 | 内容 |
 |------|------|
 | 引数 | `IconKind Kind` |
-| 描くもの | 24×24 の座標で描いた SVG を、その場に書き出す。`aria-hidden="true"`、`focusable="false"`。大きさと色は、置く場所の CSS で決める |
+| 描くもの | 24×24 の座標で描いた SVG を、その場に書き出す。`aria-hidden="true"`、`focusable="false"`、`data-kind`（アイコンの種類。テストで顔などを見分けるため）。大きさと色は、置く場所の CSS で決める |
 
 旗の形と地雷の形は、それぞれ 2 つのアイコン（旗と誤った旗、地雷と踏んだ地雷）で使うので、`FlagShape`・`MineShape` という引数のない小さな部品に分け、同じ形を 1 か所に置く。
 

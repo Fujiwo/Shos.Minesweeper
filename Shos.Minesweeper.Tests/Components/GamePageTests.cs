@@ -39,6 +39,45 @@ public class GamePageTests : ComponentTestBase
         Assert.Equal("cell flagged", cut.Find("#cell-4-4").ClassName);
     }
 
+    [Fact]
+    public async Task ResetStartsANewGameOfTheSameDifficulty()
+    {
+        var cut = await RenderPageWithBoardAsync();
+        cut.Find("#cell-4-4").PointerDown(Mouse(button: 2));
+
+        cut.Find("button.reset").Click();
+
+        Assert.Equal("cell closed", cut.Find("#cell-4-4").ClassName);
+        Assert.Equal(81, cut.FindAll("[role=gridcell]").Count);
+    }
+
+    [Fact]
+    public async Task FlagModeMakesTapsFlagAndSurvivesReset()
+    {
+        var cut = await RenderPageWithBoardAsync();
+
+        cut.Find("button.flag-mode").Click();
+        cut.Find("button.reset").Click();
+        cut.Find("#cell-4-4").PointerDown(Mouse(button: 0));
+        cut.Find("[role=grid]").PointerUp(Mouse(button: 0));
+
+        Assert.Equal("true", cut.Find("button.flag-mode").GetAttribute("aria-pressed"));
+        Assert.Contains("flag-mode", cut.Find("[role=grid]").ClassList);
+        Assert.Equal("cell flagged", cut.Find("#cell-4-4").ClassName);
+    }
+
+    [Fact]
+    public async Task FaceIsSurprisedWhileACellIsPressed()
+    {
+        var cut = await RenderPageWithBoardAsync();
+
+        cut.Find("#cell-4-4").PointerDown(Mouse(button: 0));
+        Assert.Equal("FaceSurprised", cut.Find("button.reset svg").GetAttribute("data-kind"));
+
+        cut.Find("[role=grid]").PointerUp(Mouse(button: 0));
+        Assert.Equal("FaceNormal", cut.Find("button.reset svg").GetAttribute("data-kind"));
+    }
+
     async Task<IRenderedComponent<GamePage>> RenderPageWithBoardAsync()
     {
         var cut = Render<GamePage>();

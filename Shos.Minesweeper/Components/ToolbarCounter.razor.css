@@ -1,0 +1,61 @@
+.counter {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    width: 64px;
+    height: 44px;
+}
+
+.shown {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    width: 100%;
+}
+
+.counter-icon {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    color: var(--text);
+}
+
+/* 値が変わっても位置がずれないように、数字の幅をそろえて右に寄せる（UI デザイン 4.5） */
+.counter-value {
+    flex: 1;
+    text-align: right;
+    font-size: 20px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.long .counter-value {
+    font-size: 16px;
+}
+
+/* 幅 360px 未満の画面では、数字の幅を詰める（UI デザイン 3.5） */
+@media (max-width: 359px) {
+    .counter {
+        width: 56px;
+    }
+}
+
+/* 横バー: 幅いっぱいに広げ、アイコンを数字の上に置いた 2 段にする（UI デザイン 3.1） */
+@container (orientation: portrait) {
+    .counter {
+        width: 100%;
+    }
+
+    .shown {
+        flex-direction: column;
+        justify-content: center;
+        gap: 2px;
+    }
+
+    .counter-value {
+        flex: none;
+        text-align: center;
+    }
+}

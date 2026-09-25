@@ -64,3 +64,30 @@
 .shovel-blade {
     fill: var(--text);
 }
+
+/* 顔（リセット ボタン、勝利カード）。配色によらず黄色の円に濃い色で描く（UI デザイン 4.4） */
+.face {
+    fill: #ffd43b;
+    stroke: #1f2937;
+    stroke-width: 1.4;
+}
+
+.face-feature {
+    fill: #1f2937;
+}
+
+.face-line {
+    fill: none;
+    stroke: #1f2937;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+}
+
+/* 時計と山形。色は置く場所の文字の色に合わせる */
+.outline {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}

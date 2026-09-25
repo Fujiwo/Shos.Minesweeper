@@ -1,0 +1,125 @@
+/* 上バーのときの見た目。置き場所が縦長（横バー）のときの並べ方は、この後のコンテナークエリーで変える（UI デザイン 3.1） */
+.toolbar {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;   /* 要素の間隔は、幅に合わせて均等に広げる */
+    gap: 4px;
+    width: min(100%, 480px);
+    height: 100%;
+    margin: 0 auto;
+    padding: 4px 0;
+}
+
+/* 押せる要素は 44×44px 以上にし、押せない要素（残り地雷数、経過時間）には枠を付けない（UI デザイン 1.1、2.2） */
+button {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-width: 44px;
+    height: 44px;
+    padding: 0 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+}
+
+button:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+}
+
+/* 指したときは少し暗く（ダークでは少し明るく）する。文字の色に寄せれば、どちらの配色でも同じ書き方で済む */
+@media (hover: hover) {
+    button:hover {
+        background: color-mix(in srgb, var(--surface), var(--text) 8%);
+    }
+}
+
+.difficulty {
+    min-width: 72px;
+}
+
+.chevron {
+    width: 16px;
+    height: 16px;
+}
+
+.reset {
+    width: 44px;
+    padding: 0;
+}
+
+.face-icon {
+    width: 28px;
+    height: 28px;
+}
+
+.flag-icon {
+    width: 24px;
+    height: 24px;
+}
+
+.flag-mode-label {
+    display: none;
+}
+
+/* 旗モードのオンは、背景の塗りと枠の有無でも示す（UI デザイン 5.3） */
+.flag-mode.on {
+    border-color: transparent;
+    background: var(--accent);
+    color: var(--on-accent);
+    --flag: var(--on-accent);
+    --flag-pole: var(--on-accent);
+}
+
+@media (hover: hover) {
+    .flag-mode.on:hover {
+        background: color-mix(in srgb, var(--accent), var(--on-accent) 10%);
+    }
+}
+
+/* 上バーで、かつ幅 600px 以上の画面では、旗モードの文字も出す（UI デザイン 2.2） */
+@media (min-width: 600px) {
+    .flag-mode-label {
+        display: inline;
+    }
+}
+
+/* 幅 360px 未満の画面では、間隔を詰めて 1 行に収める（UI デザイン 3.5） */
+@media (max-width: 359px) {
+    .toolbar {
+        gap: 2px;
+    }
+}
+
+/* 横バー: 要素を上から縦に並べ、縦方向の中央に置く。各要素は幅いっぱいに広げる */
+@container (orientation: portrait) {
+    .toolbar {
+        flex-direction: column;
+        justify-content: center;
+        width: 100%;
+        padding: 0;
+    }
+
+    /* 上バーの幅（リセット ボタンの 44px など）より優先させる */
+    .toolbar button {
+        width: 100%;
+    }
+
+    /* 「カスタム」と山形が 88px に収まるように、文字を小さくする */
+    .difficulty {
+        min-width: 0;
+        padding: 0 4px;
+        font-size: 14px;
+    }
+
+    .flag-mode-label {
+        display: none;
+    }
+}

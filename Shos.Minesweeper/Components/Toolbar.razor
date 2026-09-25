@@ -1,0 +1,38 @@
+@* ツールバー。左（横バーでは上）から、難易度、残り地雷数、リセット、経過時間、旗モードの順に並べる（UI デザイン 2.1） *@
+<div class="toolbar">
+    <button type="button" class="difficulty" aria-label="難易度、@DifficultyName" title="難易度を変える" @onclick="OnDifficultyClick">
+        <span class="difficulty-name">@DifficultyName</span>
+        <span class="chevron"><Icon Kind="IconKind.Chevron" /></span>
+    </button>
+    <ToolbarCounter Class="remaining-mines" Icon="IconKind.Mine" Value="Game.RemainingMineCount"
+                    AccessibleName="@($"残り地雷 {Game.RemainingMineCount}")" />
+    <button type="button" class="reset" aria-label="新しいゲーム" title="新しいゲーム" @onclick="OnResetClick">
+        <span class="face-icon"><Icon Kind="Face" /></span>
+    </button>
+    <ElapsedTime Game="Game" />
+    <button type="button" class="flag-mode @(IsFlagMode ? "on" : "")" aria-label="旗モード" aria-pressed="@(IsFlagMode ? "true" : "false")"
+            title="@(IsFlagMode ? "旗モード（オン）" : "旗モード（オフ）")" @onclick="OnFlagModeClick">
+        <span class="flag-icon"><Icon Kind="IconKind.Flag" /></span>
+        <span class="flag-mode-label">旗モード</span>
+    </button>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Game Game { get; set; } = default!;
+    [Parameter] public bool IsPressing { get; set; }
+    [Parameter] public bool IsFlagMode { get; set; }
+
+    [Parameter] public EventCallback OnDifficultyClick { get; set; }
+    [Parameter] public EventCallback OnResetClick { get; set; }
+    [Parameter] public EventCallback OnFlagModeClick { get; set; }
+
+    string DifficultyName => DifficultyNames.Of(Game.Difficulty.Kind);
+
+    // 顔でゲームの状態を示す（UI デザイン 4.4）。勝敗が決まった後は、押していても驚かない
+    IconKind Face
+        => Game.Status switch {
+            GameStatus.Won  => IconKind.FaceWon,
+            GameStatus.Lost => IconKind.FaceLost,
+            _               => IsPressing ? IconKind.FaceSurprised : IconKind.FaceNormal
+        };
+}

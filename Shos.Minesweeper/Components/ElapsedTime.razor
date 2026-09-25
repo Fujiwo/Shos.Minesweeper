@@ -1,0 +1,30 @@
+@implements IDisposable
+@inject TimeProvider TimeProvider
+
+<ToolbarCounter Class="elapsed-time" Icon="IconKind.Clock" Value="shownSeconds" AccessibleName="@($"経過時間 {shownSeconds} 秒")" />
+
+@code {
+    // 1 秒ごとのタイマーでは、秒の変わり目とタイマーの周期がずれて、表示が最大 1 秒遅れる。
+    // そこで短い周期で確かめ、表示する秒が変わったときだけ描き直す（アーキテクチャー設計書 7.3）
+    static readonly TimeSpan CheckInterval = TimeSpan.FromMilliseconds(250);
+
+    [Parameter, EditorRequired] public Game Game { get; set; } = default!;
+
+    int shownSeconds;
+    ITimer? timer;
+
+    protected override void OnInitialized()
+        => timer = TimeProvider.CreateTimer(_ => InvokeAsync(RedrawIfSecondChanged), null, CheckInterval, CheckInterval);
+
+    protected override void OnParametersSet() => shownSeconds = Game.ElapsedSeconds;
+
+    void RedrawIfSecondChanged()
+    {
+        if (Game.ElapsedSeconds == shownSeconds)
+            return;
+        shownSeconds = Game.ElapsedSeconds;
+        StateHasChanged();
+    }
+
+    public void Dispose() => timer?.Dispose();
+}

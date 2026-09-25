@@ -1,7 +1,27 @@
+/* 上バー: ツールバーを盤面の上に置く（UI デザイン 3.1、3.2） */
 .game {
     box-sizing: border-box;
     height: 100dvh;
     padding: 4px;
     display: grid;
-    grid-template-rows: minmax(0, 1fr);
+    gap: 4px;
+    grid-template-rows: 52px minmax(0, 1fr);
+}
+
+/*
+ * ツールバーの置き場所。ツールバーとその部品は、この場所が横長（上バー）か縦長（横バー）かを
+ * コンテナークエリーで見て、自分の並べ方を決める。ページが決めるのは置き場所だけである。
+ */
+.toolbar-area {
+    container-type: size;
+    min-width: 0;
+    min-height: 0;
+}
+
+/* 横バー: 横長で、かつ高さが 500px 以下（スマートフォンの横向き）では、ツールバーを盤面の左に置き、その分の高さを盤面に回す */
+@media (orientation: landscape) and (max-height: 500px) {
+    .game {
+        grid-template-columns: 88px minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr);
+    }
 }

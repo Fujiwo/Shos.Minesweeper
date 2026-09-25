@@ -6,15 +6,36 @@
 <h1 class="visually-hidden">マインスイーパー</h1>
 
 <div class="game">
+    <div class="toolbar-area">
+        <Toolbar Game="game" IsPressing="isPressing" IsFlagMode="isFlagMode"
+                 OnResetClick="ResetGame" OnFlagModeClick="ToggleFlagMode" />
+    </div>
     <BoardArea Difficulty="game.Difficulty" Context="placement">
-        <BoardView Game="game" Placement="placement" OnOpen="OpenCell" OnToggleFlag="ToggleFlag" />
+        <BoardView Game="game" Placement="placement" IsFlagMode="isFlagMode"
+                   OnOpen="OpenCell" OnToggleFlag="ToggleFlag" OnPressingChanged="SetPressing" />
     </BoardArea>
 </div>
 
 @code {
     Game game = default!;
+    bool isFlagMode;
+    bool isPressing;
 
-    protected override void OnInitialized() => game = new Game(Difficulty.Beginner, TimeProvider);
+    protected override void OnInitialized() => StartNewGame(Difficulty.Beginner);
+
+    void StartNewGame(Difficulty difficulty)
+    {
+        game = new Game(difficulty, TimeProvider);
+        // 盤面を押している間に別の指でリセットしても、顔が「驚き」のまま残らないようにする
+        isPressing = false;
+    }
+
+    void ResetGame() => StartNewGame(game.Difficulty);
+
+    // 旗モードは、新しいゲームを始めても保つ（仕様書 4.3）
+    void ToggleFlagMode() => isFlagMode = !isFlagMode;
+
+    void SetPressing(bool pressing) => isPressing = pressing;
 
     void OpenCell(CellPosition position) => game.Open(position);
 

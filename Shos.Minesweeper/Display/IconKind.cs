@@ -6,5 +6,11 @@ public enum IconKind
     ExplodedMine,
     Flag,
     WrongFlag,
-    Shovel
+    Shovel,
+    FaceNormal,
+    FaceSurprised,
+    FaceWon,
+    FaceLost,
+    Clock,
+    Chevron
 }

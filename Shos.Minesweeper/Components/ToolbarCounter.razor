@@ -1,0 +1,25 @@
+@using System.Globalization
+@* 残り地雷数と経過時間の表示。アイコンと数字の書式を 1 か所にする（UI デザイン 2.2） *@
+<div class="counter @Class @(ValueText.Length >= LongTextLength ? "long" : "")">
+    <span class="visually-hidden">@AccessibleName</span>
+    <span class="shown" aria-hidden="true">
+        <span class="counter-icon"><Icon Kind="Icon" /></span>
+        <span class="counter-value">@ValueText</span>
+    </span>
+</div>
+
+@code {
+    // -100 のような 4 文字は、幅に収まるように数字を小さくする
+    const int LongTextLength = 4;
+
+    [Parameter, EditorRequired] public IconKind Icon { get; set; }
+    [Parameter, EditorRequired] public int Value { get; set; }
+
+    /// <summary>スクリーンリーダーが読む名前（「残り地雷 10」など）。</summary>
+    [Parameter, EditorRequired] public string AccessibleName { get; set; } = "";
+
+    [Parameter] public string? Class { get; set; }
+
+    // 端末の言語によらず、マイナスを「-」で書く
+    string ValueText => Value.ToString(CultureInfo.InvariantCulture);
+}
