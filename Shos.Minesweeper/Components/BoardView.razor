@@ -149,7 +149,7 @@
         if (pressedPosition is not { } position || Game.IsOver)
             return;
 
-        var action = InputMapping.ActionFor(press, IsFlagMode, Game.Board.CellAt(position));
+        var action = PressMapping.ActionFor(press, IsFlagMode, Game.Board.CellAt(position));
         if (press == PressKind.LongPress && action != CellAction.None)
             await Browser.VibrateAsync(LongPressVibrationMilliseconds);
         await RequestAsync(action, position);
@@ -165,7 +165,7 @@
     // 長押しで何も起きないマスでは、円を出さない（UI デザイン 5.2）
     void ShowRingIfLongPressActs(CellPosition position, PointerEventArgs pointer)
     {
-        var action = InputMapping.ActionFor(PressKind.LongPress, IsFlagMode, Game.Board.CellAt(position));
+        var action = PressMapping.ActionFor(PressKind.LongPress, IsFlagMode, Game.Board.CellAt(position));
         if (action == CellAction.None)
             return;
         // ClientX − OffsetX が、押したマスの左上の画面上の位置になる（アーキテクチャー設計書 9.2）

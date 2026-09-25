@@ -4,7 +4,7 @@
 |------|------|
 | 工程 | 9. クラス設計書作成 |
 | 作成日 | 2026-09-25 |
-| 状態 | レビュー指摘を反映済み（docs/reviews/05-class-design-review.md）。工程 12 で、WPF 版・コンソール版と共有する部品を Presentation に移した（docs/reviews/code-review.md の工程 12 の R5）。この変更を含めてレビューをやり直し、指摘を反映した（docs/reviews/05-class-design-review.md の「再レビュー」）。`BestTimesJson` を GameLogic に移すコードの変更は、リファクタリングのやり直しで行う |
+| 状態 | レビュー指摘を反映済み（docs/reviews/05-class-design-review.md）。工程 12 で、WPF 版・コンソール版と共有する部品を Presentation に移した（docs/reviews/code-review.md の工程 12 の R5）。この変更を含めてレビューをやり直し、指摘を反映した（docs/reviews/05-class-design-review.md の「再レビュー」）。リファクタリングのやり直し（docs/reviews/code-review.md の RR1〜RR4）で、`BestTimesJson` を GameLogic に移し、`InputMapping` の名前を `PressMapping` に改めた |
 | 入力 | docs/04-architecture.md（アーキテクチャー設計書）、docs/02-spec.md（仕様書）、docs/03-ui-design.md（UI デザイン） |
 
 ## 1. 概要
@@ -76,7 +76,7 @@
 | | `Announcements` | static class | 新しいゲームと勝敗を知らせる文 |
 | | `PressKind` | enum | 判定した押し方 |
 | | `CellAction` | enum | マスに行う操作（何もしない・開く・旗） |
-| | `InputMapping` | static class | 押し方と旗モードとマスから、行う操作を決める |
+| | `PressMapping` | static class | 押し方と旗モードとマスから、行う操作を決める |
 | Input | `PointerInput` | record struct | ポインターのイベントのうち、押し方の判定に要る値 |
 | | `PressGesture` | class | 1 回の「押して離す」を、タップ・長押し・右クリックに判定する |
 | | `KeyboardMapping` | static class | キーボードのキー（DOM のキー名）から、行う操作と矢印の方向を決める |
@@ -92,7 +92,7 @@
 
 アーキテクチャー設計書で名前を挙げていない型（`Cell`、`CellAppearance`、`PointerInput`、`DisplayPosition`、`CellPresentation`、`DifficultyNames`、`Announcements` など）は、この設計で足した。足した理由は各節に書く。`KeyboardMapping` と `BestTimesJson` は、工程 12 で共有する部品を分けたときに足した（4.2、3.7）。
 
-Presentation の型は、節を分けずに、使われ方の近い 4.2（`PressKind`・`CellAction`・`InputMapping`）と 4.3（`DifficultyNames`・`Announcements`）で説明する。見出しに「Presentation」と書く。
+Presentation の型は、節を分けずに、使われ方の近い 4.2（`PressKind`・`CellAction`・`PressMapping`）と 4.3（`DifficultyNames`・`Announcements`）で説明する。見出しに「Presentation」と書く。
 
 ## 3. GameLogic
 
@@ -257,7 +257,7 @@ public sealed class Board
 **`Cell` を作った理由**
 
 - マスの状態と数字は、いつも組で使う（「開いた数字のマスか」の判断に両方が要る）。組に名前を付け、仕様書 3.4 の表（どの操作がどのマスで効くか）を `CanOpen`・`CanToggleFlag` として `Cell` に置いた。この表を知るのは `Cell` だけになる。
-- `Cell` は値のスナップショットで、`Board` の中の持ち方とは関係がない。テストでは `new Cell(CellState.Opened, 2)` のように直接作れるので、`InputMapping` のテストに盤面が要らない。
+- `Cell` は値のスナップショットで、`Board` の中の持ち方とは関係がない。テストでは `new Cell(CellState.Opened, 2)` のように直接作れるので、`PressMapping` のテストに盤面が要らない。
 - `CellAt` は、開いていないマスの `AdjacentMineCount` を 0 として返す。開いていないマスの数字を渡すと、UI から地雷の位置を割り出せてしまい、「地雷の位置は UI に公開しない」（3.5 の `AppearanceOf`）が守られないからである。
 
 **`Board` の操作の中身**
@@ -399,7 +399,7 @@ public static class BestTimesJson
 
 - 形式は、難易度の種類の名前をキーにした JSON である（例: `{"Beginner":23,"Intermediate":98}`）。記録のない難易度は書かない（アーキテクチャー設計書 10 章）。
 - 保存の形式（`BestTimesJson`）と保存先（Web アプリでは `BestTimeStorage`。4.4）を分けたのは、WPF 版とコンソール版が、保存先（ファイルなど）は違っても同じ形式を使うためである（工程 12 の R5）。
-- 形式の中身は `BestTimes`・`Difficulty.Presets`・`Game.MaxElapsedSeconds` という GameLogic の型と値だけでできているので、GameLogic に置く（アーキテクチャー設計書 4 章）。使うのは .NET の基本ライブラリの `System.Text.Json` だけなので、GameLogic は UI の技術に依存しないままである。工程 12 の R5 では Presentation に作ったが、アーキテクチャー設計書の再レビューで GameLogic に移すと決めた（docs/reviews/04-architecture-review.md の再レビューの指摘 1）。コードは、リファクタリングのやり直しで移す。
+- 形式の中身は `BestTimes`・`Difficulty.Presets`・`Game.MaxElapsedSeconds` という GameLogic の型と値だけでできているので、GameLogic に置く（アーキテクチャー設計書 4 章）。使うのは .NET の基本ライブラリの `System.Text.Json` だけなので、GameLogic は UI の技術に依存しないままである。工程 12 の R5 では Presentation に作ったが、アーキテクチャー設計書の再レビューで GameLogic に移すと決め（docs/reviews/04-architecture-review.md の再レビューの指摘 1）、リファクタリングのやり直し（RR1）で移した。
 - `Parse` は、`null`（読めない・値がない）、JSON でない、キーが初級〜上級の名前でない、値が整数でない、0〜`Game.MaxElapsedSeconds` の外、のどれかに当たる値を捨て、残りから `BestTimes` を作る。何も残らなければ、記録のない `BestTimes` になる。
 - `Serialize` は、`Difficulty.Presets` の順に `SecondsOf` を読み、記録のあるものだけを書く。公開するときのトリミングで壊れないように、リフレクションを使わず `Utf8JsonWriter` で書く。
 - 上限の 999 は `Game.MaxElapsedSeconds` を使い、値を二重に書かない。
@@ -420,7 +420,7 @@ classDiagram
         +Cancel(PointerInput)
         +Reset()
     }
-    class InputMapping {
+    class PressMapping {
         <<static>>
         +ActionFor(PressKind, bool, Cell)$ CellAction
     }
@@ -454,7 +454,7 @@ classDiagram
     BestTimeStorage --> BrowserFeatures
 ```
 
-`InputMapping` は Presentation、ほかは Web アプリの型である。
+`PressMapping` は Presentation、ほかは Web アプリの型である。
 
 依存の向きは、アーキテクチャー設計書 5 章の表から次の 2 点を改める（9 章の決定 A1）。
 
@@ -508,13 +508,13 @@ public sealed class PressGesture : IDisposable
 | 長押し成立 | `Up` | 待機 | —（二重に操作しない。仕様書 4.1） |
 | 押下中・長押し成立 | 別のポインターの `Down`・`Move`・`Up`・`Cancel` | そのまま | —（最初のポインターだけを追う） |
 
-#### `CellAction`、`InputMapping`（Presentation）、`KeyboardMapping`
+#### `CellAction`、`PressMapping`（Presentation）、`KeyboardMapping`
 
 ```csharp
 // Presentation（WPF 版・コンソール版でも同じ規則）
 public enum CellAction { None, Open, ToggleFlag }
 
-public static class InputMapping
+public static class PressMapping
 {
     public static CellAction ActionFor(PressKind press, bool isFlagMode, Cell cell);
 }
@@ -527,7 +527,7 @@ public static class KeyboardMapping
 }
 ```
 
-- キーボードの割り当て（仕様書 4.5）は、区切り 5 で `InputMapping` に集めて表でテストするようにした（docs/reviews/code-review.md の区切り 5 の指摘 1）。工程 12 で `InputMapping` を Presentation に移すときに、キーの名前が DOM の `KeyboardEvent.key` の値である部分だけを、Web アプリの `KeyboardMapping` に分けた（同じく工程 12 の R5）。WPF は `Key`、コンソールは `ConsoleKey` でキーを受けるので、キーの受け方は各アプリに置く。表でテストすることは変わらない。
+- キーボードの割り当て（仕様書 4.5）は、区切り 5 で操作の割り当てのクラス（当時の名前は `InputMapping`）に集めて表でテストするようにした（docs/reviews/code-review.md の区切り 5 の指摘 1）。工程 12 でこのクラスを Presentation に移すときに、キーの名前が DOM の `KeyboardEvent.key` の値である部分だけを、Web アプリの `KeyboardMapping` に分けた（同じく工程 12 の R5）。残ったクラスは押し方だけを扱うので、名前を `PressMapping` に改めた（リファクタリングのやり直しの RR4）。WPF は `Key`、コンソールは `ConsoleKey` でキーを受けるので、キーの受け方は各アプリに置く。表でテストすることは変わらない。
 
 仕様書 4.1 の表と、仕様書 3.4 の表の 2 段で決める。
 
@@ -839,7 +839,7 @@ async Task ShowWinAsync()
 
 | DOM のイベント | 受ける要素 | 処理 |
 |----------------|------------|------|
-| `pointerdown` | マス | 勝敗が決まっていたら何もしない。押したマスを覚えて `PressGesture.Down`。長押しを待つなら、`InputMapping.ActionFor(LongPress, …)` が `None` でないときだけ円を出す。円の中心は `ClientX − OffsetX + CellSize ÷ 2`（`Y` も同じ。アーキテクチャー設計書 9.2） |
+| `pointerdown` | マス | 勝敗が決まっていたら何もしない。押したマスを覚えて `PressGesture.Down`。長押しを待つなら、`PressMapping.ActionFor(LongPress, …)` が `None` でないときだけ円を出す。円の中心は `ClientX − OffsetX + CellSize ÷ 2`（`Y` も同じ。アーキテクチャー設計書 9.2） |
 | `pointermove` | 盤面 | `PressGesture.Move` |
 | `pointerup` | 盤面 | `PressGesture.Up` |
 | `pointercancel`、`pointerleave` | 盤面 | `PressGesture.Cancel` |
@@ -850,7 +850,7 @@ async Task ShowWinAsync()
 `PressGesture` が押し方を知らせてきたら（`recognized`）、次のようにする。タイマーから呼ばれることがあるので、`InvokeAsync` で描画の流れに戻してから行う。タイマーからの呼び出しは Blazor のイベントではないので、扱い終えたら `StateHasChanged` で描き直しを求める。例外は `DispatchExceptionAsync` で Blazor のエラーの表示に渡す（捨てない）。
 
 1. 長押しの円を消す。勝敗が決まっていたら、ここで終える（`Game` の前提を守るため。3.5）。
-2. `InputMapping.ActionFor(押し方, IsFlagMode, 押したマスの Cell)` で操作を決める。
+2. `PressMapping.ActionFor(押し方, IsFlagMode, 押したマスの Cell)` で操作を決める。
 3. 長押しで、操作が `None` でなければ、`BrowserFeatures.VibrateAsync(30)` で振動させる（9 章の決定 9）。
 4. `Open` なら `OnOpen`、`ToggleFlag` なら `OnToggleFlag` に、押したマスの位置を渡す。
 
@@ -961,7 +961,7 @@ builder.Services.AddScoped<BestTimeStorage>();
 
 ```text
 Shos.Minesweeper.GameLogic.Tests/      DifficultyTests, BoardTests, GameTests, BestTimesTests, BestTimesJsonTests
-Shos.Minesweeper.Presentation.Tests/   DifficultyNamesTests, AnnouncementsTests, InputMappingTests
+Shos.Minesweeper.Presentation.Tests/   DifficultyNamesTests, AnnouncementsTests, PressMappingTests
 Shos.Minesweeper.TestSupport/          TestGames（補助）
 Shos.Minesweeper.Tests/
 ├─ AppTestContext.cs  Web アプリのテストの共通の準備（DI、時刻の偽物、JavaScript の偽物、ポインターのイベントを作る補助など）
@@ -1007,14 +1007,14 @@ Assert.Equal("""
 | `GameTests` | 状態の遷移（仕様書 3.2 の図のうち、未開始・プレイ中・勝利・敗北の間の矢印。未開始に戻る矢印は `GamePageTests` で確かめる）、最初に開いたマスが 0 になる（端・角・中央。`ChooseMinesRandomly` の本物で繰り返す）、未開始の旗、残り地雷数（マイナスを含む）、勝利の自動の旗、最初の一手で勝つ場合、`AppearanceOf` の表、経過時間（切り捨て、999 で止まる、勝敗で止まる）、勝敗の後の操作のガード節 |
 | `BestTimesTests` | 3.6 の表のすべての行。同じ値では更新しない |
 | `PressGestureTests` | 4.2 の状態の表のすべての行。399 ミリ秒と 400 ミリ秒、9.9px と 10px の境界 |
-| `InputMappingTests` | 押し方 3 × モード 2 × マス（未開放・旗・数字・0）のすべての組み合わせ |
+| `PressMappingTests` | 押し方 3 × モード 2 × マス（未開放・旗・数字・0）のすべての組み合わせ |
 | `KeyboardMappingTests` | Space・Enter・F・ほかのキーの操作、4 つの矢印キーの方向、矢印でないキーは方向なし |
 | `BoardCursorTests` | 4 方向、端で止まる、入れ替えた表示での方向、向きが変わっても同じマス |
 | `BoardPlacementTests` | UI デザイン 3.3 の表の値（画面の大きさから、UI デザイン 3.2 の式で領域の大きさを求めて渡す）、入れ替えの同点、20 と 48 で止まる、座標の変換 |
 | `CellPresentationTests` | 4.3 の表のすべての行 |
 | `AnnouncementsTests` | 新しいゲームの文、勝利の文（`BestTimeOutcome` の 4 つ）、敗北の文 |
 | `BestTimesJsonTests` | 保存の形式。記録なし（`null`）、読めない値・形式の違い・範囲の外・カスタム、書く形式、書いたものを読み直せること |
-| `BestTimeStorageTests` | bUnit の JavaScript interop の偽物で、どのキーで読み書きするか、読めないときは記録なしになること |
+| `BestTimeStorageTests` | bUnit の JavaScript interop の偽物で、どのキーで読み書きするか、値がない（保存が禁止されている）ときは記録なしになること。読めない形式の値は `BestTimesJsonTests` で確かめる |
 | コンポーネントのテスト | bUnit で、描いた結果（マスのクラスと名前、顔、残り地雷数）、クリック・タッチ・キーボードの操作から `Game` が変わること、ダイアログの開閉と `inert`、フォーカスの移動、勝利カードの表示、読み上げの文 |
 
 - bUnit のテストでは、`TimeProvider` に `FakeTimeProvider` を登録し、`BrowserFeatures` は本物を登録して、その先の JavaScript の呼び出しを bUnit の偽物で受ける。
@@ -1028,7 +1028,7 @@ Assert.Equal("""
 |---|--------|--------|--------------------------|
 | 1 | テストの土台とゲームのルール | GameLogic のすべての型、`TestGames`、テストプロジェクト | `dotnet test` でルールを確かめられる。CLAUDE.md の「コマンド」にテストの実行方法を書く |
 | 2 | 盤面の表示 | `BoardPlacement`、`CellPresentation`、`Icon`、`BrowserFeatures`（大きさの監視）、`BoardArea`、`BoardView`（描画だけ）、`GamePage` の骨組み | 初級の盤面が、画面の大きさに合わせて表示される |
-| 3 | マウスとタッチの操作 | `PressGesture`、`InputMapping`、`LongPressRing`、振動、右クリック | マウスとタッチで遊べる。実機で長押しを確かめる（アーキテクチャー設計書 16 章） |
+| 3 | マウスとタッチの操作 | `PressGesture`、`PressMapping`、`LongPressRing`、振動、右クリック | マウスとタッチで遊べる。実機で長押しを確かめる（アーキテクチャー設計書 16 章） |
 | 4 | ツールバー | `Toolbar`、`ToolbarCounter`、`ElapsedTime` | 残り地雷数、顔、経過時間、リセット、旗モードが動く |
 | 5 | キーボードと読み上げ | `BoardCursor`、キーのスクロールの抑止、`Announcements`、マスの名前 | キーボードだけで遊べる。勝敗が読み上げられる |
 | 6 | 難易度とベストタイム | `DifficultyNames`、`DifficultyDialog`、`BestTimeStorage`、`WinCard` | 難易度を変えられ、ベストタイムが残る |

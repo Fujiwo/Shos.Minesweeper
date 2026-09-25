@@ -568,10 +568,10 @@ R1〜R4 の承認の後に、ユーザーの指示で R5 を追加した。WPF �
 | 項目 | 内容 |
 |------|------|
 | 作成日 | 2026-09-26 |
-| 状態 | 対象の一覧の案。ユーザーの承認を待っている |
+| 状態 | 対象の一覧をユーザーが承認した（2026-09-26）。RR1〜RR4 を反映済み。工程 12 の完了の承認を待っている |
 | 観点 | 「コードレビューのやり直し」の指摘 1〜4。sustainable-code-jp スキルの「リファクタリング」 |
 
-### 対象の一覧（案）
+### 対象の一覧
 
 | # | 場所 | 臭い（症状の根拠） | 技法 | 出どころ |
 |---|------|--------------------|------|----------|
@@ -593,3 +593,32 @@ R1〜R4 の承認の後に、ユーザーの指示で R5 を追加した。WPF �
 見送るもの: 工程 12 の「見送るもの」から変わらない。
 
 最後に全テストが Green であることを確かめる。ブラウザーでの確認は、続く工程 13 で行う。
+
+### 結果
+
+一覧の順に、一手ごとにビルドと全テストを流して Green を保った。振る舞いは変えていない。
+
+| # | 結果 | 検証 |
+|---|------|------|
+| RR1 | `BestTimesJson` を `Shos.Minesweeper.GameLogic` へ、`BestTimesJsonTests` を `Shos.Minesweeper.GameLogic.Tests` へ `git mv` で移し、名前空間を GameLogic にした（同じ名前空間になったので、`using Shos.Minesweeper.GameLogic` は要らなくなった）。`BestTimeStorage` から `using Shos.Minesweeper.Presentation` を消し、コメントの参照先（`BestTimeStorage`、`BestTimeStorageTests`）と Presentation の csproj のコメントを直した | 383 件成功。GameLogic.Tests は 111 件（`BestTimesJsonTests` の 14 件を含む）、Presentation.Tests は 35 件 |
+| RR2 | `RootObjectOf`（ルートの要素を返す）を `DocumentOf`（文書を返す。読めなければ `null`）に変え、`Parse` の中で `using var document` として持ち、文書が生きている間に値を読み終えるようにした。ルートがオブジェクトかどうかは、`Parse` の中のプロパティのパターン（`{ ValueKind: JsonValueKind.Object }`）で確かめる | 383 件成功（`BestTimesJsonTests` がそのまま安全網になった） |
+| RR3 | `BestTimeStorageTests.UnreadableStorageMeansNoRecords`（`null` と `"not json"` の `[Theory]`）を、`MissingStorageValueMeansNoRecords`（`null` だけの `[Fact]`）にした。読めない形式の値は `BestTimesJsonTests` で確かめると、コメントで示した | 382 件成功（1 件減った） |
+| RR4 | `InputMapping` を `PressMapping` に、`InputMappingTests` を `PressMappingTests` に、`git mv` でファイル名ごと変え、`BoardView` の 2 か所の呼び出しを直した | 382 件成功。ビルドの警告は 0 |
+
+反映した文書:
+
+| 文書 | 変更 |
+|------|------|
+| クラス設計書 | 状態、3.7（コードを移したこと）、`InputMapping` を `PressMapping` に（2 章、3.4、4.1、4.2、5.2、7.1、7.3、8 章）。4.2 の経緯の説明では、当時の名前 `InputMapping` を残した。7.3 の `BestTimeStorageTests` の観点（RR3） |
+| アーキテクチャー設計書 | 状態、`InputMapping` を `PressMapping` に（3 章、4 章、5 章の図、6.2、6.3、8.2 の図） |
+| CLAUDE.md | 「コードの現状」（やり直しが済んだこと） |
+
+レビューの記録（docs/reviews/ の各ファイル）は、その時点の記録なので、古い名前のまま残した。
+
+作業の環境で起きたこと: RR2 のビルドで、既知のロック（MSB4018）に 1 回当たった。`dotnet build-server shutdown` の後にビルドし直して通った（その間のテストは前のビルドで流れていたので、ビルドが通った後に流し直した）。
+
+検証結果（最後）:
+
+- `dotnet build Shos.Minesweeper.slnx`: 警告 0、エラー 0
+- `dotnet test`: 382 件すべて成功
+- ブラウザーでの確認は、続く工程 13 で行う（振る舞いは変えていない）

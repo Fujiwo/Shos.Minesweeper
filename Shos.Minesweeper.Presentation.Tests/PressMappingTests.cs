@@ -3,7 +3,7 @@ using Shos.Minesweeper.GameLogic;
 namespace Shos.Minesweeper.Presentation.Tests;
 
 /// <summary>押し方と旗モードとマスから、行う操作を決める（仕様書 4.1 の表と 3.4 の表、UI デザイン 5.2）。</summary>
-public class InputMappingTests
+public class PressMappingTests
 {
     public enum CellKind { Closed, Flagged, OpenedNumber, OpenedZero }
 
@@ -39,7 +39,7 @@ public class InputMappingTests
     [Theory]
     [MemberData(nameof(AllCombinations))]
     public void ActionFollowsThePressTheModeAndTheCell(PressKind press, bool isFlagMode, CellKind cellKind, CellAction action)
-        => Assert.Equal(action, InputMapping.ActionFor(press, isFlagMode, CellOf(cellKind)));
+        => Assert.Equal(action, PressMapping.ActionFor(press, isFlagMode, CellOf(cellKind)));
 
     static Cell CellOf(CellKind kind)
         => kind switch {

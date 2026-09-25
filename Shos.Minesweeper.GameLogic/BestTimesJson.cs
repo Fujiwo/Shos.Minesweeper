@@ -1,8 +1,7 @@
 using System.Text;
 using System.Text.Json;
-using Shos.Minesweeper.GameLogic;
 
-namespace Shos.Minesweeper.Presentation;
+namespace Shos.Minesweeper.GameLogic;
 
 /// <summary>
 /// ベストタイムの保存の形式（アーキテクチャー設計書 10 章）。どのアプリでも、この形式で記録を残す。保存先は各アプリが決める。
@@ -14,11 +13,12 @@ public static class BestTimesJson
     public static BestTimes Parse(string? json)
     {
         var secondsByKind = new Dictionary<DifficultyKind, int>();
-        if (RootObjectOf(json) is not { } root)
-            return new(secondsByKind);
-        foreach (var preset in Difficulty.Presets)
-            if (root.TryGetProperty(preset.Kind.ToString(), out var value) && IsValidSeconds(value, out var seconds))
-                secondsByKind[preset.Kind] = seconds;
+        // 文書の値は、文書を破棄するまでしか読めないので、この中で読み終える
+        using var document = DocumentOf(json);
+        if (document?.RootElement is { ValueKind: JsonValueKind.Object } root)
+            foreach (var preset in Difficulty.Presets)
+                if (root.TryGetProperty(preset.Kind.ToString(), out var value) && IsValidSeconds(value, out var seconds))
+                    secondsByKind[preset.Kind] = seconds;
         return new(secondsByKind);
     }
 
@@ -36,13 +36,12 @@ public static class BestTimesJson
         return Encoding.UTF8.GetString(stream.ToArray());
     }
 
-    static JsonElement? RootObjectOf(string? json)
+    static JsonDocument? DocumentOf(string? json)
     {
         if (json is null)
             return null;
         try {
-            var root = JsonDocument.Parse(json).RootElement;
-            return root.ValueKind == JsonValueKind.Object ? root : null;
+            return JsonDocument.Parse(json);
         } catch (JsonException) {
             return null;
         }

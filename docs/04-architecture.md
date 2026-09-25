@@ -4,7 +4,7 @@
 |------|------|
 | 工程 | 7. アーキテクチャー設計書作成 |
 | 作成日 | 2026-09-25 |
-| 状態 | レビュー指摘を反映済み（docs/reviews/04-architecture-review.md）。クラス設計で改めた点を反映済み（docs/reviews/05-class-design-review.md）。工程 12 で、WPF 版・コンソール版と共有する部品のプロジェクトを加えた（docs/reviews/code-review.md の工程 12 の R5）。この変更を含めてレビューをやり直し、指摘を反映した（docs/reviews/04-architecture-review.md の「再レビュー」） |
+| 状態 | レビュー指摘を反映済み（docs/reviews/04-architecture-review.md）。クラス設計で改めた点を反映済み（docs/reviews/05-class-design-review.md）。工程 12 で、WPF 版・コンソール版と共有する部品のプロジェクトを加えた（docs/reviews/code-review.md の工程 12 の R5）。この変更を含めてレビューをやり直し、指摘を反映した（docs/reviews/04-architecture-review.md の「再レビュー」）。リファクタリングのやり直し（docs/reviews/code-review.md の RR4）で、`InputMapping` の名前を `PressMapping` に改めた |
 | 入力 | docs/02-spec.md（仕様書）、docs/03-ui-design.md（UI デザイン）、CLAUDE.md（開発環境・設計方針） |
 
 ## 1. 概要
@@ -50,7 +50,7 @@ flowchart LR
 | 4 | ベストタイムの規則 | 初級〜上級だけ、短いときだけ更新、更新の結果 | 仕様 3.8 | GameLogic: `BestTimes` |
 | 5 | ベストタイムの保存 | 保存の形式（JSON）、localStorage への読み書き、保存できないときはメモリーだけ | 仕様 3.8、6.4 | GameLogic: `BestTimesJson`（形式）。アプリ: `BestTimeStorage`（保存先） |
 | 6 | 押す操作の判定 | タップ・長押し・取り消しの判定（400 ミリ秒、10px）、マウスとタッチの違い | 仕様 4.1、4.4 | アプリ: `PressGesture` |
-| 7 | 操作の割り当て | 押し方（タップ・長押し・右クリック）と旗モードとマスの状態から、「開く」「旗」「何もしない」を決める。キーボードのキーから操作と方向を決める | 仕様 4.1、4.3、4.5、UI 5.2 | Presentation: `InputMapping`（押し方）。アプリ: `KeyboardMapping`（DOM のキー名） |
+| 7 | 操作の割り当て | 押し方（タップ・長押し・右クリック）と旗モードとマスの状態から、「開く」「旗」「何もしない」を決める。キーボードのキーから操作と方向を決める | 仕様 4.1、4.3、4.5、UI 5.2 | Presentation: `PressMapping`（押し方）。アプリ: `KeyboardMapping`（DOM のキー名） |
 | 8 | キーボードの選択中のマス | 矢印キーでの移動、盤面に入ったときの位置 | 仕様 4.5 | アプリ: `BoardCursor` |
 | 9 | 盤面の置き方 | 盤面の向き（入れ替えるか）、マスの大きさ、表示の座標と盤面の座標の変換 | 仕様 5.2、UI 3.2 | アプリ: `BoardPlacement`（スクロールは CSS） |
 | 10 | ブラウザーの機能 | 領域の大きさの監視、振動、localStorage、キーでのスクロールの抑止 | 仕様 4.4、4.5、5.3 | アプリ: `BrowserFeatures` と `browser.js` |
@@ -72,7 +72,7 @@ Shos.Minesweeper.slnx
 │   └─ BestTimesJson.cs               ベストタイムの保存の形式。ほかの小さな型はクラス設計で決める
 ├─ Shos.Minesweeper.Presentation/     クラスライブラリ（net10.0）。UI の技術に依存しない、アプリで共有する表示と入力の部品
 │   ├─ DifficultyNames.cs、Announcements.cs   表示の文言
-│   └─ InputMapping.cs、PressKind.cs、CellAction.cs   押し方からの操作の割り当て
+│   └─ PressMapping.cs、PressKind.cs、CellAction.cs   押し方からの操作の割り当て
 ├─ Shos.Minesweeper/                  Blazor WebAssembly アプリ（既存）
 │   ├─ Pages/GamePage.razor           唯一のページ（ルートは "/"）。ゲームの画面。テンプレートの Home.razor の名前を変える
 │   ├─ Components/                    画面の部品（6.3）
@@ -143,7 +143,7 @@ flowchart TB
         Js["wwwroot/js/browser.js"]
     end
     subgraph PresentationProject["Shos.Minesweeper.Presentation"]
-        Shared["DifficultyNames・Announcements・InputMapping"]
+        Shared["DifficultyNames・Announcements・PressMapping"]
     end
     subgraph GameLogicProject["Shos.Minesweeper.GameLogic"]
         Logic["Difficulty・Board・Game・BestTimes・BestTimesJson"]
@@ -202,7 +202,7 @@ flowchart TB
 |----|------------------|
 | `DifficultyNames` | 難易度の表示名（「初級」など） |
 | `Announcements` | 新しいゲームと勝敗を知らせる文（Web 版では読み上げ用の領域で使う） |
-| `InputMapping` | 押し方（タップ・長押し・右クリック）と旗モードとマスの状態から、行う操作（開く・旗・何もしない）を決める。長押しの円を出すかどうかも、ここで決まる（UI 5.2） |
+| `PressMapping` | 押し方（タップ・長押し・右クリック）と旗モードとマスの状態から、行う操作（開く・旗・何もしない）を決める。長押しの円を出すかどうかも、ここで決まる（UI 5.2） |
 
 **アプリの C# クラス**
 
@@ -216,7 +216,7 @@ flowchart TB
 | `BrowserFeatures` | Browser | `browser.js` の関数を呼ぶ窓口。JavaScript を呼ぶのはこのクラスだけである |
 | `BestTimeStorage` | Browser | `BestTimes` を localStorage に読み書きする。形式は GameLogic の `BestTimesJson` に任せる。保存できないときは何もしない（メモリーの `BestTimes` だけが残る） |
 
-- `PressGesture` と `InputMapping` を分けたのは、変更理由が違うからである。長押しの判定時間や移動の許容量を変えるときは `PressGesture` だけを、旗モードでの割り当てを変えるときは `InputMapping` だけを直す。
+- `PressGesture` と `PressMapping` を分けたのは、変更理由が違うからである。長押しの判定時間や移動の許容量を変えるときは `PressGesture` だけを、旗モードでの割り当てを変えるときは `PressMapping` だけを直す。
 - `PressGesture` の長押しの待ち時間は、`TimeProvider` で計る。テストでは時刻を進めて確かめる。
 - `BoardCursor` が盤面の座標で位置を持つのは、画面の向きが変わって盤面の縦と横が入れ替わっても、同じマスを選んだままにするためである。表示の座標で持つと、入れ替わったときに別のマスを指してしまう。
 - `CellPresentation`、`DifficultyNames`、`Announcements` はクラス設計で加えた。公開メンバーと、ほかの小さな型はクラス設計書（docs/05-class-design.md）にある。
@@ -241,7 +241,7 @@ flowchart TB
 | `Toolbar` | 難易度ボタン、残り地雷数、リセット ボタン（顔）、経過時間、旗モード ボタンを描き、押されたことを `GamePage` に伝える |
 | `ElapsedTime` | 経過時間を表示する。250 ミリ秒ごとに経過時間を確かめ、表示する秒が変わったときだけ自分を描き直す（7.3） |
 | `BoardArea` | 盤面の領域。大きさの変化を受け取り、`BoardPlacement` を計算し直して、子の内容（`BoardView`）に渡す。盤面が収まらないときは、この領域がスクロールする |
-| `BoardView` | マスを描き、ポインターとキーボードのイベントを受けて、`PressGesture`・`InputMapping`・`KeyboardMapping`・`BoardCursor` を使い、「この位置を開く」「この位置の旗」という意図を `GamePage` に伝える。押下中の表示もここで持つ |
+| `BoardView` | マスを描き、ポインターとキーボードのイベントを受けて、`PressGesture`・`PressMapping`・`KeyboardMapping`・`BoardCursor` を使い、「この位置を開く」「この位置の旗」という意図を `GamePage` に伝える。押下中の表示もここで持つ |
 | `LongPressRing` | 長押しの進行の円を、押したマスの位置に重ねて描く。押下を追っている `BoardView` の子にする |
 | `DifficultyDialog` | 難易度の選択とカスタムの入力。入力の検証は `Difficulty` に任せ、誤りの文言を表示する |
 | `WinCard` | 勝利カード。タイムとベストタイムの更新の結果を表示する |
@@ -348,7 +348,7 @@ sequenceDiagram
     actor User as 利用者
     participant BV as BoardView
     participant PG as PressGesture
-    participant IM as InputMapping
+    participant IM as PressMapping
     participant GamePage
     participant Game
     User->>BV: pointerdown

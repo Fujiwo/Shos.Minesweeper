@@ -1,11 +1,10 @@
 using Shos.Minesweeper.GameLogic;
-using Shos.Minesweeper.Presentation;
 
 namespace Shos.Minesweeper.Browser;
 
 /// <summary>
 /// BestTimes を localStorage に読み書きする（アーキテクチャー設計書 10 章）。
-/// 保存の形式は、どのアプリでも同じ BestTimesJson を使い、このクラスは保存先だけを受け持つ。
+/// 保存の形式は、どのアプリでも同じ GameLogic の BestTimesJson を使い、このクラスは保存先だけを受け持つ。
 /// </summary>
 public sealed class BestTimeStorage(BrowserFeatures browser)
 {

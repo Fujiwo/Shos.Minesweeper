@@ -3,7 +3,7 @@ using Shos.Minesweeper.GameLogic;
 namespace Shos.Minesweeper.Presentation;
 
 /// <summary>押し方（タップ・長押し・右クリック）と旗モードとマスから、行う操作を決める（仕様書 4.1）。どの UI でも同じ規則である。</summary>
-public static class InputMapping
+public static class PressMapping
 {
     public static CellAction ActionFor(PressKind press, bool isFlagMode, Cell cell)
     {

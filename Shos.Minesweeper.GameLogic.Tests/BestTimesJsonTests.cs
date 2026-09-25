@@ -1,6 +1,4 @@
-using Shos.Minesweeper.GameLogic;
-
-namespace Shos.Minesweeper.Presentation.Tests;
+namespace Shos.Minesweeper.GameLogic.Tests;
 
 /// <summary>ベストタイムの保存の形式（アーキテクチャー設計書 10 章）。どのアプリでも、この形式で記録を残す。</summary>
 public class BestTimesJsonTests

@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- UI の技術（Blazor、WPF、コンソール）に依存しない、アプリで共有する部品（表示の文言、入力の割り当て、記録の保存の形式） -->
+  <!-- UI の技術（Blazor、WPF、コンソール）に依存しない、アプリで共有する表示と入力の部品（表示の文言、押し方からの操作の割り当て） -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
