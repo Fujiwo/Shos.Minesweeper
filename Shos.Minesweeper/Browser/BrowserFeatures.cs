@@ -19,6 +19,10 @@ public sealed class BrowserFeatures(IJSRuntime jsRuntime) : IAsyncDisposable
         return observation;
     }
 
+    /// <summary>振動に対応した端末だけ振動させる。対応していない端末（iOS の Safari など）では何もしない。</summary>
+    public async ValueTask VibrateAsync(int milliseconds)
+        => await (await Module).InvokeVoidAsync("vibrate", milliseconds);
+
     public async ValueTask DisposeAsync()
     {
         if (module is not null)

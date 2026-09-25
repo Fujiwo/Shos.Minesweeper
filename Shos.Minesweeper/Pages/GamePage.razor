@@ -7,7 +7,7 @@
 
 <div class="game">
     <BoardArea Difficulty="game.Difficulty" Context="placement">
-        <BoardView Game="game" Placement="placement" />
+        <BoardView Game="game" Placement="placement" OnOpen="OpenCell" OnToggleFlag="ToggleFlag" />
     </BoardArea>
 </div>
 
@@ -15,4 +15,8 @@
     Game game = default!;
 
     protected override void OnInitialized() => game = new Game(Difficulty.Beginner, TimeProvider);
+
+    void OpenCell(CellPosition position) => game.Open(position);
+
+    void ToggleFlag(CellPosition position) => game.ToggleFlag(position);
 }

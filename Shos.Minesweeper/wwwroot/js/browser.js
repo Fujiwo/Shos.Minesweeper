@@ -9,3 +9,11 @@ export function observeSize(element, receiver) {
     observer.observe(element);
     return { disconnect: () => observer.disconnect() };
 }
+
+// 振動に対応していない端末（iOS の Safari など）では何もしない（仕様書 4.4）。失敗してもゲームは続ける
+export function vibrate(milliseconds) {
+    try {
+        navigator.vibrate?.(milliseconds);
+    } catch {
+    }
+}

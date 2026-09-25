@@ -798,7 +798,7 @@ async Task ShowWinAsync()
 
 `pointerdown` だけをマスで受けるのは、どのマスを押したかを知るためである（Blazor のイベントの引数には、イベントの対象の要素が含まれない）。ほかのイベントは盤面の要素で受ける。`pointerleave` は子の要素から伝わらないイベントなので、盤面の要素で受けると「盤面の外に出た」ときだけ届く（アーキテクチャー設計書 8.1）。
 
-`PressGesture` が押し方を知らせてきたら（`recognized`）、次のようにする。タイマーから呼ばれることがあるので、`InvokeAsync` で描画の流れに戻してから行う。
+`PressGesture` が押し方を知らせてきたら（`recognized`）、次のようにする。タイマーから呼ばれることがあるので、`InvokeAsync` で描画の流れに戻してから行う。タイマーからの呼び出しは Blazor のイベントではないので、扱い終えたら `StateHasChanged` で描き直しを求める。例外は `DispatchExceptionAsync` で Blazor のエラーの表示に渡す（捨てない）。
 
 1. 長押しの円を消す。勝敗が決まっていたら、ここで終える（`Game` の前提を守るため。3.5）。
 2. `InputMapping.ActionFor(押し方, IsFlagMode, 押したマスの Cell)` で操作を決める。
@@ -824,7 +824,7 @@ async Task ShowWinAsync()
 | 引数 | `double CenterX`、`double CenterY`（画面の座標）、`int CellSize`、`CellAction Action` |
 | 描くもの | 直径 max(`CellSize` × 2.5, 64px) の 3 層の輪と、輪の上端のアイコン（`Open` ならスコップ、`ToggleFlag` なら旗）。`aria-hidden="true"` |
 
-輪が満ちるアニメーション（400 ミリ秒）は CSS で行う。要素が描かれた時点でアニメーションが始まるので、C# は時間を扱わない。
+輪が満ちるアニメーション（400 ミリ秒）は CSS で行う。要素が描かれた時点でアニメーションが始まるので、C# は時間を扱わない。アニメーションの長さは、`PressGesture.LongPressDelay` を CSS の変数（`--duration`）で渡し、判定と見た目で値が食い違わないようにする。位置や大きさの数は、端末の言語によらず小数点が「.」になるように、インバリアント カルチャーで書き出す。
 
 #### `DifficultyDialog`
 

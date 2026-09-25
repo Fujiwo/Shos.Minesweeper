@@ -5,5 +5,6 @@ public enum IconKind
     Mine,
     ExplodedMine,
     Flag,
-    WrongFlag
+    WrongFlag,
+    Shovel
 }

@@ -1,5 +1,15 @@
-<div class="board" role="grid" aria-label="盤面、@Placement.RowCount 行 @Placement.ColumnCount 列"
-     style="--cell-size: @(Placement.CellSize)px; --frame-width: @(BoardPlacement.FrameWidth)px; --column-count: @Placement.ColumnCount">
+@implements IDisposable
+@inject TimeProvider TimeProvider
+@inject BrowserFeatures Browser
+
+<div class="board @(IsFlagMode ? "flag-mode" : "")" role="grid" aria-label="盤面、@Placement.RowCount 行 @Placement.ColumnCount 列"
+     style="--cell-size: @(Placement.CellSize)px; --frame-width: @(BoardPlacement.FrameWidth)px; --column-count: @Placement.ColumnCount"
+     @onpointermove="HandlePointerMoveAsync" @onpointerup="HandlePointerUpAsync"
+     @onpointercancel="HandlePointerCancelAsync" @onpointerleave="HandlePointerCancelAsync"
+     @oncontextmenu:preventDefault="true">
+    @{
+        var pressedCells = PressedCells();
+    }
     @for (var row = 0; row < Placement.RowCount; row++)
     {
         <div class="board-row" role="row">
@@ -10,8 +20,9 @@
                 var appearance = Game.AppearanceOf(position);
                 var adjacentMineCount = Game.Board.CellAt(position).AdjacentMineCount;
                 <div id="cell-@position.Row-@position.Column" role="gridcell"
-                     class="cell @CellPresentation.CssClassOf(appearance, adjacentMineCount)"
-                     aria-label="@CellPresentation.AccessibleNameOf(displayPosition, appearance, adjacentMineCount)">
+                     class="@CellClassOf(appearance, adjacentMineCount, isPressed: pressedCells.Contains(position))"
+                     aria-label="@CellPresentation.AccessibleNameOf(displayPosition, appearance, adjacentMineCount)"
+                     @onpointerdown="pointer => HandlePointerDownAsync(position, pointer)">
                     @if (CellPresentation.IconOf(appearance) is IconKind icon)
                     {
                         <Icon Kind="icon" />
@@ -26,7 +37,171 @@
     }
 </div>
 
+@if (ring is { } shownRing)
+{
+    <LongPressRing CenterX="shownRing.CenterX" CenterY="shownRing.CenterY" CellSize="Placement.CellSize" Action="shownRing.Action" />
+}
+
 @code {
+    const int LongPressVibrationMilliseconds = 30;   // UI デザイン 5.2
+
     [Parameter, EditorRequired] public Game Game { get; set; } = default!;
     [Parameter, EditorRequired] public BoardPlacement Placement { get; set; } = default!;
+    [Parameter] public bool IsFlagMode { get; set; }
+
+    [Parameter] public EventCallback<CellPosition> OnOpen { get; set; }
+    [Parameter] public EventCallback<CellPosition> OnToggleFlag { get; set; }
+    [Parameter] public EventCallback<bool> OnPressingChanged { get; set; }
+
+    readonly record struct Ring(double CenterX, double CenterY, CellAction Action);
+
+    PressGesture gesture = default!;
+    CellPosition? pressedPosition;
+    Ring? ring;
+    bool isPressing;
+    Game? shownGame;
+    bool shouldRender = true;
+
+    protected override void OnInitialized()
+        => gesture = new PressGesture(TimeProvider, OnPressRecognized);
+
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(Game, shownGame))
+            StartShowing(Game);
+        shouldRender = true;
+    }
+
+    // pointermove のように表示を変えないイベントでは描き直さない（アーキテクチャー設計書 7.3）
+    protected override bool ShouldRender() => shouldRender;
+
+    protected override void OnAfterRender(bool firstRender) => shouldRender = false;
+
+    async Task HandlePointerDownAsync(CellPosition position, PointerEventArgs pointer)
+    {
+        // 勝敗が決まった後は、押下中の表示も長押しの円も出さない（UI デザイン 5.1）
+        if (Game.IsOver)
+            return;
+        pressedPosition = position;
+        gesture.Down(InputOf(pointer));
+        if (gesture.IsWaitingForLongPress)
+            ShowRingIfLongPressActs(position, pointer);
+        await ReportPressingAsync();
+    }
+
+    async Task HandlePointerMoveAsync(PointerEventArgs pointer)
+    {
+        gesture.Move(InputOf(pointer));
+        await UpdateFromGestureAsync();
+    }
+
+    async Task HandlePointerUpAsync(PointerEventArgs pointer)
+    {
+        gesture.Up(InputOf(pointer));
+        await UpdateFromGestureAsync();
+    }
+
+    // 盤面の外に出たら（pointerleave）取り消す。押したまま外で離すと pointerup が届かないため（アーキテクチャー設計書 8.1）
+    async Task HandlePointerCancelAsync(PointerEventArgs pointer)
+    {
+        gesture.Cancel(InputOf(pointer));
+        await UpdateFromGestureAsync();
+    }
+
+    // 長押しはタイマーから呼ばれるので、描画の流れに戻してから扱う。例外は Blazor のエラーの表示に渡す
+    void OnPressRecognized(PressKind press)
+        => _ = InvokeAsync(async () => {
+            try {
+                await HandlePressAsync(press);
+                // タイマーから届いた長押しは、Blazor のイベントではないので、描き直しを自分で求める
+                StateHasChanged();
+            } catch (Exception exception) {
+                await DispatchExceptionAsync(exception);
+            }
+        });
+
+    async Task HandlePressAsync(PressKind press)
+    {
+        HideRing();
+        await ReportPressingAsync();
+        if (pressedPosition is not { } position || Game.IsOver)
+            return;
+
+        var action = InputMapping.ActionFor(press, IsFlagMode, Game.Board.CellAt(position));
+        if (press == PressKind.LongPress && action != CellAction.None)
+            await Browser.VibrateAsync(LongPressVibrationMilliseconds);
+        await RequestAsync(action, position);
+    }
+
+    Task RequestAsync(CellAction action, CellPosition position)
+        => action switch {
+            CellAction.Open       => OnOpen.InvokeAsync(position),
+            CellAction.ToggleFlag => OnToggleFlag.InvokeAsync(position),
+            _                     => Task.CompletedTask
+        };
+
+    // 長押しで何も起きないマスでは、円を出さない（UI デザイン 5.2）
+    void ShowRingIfLongPressActs(CellPosition position, PointerEventArgs pointer)
+    {
+        var action = InputMapping.ActionFor(PressKind.LongPress, IsFlagMode, Game.Board.CellAt(position));
+        if (action == CellAction.None)
+            return;
+        // ClientX − OffsetX が、押したマスの左上の画面上の位置になる（アーキテクチャー設計書 9.2）
+        var halfCell = Placement.CellSize / 2.0;
+        ring = new Ring(pointer.ClientX - pointer.OffsetX + halfCell, pointer.ClientY - pointer.OffsetY + halfCell, action);
+        shouldRender = true;
+    }
+
+    void HideRing()
+    {
+        if (ring is null)
+            return;
+        ring = null;
+        shouldRender = true;
+    }
+
+    // 押し方の判定の状態に合わせて、長押しの円と押下中の表示を更新する
+    async Task UpdateFromGestureAsync()
+    {
+        if (!gesture.IsWaitingForLongPress)
+            HideRing();
+        await ReportPressingAsync();
+    }
+
+    async Task ReportPressingAsync()
+    {
+        if (isPressing == gesture.IsPressing)
+            return;
+        isPressing = gesture.IsPressing;
+        shouldRender = true;
+        await OnPressingChanged.InvokeAsync(isPressing);
+    }
+
+    // 押下中の表示の範囲。未開放ならそのマス、開いた数字のマスならコードで開く範囲（UI デザイン 5.1）
+    IReadOnlySet<CellPosition> PressedCells()
+    {
+        if (!isPressing || pressedPosition is not { } position)
+            return new HashSet<CellPosition>();
+        return Game.Board.CellAt(position).State == CellState.Closed
+               ? new HashSet<CellPosition> { position }
+               : Game.Board.ChordTargetsOf(position).ToHashSet();
+    }
+
+    // 別のゲームになったら、前のゲームでの押下を捨てる
+    void StartShowing(Game game)
+    {
+        shownGame = game;
+        gesture.Reset();
+        pressedPosition = null;
+        ring = null;
+        isPressing = false;
+    }
+
+    static string CellClassOf(CellAppearance appearance, int adjacentMineCount, bool isPressed)
+        => $"cell {CellPresentation.CssClassOf(appearance, adjacentMineCount)}{(isPressed ? " pressed" : "")}";
+
+    static PointerInput InputOf(PointerEventArgs pointer)
+        => new(pointer.PointerId, pointer.PointerType, pointer.Button, pointer.ClientX, pointer.ClientY);
+
+    public void Dispose() => gesture.Dispose();
 }

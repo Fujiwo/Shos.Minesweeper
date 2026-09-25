@@ -52,3 +52,15 @@
     stroke-width: 2.6;
     stroke-linecap: round;
 }
+
+/* スコップ（旗モードでの長押しの「開く」。UI デザイン 5.2） */
+.shovel-grip,
+.shovel-handle {
+    stroke: var(--text);
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
+.shovel-blade {
+    fill: var(--text);
+}

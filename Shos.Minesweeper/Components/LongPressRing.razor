@@ -1,0 +1,35 @@
+@using System.Globalization
+@* 長押しの進行を示す円（UI デザイン 5.2）。画面に固定した層に描くので、盤面の領域の端で切れない *@
+<div class="long-press-ring" aria-hidden="true"
+     style="left: @Css(CenterX)px; top: @Css(CenterY)px; --diameter: @Css(Diameter)px; --duration: @Css(PressGesture.LongPressDelay.TotalMilliseconds)ms">
+    <svg class="ring" width="@Css(Diameter)" height="@Css(Diameter)" viewBox="0 0 @Css(Diameter) @Css(Diameter)">
+        <circle class="base" cx="@Css(Radius)" cy="@Css(Radius)" r="@Css(TrackRadius)" />
+        <circle class="track" cx="@Css(Radius)" cy="@Css(Radius)" r="@Css(TrackRadius)" />
+        <circle class="progress" cx="@Css(Radius)" cy="@Css(Radius)" r="@Css(TrackRadius)" pathLength="100" />
+    </svg>
+    <div class="action">
+        <Icon Kind="@(Action == CellAction.Open ? IconKind.Shovel : IconKind.Flag)" />
+    </div>
+</div>
+
+@code {
+    const double MinimumDiameter = 64;
+    const double DiameterPerCellSize = 2.5;
+    const double BaseWidth = 8;
+
+    /// <summary>円の中心（画面の座標）。</summary>
+    [Parameter, EditorRequired] public double CenterX { get; set; }
+    [Parameter, EditorRequired] public double CenterY { get; set; }
+    [Parameter, EditorRequired] public int CellSize { get; set; }
+
+    /// <summary>長押しが成立したときの操作。輪の上端のアイコンで示す。</summary>
+    [Parameter, EditorRequired] public CellAction Action { get; set; }
+
+    // 指でマスが隠れても周りの円が見えるように、マスより大きくする
+    double Diameter => Math.Max(CellSize * DiameterPerCellSize, MinimumDiameter);
+    double Radius => Diameter / 2;
+    double TrackRadius => Radius - BaseWidth / 2;
+
+    // CSS と SVG の数は、端末の言語によらず小数点を「.」で書く
+    static string Css(double value) => value.ToString(CultureInfo.InvariantCulture);
+}

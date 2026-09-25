@@ -12,6 +12,11 @@
     touch-action: manipulation;
 }
 
+/* 旗モードは、枠の縞模様でも示す。枠の太さは変えない（UI デザイン 5.3） */
+.board.flag-mode {
+    border-image: repeating-linear-gradient(45deg, var(--accent) 0 6px, var(--on-accent) 6px 12px) 1;
+}
+
 .board-row {
     display: contents;
 }
@@ -34,6 +39,12 @@
     background: var(--cell-closed);
     border: var(--edge) solid;
     border-color: rgba(255, 255, 255, 0.35) rgba(0, 0, 0, 0.3) rgba(0, 0, 0, 0.3) rgba(255, 255, 255, 0.35);
+}
+
+/* 押下中は、立体の縁を反転してくぼんで見せる（UI デザイン 4.2 の B） */
+.closed.pressed {
+    background: var(--cell-pressed);
+    border-color: rgba(0, 0, 0, 0.3) rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.3);
 }
 
 .opened,
@@ -64,7 +75,7 @@
 
 /* タッチ端末では、指を離した後に指した状態が残らないように、指し示せる入力のときだけ出す（UI デザイン 5.6） */
 @media (hover: hover) {
-    .closed:hover,
+    .closed:not(.pressed):hover,
     .flagged:hover {
         background: var(--cell-closed-hover);
     }

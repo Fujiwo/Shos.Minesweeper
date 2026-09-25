@@ -1,0 +1,56 @@
+.long-press-ring {
+    position: fixed;
+    width: var(--diameter);
+    height: var(--diameter);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 10;
+}
+
+.ring {
+    display: block;
+    transform: rotate(-90deg);   /* 上端から満たし始める */
+}
+
+.ring circle {
+    fill: none;
+}
+
+/* 未開放のマスの上でも円が見えるように、下地を敷く（UI デザイン 5.2） */
+.base {
+    stroke: var(--surface);
+    stroke-width: 8;
+}
+
+.track {
+    stroke: var(--border);
+    stroke-width: 2;
+}
+
+.progress {
+    stroke: var(--accent);
+    stroke-width: 4;
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: fill-ring var(--duration) linear forwards;
+}
+
+/* 進行を知らせるために要るので、動きを減らす設定でも残す（UI デザイン 5.7） */
+@keyframes fill-ring {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+.action {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    padding: 2px;
+    box-sizing: border-box;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: var(--surface);
+}
