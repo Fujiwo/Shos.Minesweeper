@@ -5,10 +5,9 @@ name: GitHub Pages に公開
 on:
   workflow_dispatch:
 
+# 既定はソースを読むだけにし、GitHub Pages への配置に要る権限は deploy のジョブだけに与える
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 # 公開を 2 つ同時に走らせない。走っている公開は途中で止めない
 concurrency:
@@ -56,6 +55,9 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
