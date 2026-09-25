@@ -45,11 +45,6 @@ h2 {
     font-size: 22px;
 }
 
-h2:focus-visible {
-    outline: 3px solid var(--focus);
-    outline-offset: 2px;
-}
-
 .time,
 .best-time {
     margin: 12px 0 0;
@@ -79,25 +74,7 @@ h2:focus-visible {
 }
 
 button {
-    box-sizing: border-box;
     min-width: 88px;
     height: 44px;
     padding: 0 12px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface);
-    color: var(--text);
-    font: inherit;
-    cursor: pointer;
-}
-
-button:focus-visible {
-    outline: 3px solid var(--focus);
-    outline-offset: 2px;
-}
-
-@media (hover: hover) {
-    button:hover {
-        background: color-mix(in srgb, var(--surface), var(--text) 8%);
-    }
 }

@@ -4,7 +4,7 @@ using Shos.Minesweeper.GameLogic;
 
 namespace Shos.Minesweeper.Tests.Components;
 
-public class BoardAreaTests : ComponentTestBase
+public class BoardAreaTests : AppTestContext
 {
     [Fact]
     public void ContentIsNotRenderedUntilTheAreaSizeIsKnown()

@@ -6,6 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Web ブラウザーで遊べるマインスイーパーを作る。
 - 難易度: 初級 / 中級 / 上級 / カスタム
 - 公開: 静的サイトとして配置（Blazor WebAssembly スタンドアロン）
+- 今後: Web 版を公開（工程 16）まで終えた後に、`Shos.Minesweeper.GameLogic` を共有する WPF 版とコンソール版を、新しい一巡（仕様書から公開まで）として作る。Web 版の工程の間は、そのための先回りの抽象を作らない
 
 ## 動作環境
 スマートフォン、タブレット、PC の各ブラウザーで動作すること。
@@ -14,7 +15,7 @@ Web ブラウザーで遊べるマインスイーパーを作る。
 - 画面: 縦向きと横向きの両方で、画面サイズに合わせたレイアウトにする（レスポンシブ）
 
 ## 開発手順
-現在の工程: 11. 実装（工程が承認されたら、Claude がこの行を次の工程に更新する）
+現在の工程: 12. リファクタリング（工程が承認されたら、Claude がこの行を次の工程に更新する）
 
 各工程の成果物は `docs/` に Markdown で作る（図は Mermaid）。
 **各工程が終わったらユーザーの承認を得て、承認されてから次の工程に進むこと。**
@@ -95,13 +96,15 @@ Web ブラウザーで遊べるマインスイーパーを作る。
 実装（工程 11）は、クラス設計書（docs/05-class-design.md）の 8 章の区切り 1〜7 をすべて終えた。区切りごとのレビューと、実際のブラウザーで確かめたことは docs/reviews/code-review.md にある。工程 13（結合テスト）で確かめることも、そこの「まだ確かめていないこと」にまとめてある。文書の進み具合は「開発手順」の「現在の工程」を見ること。
 
 ## コマンド
-ソリューションは新しい XML 形式の `Shos.Minesweeper.slnx` で、次の 3 つのプロジェクトがある。
+ソリューションは新しい XML 形式の `Shos.Minesweeper.slnx` で、次の 5 つのプロジェクトがある。
 
 | プロジェクト | 内容 |
 |--------------|------|
 | `Shos.Minesweeper.GameLogic` | ゲームのルール（クラスライブラリ）。UI に依存しない |
 | `Shos.Minesweeper` | Blazor WebAssembly アプリ |
-| `Shos.Minesweeper.Tests` | テスト（xUnit v3。コンポーネントのテストには bUnit を使う） |
+| `Shos.Minesweeper.GameLogic.Tests` | GameLogic のテスト（xUnit v3）。Web アプリに依存しない |
+| `Shos.Minesweeper.Tests` | Web アプリのテスト（xUnit v3。コンポーネントのテストには bUnit を使う） |
+| `Shos.Minesweeper.TestSupport` | テストの共通の補助（盤面を文字の絵で書く `TestGames`）。クラスライブラリ |
 
 ```bash
 dotnet build Shos.Minesweeper.slnx
@@ -110,13 +113,14 @@ dotnet run --project Shos.Minesweeper --launch-profile https  # https://localhos
 dotnet watch --project Shos.Minesweeper                      # ホットリロード
 dotnet publish Shos.Minesweeper -c Release                   # 静的ファイルとして bin/Release/net10.0/publish/wwwroot に出力
 
-dotnet test --project Shos.Minesweeper.Tests                                                        # 全テスト
-dotnet test --project Shos.Minesweeper.Tests --filter-class "Shos.Minesweeper.Tests.GameLogic.BoardTests"  # 1 つのテストクラス
-dotnet test --project Shos.Minesweeper.Tests --filter-method "*FirstOpenStartsTheGame"               # 1 件（ワイルドカード可）
+dotnet test                                                                                          # 全テスト（リポジトリ直下で。global.json と slnx を見つける）
+dotnet test --project Shos.Minesweeper.GameLogic.Tests                                               # GameLogic のテストだけ（Web アプリをビルドしない）
+dotnet test --project Shos.Minesweeper.GameLogic.Tests --filter-class "Shos.Minesweeper.GameLogic.Tests.BoardTests"  # 1 つのテストクラス
+dotnet test --project Shos.Minesweeper.Tests --filter-method "*ClickingACellOpensIt"                 # 1 件（ワイルドカード可）
 ```
 
-- Visual Studio でアプリをデバッグ実行している間や、MSBuild の常駐プロセスが残っている間や、VS Code の C# Dev Kit がファイルの変更を受けてビルドしている間は、コマンドラインのビルドが `obj/Debug/net10.0/tmp-webcil` を消せずに失敗する（MSB4018）ことがある。デバッグ実行を止め、`dotnet build-server shutdown` を実行してからビルドし直す。C# Dev Kit のビルドと重なったときは、30 秒ほど待ってからやり直すと通る。環境変数 `MSBUILDDISABLENODEREUSE=1` を設定しておくと、常駐プロセスが残りにくい。
-- テストは Microsoft.Testing.Platform で動かす。リポジトリ直下の `global.json` でこのモードを選んでいる（.NET 10 の SDK では、xUnit v3 のテストを従来の VSTest のモードで `dotnet test` できないため）。そのため、テストの絞り込みは `--filter` ではなく、`--filter-class`・`--filter-method` などの xUnit のオプションで行う。
+- Visual Studio でアプリをデバッグ実行している間や、MSBuild の常駐プロセスが残っている間や、VS Code の C# Dev Kit がファイルの変更を受けてビルドしている間は、コマンドラインのビルドが `obj/Debug/net10.0/tmp-webcil` を消せずに失敗する（MSB4018）ことがある。デバッグ実行を止め、`dotnet build-server shutdown` を実行してからビルドし直す。C# Dev Kit のビルドと重なったときは、30 秒ほど待ってからやり直すと通る。`dotnet test` の中のビルドがロックに当たったときは、`dotnet build` が通った後に `dotnet test --no-build` でテストだけを流せる。環境変数 `MSBUILDDISABLENODEREUSE=1` を設定しておくと、常駐プロセスが残りにくい。
+- テストは Microsoft.Testing.Platform で動かす。リポジトリ直下の `global.json` でこのモードを選んでいる（.NET 10 の SDK では、xUnit v3 のテストを従来の VSTest のモードで `dotnet test` できないため）。そのため、テストの絞り込みは `--filter` ではなく、`--filter-class`・`--filter-method` などの xUnit のオプションで行う。絞り込みは `--project` でテストプロジェクトを指定して行う（ソリューション全体に絞り込みを付けると、当てはまるテストのないプロジェクトが失敗扱いになりうる）。
 
 ## 構成とポイント
 - `Program.cs` で `App` を `#app` に、`HeadOutlet` を `head::after` にマウントする。サーバー側はなく、すべてブラウザー内で動く。

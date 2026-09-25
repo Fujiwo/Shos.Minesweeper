@@ -1,6 +1,5 @@
-using Shos.Minesweeper.GameLogic;
 
-namespace Shos.Minesweeper.Tests.GameLogic;
+namespace Shos.Minesweeper.GameLogic.Tests;
 
 public class DifficultyTests
 {

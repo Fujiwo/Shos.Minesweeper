@@ -1,16 +1,14 @@
-using AngleSharp.Dom;
 using Bunit;
-using Microsoft.AspNetCore.Components.Web;
 using Shos.Minesweeper.Components;
 using Shos.Minesweeper.Display;
 using Shos.Minesweeper.GameLogic;
 using Shos.Minesweeper.Input;
-using Shos.Minesweeper.Tests.GameLogic;
+using Shos.Minesweeper.TestSupport;
 
 namespace Shos.Minesweeper.Tests.Components;
 
 /// <summary>盤面のマウスとタッチの操作（仕様書 4.1、4.4、UI デザイン 5.1、5.2）。</summary>
-public class BoardViewPointerTests : ComponentTestBase
+public class BoardViewPointerTests : AppTestContext
 {
     // (2, 0) から開くと、左の 2 列が開き、(1, 1) は周りに未開放の地雷が 3 つある「3」になる
     readonly Game game = TestGames.FromPicture(TestGames.WallPicture);
@@ -266,17 +264,4 @@ public class BoardViewPointerTests : ComponentTestBase
                .Add(board => board.OnOpen, (CellPosition position) => opened.Add(position))
                .Add(board => board.OnToggleFlag, (CellPosition position) => flagged.Add(position))
                .Add(board => board.OnPressingChanged, (bool isPressing) => pressingChanges.Add(isPressing)));
-
-    // pointerdown はマスで、それ以外は盤面の要素で受ける（クラス設計書 5.2 の BoardView）
-    static void Click(IRenderedComponent<BoardView> cut, string cellSelector, PointerEventArgs pointer)
-    {
-        cut.Find(cellSelector).PointerDown(pointer);
-        cut.Find("[role=grid]").PointerUp(pointer);
-    }
-
-    static PointerEventArgs Mouse(long button = 0)
-        => new() { PointerId = 1, PointerType = "mouse", Button = button, ClientX = 100, ClientY = 100 };
-
-    static PointerEventArgs Touch(double x = 100, double y = 100, double offsetX = 10, double offsetY = 10)
-        => new() { PointerId = 1, PointerType = "touch", Button = 0, ClientX = x, ClientY = y, OffsetX = offsetX, OffsetY = offsetY };
 }

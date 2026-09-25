@@ -3,12 +3,12 @@ using Microsoft.AspNetCore.Components.Web;
 using Shos.Minesweeper.Components;
 using Shos.Minesweeper.Display;
 using Shos.Minesweeper.GameLogic;
-using Shos.Minesweeper.Tests.GameLogic;
+using Shos.Minesweeper.TestSupport;
 
 namespace Shos.Minesweeper.Tests.Components;
 
 /// <summary>盤面のキーボードの操作（仕様書 4.5、UI デザイン 6.3）。</summary>
-public class BoardViewKeyboardTests : ComponentTestBase
+public class BoardViewKeyboardTests : AppTestContext
 {
     readonly List<CellPosition> opened = [];
     readonly List<CellPosition> flagged = [];

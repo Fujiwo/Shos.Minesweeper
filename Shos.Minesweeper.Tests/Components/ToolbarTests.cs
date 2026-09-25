@@ -1,12 +1,12 @@
 using Bunit;
 using Shos.Minesweeper.Components;
 using Shos.Minesweeper.GameLogic;
-using Shos.Minesweeper.Tests.GameLogic;
+using Shos.Minesweeper.TestSupport;
 
 namespace Shos.Minesweeper.Tests.Components;
 
 /// <summary>ツールバー（UI デザイン 2.2、4.4 の顔、5.3、6.4）。</summary>
-public class ToolbarTests : ComponentTestBase
+public class ToolbarTests : AppTestContext
 {
     int difficultyClicks;
     int resetClicks;

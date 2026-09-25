@@ -1,14 +1,15 @@
 using Microsoft.Extensions.Time.Testing;
 using Shos.Minesweeper.GameLogic;
+using Xunit;
 
-namespace Shos.Minesweeper.Tests.GameLogic;
+namespace Shos.Minesweeper.TestSupport;
 
 /// <summary>
 /// 盤面を文字の絵で与え、結果も絵で比べるための補助。
 /// 与える絵: * 地雷、. 地雷なし。
 /// 結果の絵: # 未開放、F 旗、. 空白、1〜8 数字、* 地雷、X 踏んだ地雷、x 誤った旗。
 /// </summary>
-static class TestGames
+public static class TestGames
 {
     /// <summary>真ん中の列が地雷の壁になっていて、左側から開いても右側には広がらない盤面。</summary>
     public const string WallPicture = """

@@ -72,6 +72,33 @@ body {
     font-size: 16px;
 }
 
+/*
+ * 押せる要素（ボタン）の基本の見た目と、フォーカスの枠。ページ全体の決まりとしてここに置き、
+ * 各コンポーネントの CSS には、大きさなど固有の指定だけを置く（UI デザイン 2.2、6.3）
+ */
+button {
+    box-sizing: border-box;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+}
+
+/* 指したときは少し暗く（ダークでは少し明るく）する。文字の色に寄せれば、どちらの配色でも同じ書き方で済む（UI デザイン 5.6） */
+@media (hover: hover) {
+    button:hover {
+        background: color-mix(in srgb, var(--surface), var(--text) 8%);
+    }
+}
+
+/* キーボードで操作しているときのフォーカスの枠: focus の色の 3px を 2px 離して表示する */
+:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+}
+
 /* 画面には出さず、スクリーンリーダーには読ませる */
 .visually-hidden {
     position: absolute;

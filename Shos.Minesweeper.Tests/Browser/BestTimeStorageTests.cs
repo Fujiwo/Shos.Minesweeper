@@ -2,12 +2,11 @@ using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Shos.Minesweeper.Browser;
 using Shos.Minesweeper.GameLogic;
-using Shos.Minesweeper.Tests.Components;
 
 namespace Shos.Minesweeper.Tests.Browser;
 
 /// <summary>ベストタイムの保存（仕様書 3.8、6.4、アーキテクチャー設計書 10 章）。localStorage は bUnit の JavaScript の偽物で受ける。</summary>
-public class BestTimeStorageTests : ComponentTestBase
+public class BestTimeStorageTests : AppTestContext
 {
     [Fact]
     public async Task NothingStoredMeansNoRecords()

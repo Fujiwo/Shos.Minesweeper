@@ -1,6 +1,6 @@
-using Shos.Minesweeper.GameLogic;
+using Shos.Minesweeper.TestSupport;
 
-namespace Shos.Minesweeper.Tests.GameLogic;
+namespace Shos.Minesweeper.GameLogic.Tests;
 
 /// <summary>盤面の規則（仕様書 3.4、3.5）。盤面を変えられるのは Game だけなので、Game を通して確かめる。</summary>
 public class BoardTests

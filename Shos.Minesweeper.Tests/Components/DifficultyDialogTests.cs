@@ -1,6 +1,5 @@
 using AngleSharp.Dom;
 using Bunit;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Shos.Minesweeper.Components;
 using Shos.Minesweeper.GameLogic;
@@ -8,7 +7,7 @@ using Shos.Minesweeper.GameLogic;
 namespace Shos.Minesweeper.Tests.Components;
 
 /// <summary>難易度ダイアログ（仕様書 3.1、UI デザイン 2.3、6.3、クラス設計書 9.1 の決定 1、4）。</summary>
-public class DifficultyDialogTests : ComponentTestBase
+public class DifficultyDialogTests : AppTestContext
 {
     readonly List<Difficulty> selected = [];
     int closeCount;
@@ -139,15 +138,13 @@ public class DifficultyDialogTests : ComponentTestBase
     public void FocusMovesToTheFirstInvalidField()
     {
         var cut = RenderDialog(Difficulty.Beginner);
-        // bUnit は、描き直した要素の参照の印（blazor:elementreference）を空にするので、最初の描画の印を取っておいて比べる
-        var heightInputId = cut.Find("#custom-height").GetAttribute("blazor:elementreference");
+        var heightInputId = ElementReferenceIdOf(cut.Find("#custom-height"));
         cut.Find("#custom-height").Input("4");
         cut.Find("#custom-mine-count").Input("0");
 
         cut.Find("button.start-custom").Click();
 
-        var focused = (ElementReference)JSInterop.VerifyFocusAsyncInvoke(calledTimes: 2)[1].Arguments[0]!;
-        Assert.Equal(heightInputId, focused.Id);
+        Assert.Equal(heightInputId, LastFocusedId());
     }
 
     [Fact]

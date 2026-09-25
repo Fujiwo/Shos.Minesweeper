@@ -6,7 +6,7 @@ using Shos.Minesweeper.GameLogic;
 namespace Shos.Minesweeper.Tests.Components;
 
 /// <summary>勝利カード（UI デザイン 2.4）。</summary>
-public class WinCardTests : ComponentTestBase
+public class WinCardTests : AppTestContext
 {
     int playAgainCount;
     int closeCount;

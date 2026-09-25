@@ -2,11 +2,11 @@ using Bunit;
 using Shos.Minesweeper.Components;
 using Shos.Minesweeper.Display;
 using Shos.Minesweeper.GameLogic;
-using Shos.Minesweeper.Tests.GameLogic;
+using Shos.Minesweeper.TestSupport;
 
 namespace Shos.Minesweeper.Tests.Components;
 
-public class BoardViewTests : ComponentTestBase
+public class BoardViewTests : AppTestContext
 {
     // スマートフォンの縦画面（390×700）の上級。16 列×30 行、マス 21px で表示する
     static readonly BoardPlacement TransposedExpert = BoardPlacement.Calculate(382, 636, Difficulty.Expert);

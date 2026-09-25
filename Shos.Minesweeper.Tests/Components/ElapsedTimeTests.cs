@@ -1,12 +1,12 @@
 using Bunit;
 using Shos.Minesweeper.Components;
 using Shos.Minesweeper.GameLogic;
-using Shos.Minesweeper.Tests.GameLogic;
+using Shos.Minesweeper.TestSupport;
 
 namespace Shos.Minesweeper.Tests.Components;
 
 /// <summary>経過時間の表示（仕様書 3.7、UI デザイン 2.2、6.4、アーキテクチャー設計書 7.3）。</summary>
-public class ElapsedTimeTests : ComponentTestBase
+public class ElapsedTimeTests : AppTestContext
 {
     [Fact]
     public void ElapsedTimeIsZeroBeforeTheGameStarts()

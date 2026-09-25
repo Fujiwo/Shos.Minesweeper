@@ -78,8 +78,9 @@ Shos.Minesweeper.slnx
 │       ├─ css/app.css                配色のトークン、ページ全体のスタイル
 │       ├─ js/browser.js              JavaScript の機能（9 章）
 │       └─ index.html
-└─ Shos.Minesweeper.Tests/            テストプロジェクト（xUnit ＋ bUnit）
-    ├─ GameLogic/                     GameLogic のテスト
+├─ Shos.Minesweeper.GameLogic.Tests/  GameLogic のテスト（xUnit）
+├─ Shos.Minesweeper.TestSupport/      テストの共通の補助（クラスライブラリ）。盤面を文字の絵で書く TestGames
+└─ Shos.Minesweeper.Tests/            アプリのテスト（xUnit ＋ bUnit）
     ├─ Input/、Display/、Browser/     アプリの C# クラスのテスト
     └─ Components/                   コンポーネントのテスト（bUnit）
 ```
@@ -89,7 +90,10 @@ Shos.Minesweeper.slnx
 ```mermaid
 flowchart LR
     Tests["Shos.Minesweeper.Tests"] --> AppProject["Shos.Minesweeper"]
-    Tests --> GameLogic["Shos.Minesweeper.GameLogic"]
+    Tests --> TestSupport["Shos.Minesweeper.TestSupport"]
+    GameLogicTests["Shos.Minesweeper.GameLogic.Tests"] --> GameLogic["Shos.Minesweeper.GameLogic"]
+    GameLogicTests --> TestSupport
+    TestSupport --> GameLogic
     AppProject --> GameLogic
 ```
 
@@ -98,10 +102,12 @@ flowchart LR
 - 「ルールは UI に依存しない」という方針を、コンパイラーで守れる。GameLogic のプロジェクトは Blazor のパッケージを参照しないので、UI の型を使うとビルドが通らない。
 - 同じプロジェクトのフォルダーで分ける案も考えた。ファイルは 1 つ少なくて済むが、依存の向きを人が見張り続けることになる。プロジェクトを 1 つ増やす手間は一度きりなので、プロジェクトを分ける。
 
-**テストプロジェクトを 1 つにする理由**
+**テストプロジェクトを GameLogic 用とアプリ用に分ける理由**
 
-- `dotnet test` を 1 回実行すれば、すべてのテストが走る。
-- GameLogic のテストと、アプリのテストで、テストプロジェクトを分ける案も考えた。GameLogic のテストが bUnit を参照しなくて済むが、分けても得るものがほとんどない。テストはフォルダーで分ける。
+- Web 版の公開の後に、GameLogic を使う WPF 版とコンソール版を作ると決めた（CLAUDE.md の「目的」）。GameLogic のテストは、どのアプリにも依存しないようにしておく。GameLogic のテストだけを流すときに、Web アプリと bUnit のビルドが要らない。
+- 盤面を文字の絵で書く補助（`TestGames`）は、GameLogic のテストとアプリのテストの両方で使うので、小さなクラスライブラリ（`TestSupport`）に置く。xUnit v3 のテストプロジェクトは実行ファイルになるので、テストプロジェクトどうしを参照させない。
+- すべてのテストは、ソリューションを指定した `dotnet test` の 1 回で走る。
+- 初めは、分けても得るものがほとんどないとして 1 つにしていた。WPF 版とコンソール版を作ると決めたので、工程 12（リファクタリング）で分けた（docs/reviews/code-review.md の工程 12 の R1）。
 
 **名前**
 
@@ -419,7 +425,7 @@ HTML の `<dialog>` 要素の `showModal()` は、フォーカスの閉じ込め
 
 | ファイル | 内容 |
 |----------|------|
-| `wwwroot/css/app.css` | 配色のトークン（UI 4.1。CSS のカスタム プロパティ）、ライトとダークの切り替え、ページ全体のレイアウト（上バーと横バー）、読み込み中とエラーの表示 |
+| `wwwroot/css/app.css` | 配色のトークン（UI 4.1。CSS のカスタム プロパティ）、ライトとダークの切り替え、ページ全体の決まり（ボタンの基本の見た目、フォーカスの枠。UI 2.2、6.3）、読み込み中とエラーの表示 |
 | 各コンポーネントの `*.razor.css` | そのコンポーネントの見た目（CSS の分離） |
 
 CSS の分離を使うので、`index.html` でコメントアウトされている `Shos.Minesweeper.styles.css` の `<link>` を有効にする（CLAUDE.md の「構成とポイント」）。

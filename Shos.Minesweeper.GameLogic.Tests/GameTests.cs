@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Time.Testing;
-using Shos.Minesweeper.GameLogic;
+using Shos.Minesweeper.TestSupport;
 
-namespace Shos.Minesweeper.Tests.GameLogic;
+namespace Shos.Minesweeper.GameLogic.Tests;
 
 public class GameTests
 {

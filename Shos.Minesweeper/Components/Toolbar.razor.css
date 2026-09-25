@@ -13,7 +13,6 @@
 
 /* 押せる要素は 44×44px 以上にし、押せない要素（残り地雷数、経過時間）には枠を付けない（UI デザイン 1.1、2.2） */
 button {
-    box-sizing: border-box;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -21,24 +20,6 @@ button {
     min-width: 44px;
     height: 44px;
     padding: 0 8px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface);
-    color: var(--text);
-    font: inherit;
-    cursor: pointer;
-}
-
-button:focus-visible {
-    outline: 3px solid var(--focus);
-    outline-offset: 2px;
-}
-
-/* 指したときは少し暗く（ダークでは少し明るく）する。文字の色に寄せれば、どちらの配色でも同じ書き方で済む */
-@media (hover: hover) {
-    button:hover {
-        background: color-mix(in srgb, var(--surface), var(--text) 8%);
-    }
 }
 
 .difficulty {

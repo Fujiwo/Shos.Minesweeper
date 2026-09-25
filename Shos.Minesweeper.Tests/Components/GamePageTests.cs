@@ -1,11 +1,10 @@
 using Bunit;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Shos.Minesweeper.Pages;
 
 namespace Shos.Minesweeper.Tests.Components;
 
-public class GamePageTests : ComponentTestBase
+public class GamePageTests : AppTestContext
 {
     [Fact]
     public async Task PageShowsABeginnerBoardFittingTheArea()
@@ -23,8 +22,7 @@ public class GamePageTests : ComponentTestBase
     {
         var cut = await RenderPageWithBoardAsync();
 
-        cut.Find("#cell-4-4").PointerDown(Mouse(button: 0));
-        cut.Find("[role=grid]").PointerUp(Mouse(button: 0));
+        Click(cut, "#cell-4-4", Mouse());
 
         // 最初に開いたマスは必ず 0 なので、乱数の盤面でも開いた姿が決まる
         Assert.Equal("cell opened", cut.Find("#cell-4-4").ClassName);
@@ -59,8 +57,7 @@ public class GamePageTests : ComponentTestBase
 
         cut.Find("button.flag-mode").Click();
         cut.Find("button.reset").Click();
-        cut.Find("#cell-4-4").PointerDown(Mouse(button: 0));
-        cut.Find("[role=grid]").PointerUp(Mouse(button: 0));
+        Click(cut, "#cell-4-4", Mouse());
 
         Assert.Equal("true", cut.Find("button.flag-mode").GetAttribute("aria-pressed"));
         Assert.Contains("flag-mode", cut.Find("[role=grid]").ClassList);
@@ -72,10 +69,10 @@ public class GamePageTests : ComponentTestBase
     {
         var cut = await RenderPageWithBoardAsync();
 
-        cut.Find("#cell-4-4").PointerDown(Mouse(button: 0));
+        cut.Find("#cell-4-4").PointerDown(Mouse());
         Assert.Equal("FaceSurprised", cut.Find("button.reset svg").GetAttribute("data-kind"));
 
-        cut.Find("[role=grid]").PointerUp(Mouse(button: 0));
+        cut.Find("[role=grid]").PointerUp(Mouse());
         Assert.Equal("FaceNormal", cut.Find("button.reset svg").GetAttribute("data-kind"));
     }
 
@@ -119,8 +116,8 @@ public class GamePageTests : ComponentTestBase
         // 乱数の盤面なので、勝敗が決まるまで未開放のマスを開き続ける
         while (cut.FindAll(".cell.closed").FirstOrDefault() is { } closed
                && cut.Find("button.reset svg").GetAttribute("data-kind") is "FaceNormal") {
-            closed.PointerDown(Mouse(button: 0));
-            cut.Find("[role=grid]").PointerUp(Mouse(button: 0));
+            closed.PointerDown(Mouse());
+            cut.Find("[role=grid]").PointerUp(Mouse());
         }
 
         var announcement = AnnouncementOf(cut);
@@ -174,8 +171,7 @@ public class GamePageTests : ComponentTestBase
         var cut = Render<GamePage>();
         var difficultyButtonId = ElementReferenceIdOf(cut.Find("button.difficulty"));
         await NotifyBoardAreaResizedAsync(352, 576);
-        cut.Find("#cell-4-4").PointerDown(Mouse(button: 0));
-        cut.Find("[role=grid]").PointerUp(Mouse(button: 0));
+        Click(cut, "#cell-4-4", Mouse());
         cut.Find("button.difficulty").Click();
 
         cut.Find("button.close").Click();
@@ -201,8 +197,7 @@ public class GamePageTests : ComponentTestBase
     {
         var cut = await RenderPageWithWinningCustomBoardAsync();
 
-        cut.Find("#cell-2-2").PointerDown(Mouse(button: 0));
-        cut.Find("[role=grid]").PointerUp(Mouse(button: 0));
+        Click(cut, "#cell-2-2", Mouse());
 
         Assert.Equal("クリア！", cut.Find(".win-card h2").TextContent);
         Assert.Empty(cut.FindAll(".win-card .best-time"));   // カスタムは記録しない
@@ -249,8 +244,7 @@ public class GamePageTests : ComponentTestBase
     {
         await NotifyBoardAreaResizedAsync(352, 576);
         StartWinningCustomGame(cut);
-        cut.Find("#cell-2-2").PointerDown(Mouse(button: 0));
-        cut.Find("[role=grid]").PointerUp(Mouse(button: 0));
+        Click(cut, "#cell-2-2", Mouse());
     }
 
     // 5×5・地雷 16 は、最初に開いたマスとその周り 9 マス以外がすべて地雷になるので、最初の一手で必ず勝つ（仕様書 3.2）
@@ -263,12 +257,6 @@ public class GamePageTests : ComponentTestBase
         cut.Find("button.start-custom").Click();
     }
 
-    // bUnit は、描き直した要素の参照の印を空にするので、最初の描画の印を取っておいて比べる
-    static string? ElementReferenceIdOf(AngleSharp.Dom.IElement element) => element.GetAttribute("blazor:elementreference");
-
-    string LastFocusedId()
-        => ((ElementReference)JSInterop.Invocations.Last(invocation => invocation.Identifier.EndsWith("focus")).Arguments[0]!).Id;
-
     static string AnnouncementOf(IRenderedComponent<GamePage> cut)
         => cut.Find("[aria-live=polite]").TextContent.Replace("\u200B", "").Trim();
 
@@ -279,7 +267,4 @@ public class GamePageTests : ComponentTestBase
         cut.WaitForElement("[role=grid]");
         return cut;
     }
-
-    static PointerEventArgs Mouse(long button)
-        => new() { PointerId = 1, PointerType = "mouse", Button = button, ClientX = 100, ClientY = 100 };
 }

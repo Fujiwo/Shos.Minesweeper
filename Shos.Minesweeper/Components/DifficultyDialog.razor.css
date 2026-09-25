@@ -40,28 +40,6 @@ h3 {
     font-size: 16px;
 }
 
-button {
-    box-sizing: border-box;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface);
-    color: var(--text);
-    font: inherit;
-    cursor: pointer;
-}
-
-button:focus-visible,
-input:focus-visible {
-    outline: 3px solid var(--focus);
-    outline-offset: 2px;
-}
-
-@media (hover: hover) {
-    button:hover {
-        background: color-mix(in srgb, var(--surface), var(--text) 8%);
-    }
-}
-
 .close {
     width: 44px;
     height: 44px;

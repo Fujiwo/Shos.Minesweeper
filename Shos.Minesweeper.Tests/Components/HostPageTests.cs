@@ -5,7 +5,7 @@ using Shos.Minesweeper.Pages;
 namespace Shos.Minesweeper.Tests.Components;
 
 /// <summary>ホストページ（wwwroot/index.html）と、見つからないときのページ（UI デザイン 2.5、仕様書 5.5）。</summary>
-public class HostPageTests : ComponentTestBase
+public class HostPageTests : AppTestContext
 {
     static readonly Lazy<AngleSharp.Html.Dom.IHtmlDocument> IndexHtml = new(() =>
         new HtmlParser().ParseDocument(File.ReadAllText(Path.Combine(RepositoryRoot(), "Shos.Minesweeper", "wwwroot", "index.html"))));

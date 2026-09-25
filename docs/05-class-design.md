@@ -905,22 +905,33 @@ builder.Services.AddScoped<BestTimeStorage>();
 
 ### 7.1 テストプロジェクト
 
-`Shos.Minesweeper.Tests`（`net10.0`）を作り、`Shos.Minesweeper` と `Shos.Minesweeper.GameLogic` を参照する。使うパッケージは、xUnit、bUnit、`Microsoft.Extensions.TimeProvider.Testing`（`FakeTimeProvider`）である。版は工程 11 で、その時点の最新の安定版にする。
+テストは次の 3 つのプロジェクト（すべて `net10.0`）に分ける。使うパッケージは、xUnit、bUnit、`Microsoft.Extensions.TimeProvider.Testing`（`FakeTimeProvider`）である。版は工程 11 で、その時点の最新の安定版にする。
+
+| プロジェクト | 中身 | 参照 |
+|--------------|------|------|
+| `Shos.Minesweeper.GameLogic.Tests` | GameLogic のテスト（xUnit） | GameLogic、TestSupport |
+| `Shos.Minesweeper.Tests` | Web アプリの C# クラスとコンポーネントのテスト（xUnit ＋ bUnit） | Web アプリ、TestSupport |
+| `Shos.Minesweeper.TestSupport` | テストの共通の補助（`TestGames`。クラスライブラリ） | GameLogic |
+
+- 初めは 1 つのプロジェクトにしていた。Web 版の公開の後に WPF 版とコンソール版を作ると決めたので、GameLogic のテストがどのアプリにも依存しないように、工程 12（リファクタリング）で分けた（アーキテクチャー設計書 4 章、docs/reviews/code-review.md の工程 12 の R1）。
 
 - 工程 11 の時点の最新の安定版は xUnit v3（`xunit.v3` 4.0.1）で、.NET 10 の SDK では Microsoft.Testing.Platform で動かす必要がある。そこで、リポジトリ直下に `global.json` を置いてこのモードを選び、VSTest 用のパッケージ（`Microsoft.NET.Test.Sdk`、`xunit.runner.visualstudio`）は入れない（docs/reviews/code-review.md の区切り 1）。
 
 ```text
+Shos.Minesweeper.GameLogic.Tests/   DifficultyTests, BoardTests, GameTests, BestTimesTests
+Shos.Minesweeper.TestSupport/       TestGames（補助）
 Shos.Minesweeper.Tests/
-├─ GameLogic/    DifficultyTests, BoardTests, GameTests, BestTimesTests, TestGames（補助）
+├─ AppTestContext.cs  Web アプリのテストの共通の準備（DI、時刻の偽物、JavaScript の偽物、ポインターのイベントを作る補助など）
 ├─ Input/        PressGestureTests, InputMappingTests, BoardCursorTests
-├─ Display/      BoardPlacementTests, CellPresentationTests, AnnouncementsTests
+├─ Display/      BoardPlacementTests, CellPresentationTests, DifficultyNamesTests, AnnouncementsTests
 ├─ Browser/      BestTimeStorageTests
-└─ Components/   GamePageTests, ToolbarTests, BoardViewTests, DifficultyDialogTests, WinCardTests
+└─ Components/   GamePageTests, ToolbarTests, ElapsedTimeTests, BoardAreaTests, BoardViewTests, BoardViewPointerTests,
+                 BoardViewKeyboardTests, DifficultyDialogTests, WinCardTests, HostPageTests
 ```
 
 ### 7.2 盤面を絵で書く補助
 
-GameLogic のテストでは、盤面を文字の絵で与え、結果も絵で比べる。テストを読んだだけで、どの盤面で何を確かめているかが分かるようにするためである。
+GameLogic のテストでは、盤面を文字の絵で与え、結果も絵で比べる。テストを読んだだけで、どの盤面で何を確かめているかが分かるようにするためである。この補助（`TestGames`）は `Shos.Minesweeper.TestSupport` に置き、アプリのテスト（盤面を決めたいコンポーネントのテスト）でも使う。
 
 ```csharp
 var game = TestGames.FromPicture("""
