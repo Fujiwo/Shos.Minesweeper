@@ -15,7 +15,7 @@
 | 5 | キーボードと読み上げ | 指摘をすべて反映済み。ユーザーが承認した（2026-09-25） |
 | 6 | 難易度とベストタイム | 指摘をすべて反映済み。ユーザーが承認した（2026-09-25） |
 | 7 | ページ全体の仕上げ | 指摘をすべて反映済み。ユーザーが承認した（2026-09-26） |
-| 工程 12 のやり直し | R5 の後のコード全体（「工程 12: コードレビューのやり直し」） | ユーザーの承認待ち。指摘は、リファクタリングのやり直しで反映する |
+| 工程 12 のやり直し | R5 の後のコード全体（「工程 12: コードレビューのやり直し」） | ユーザーが承認した（2026-09-26）。指摘は、リファクタリングのやり直しで反映する |
 
 ## 区切り 1: テストの土台とゲームのルール
 
@@ -558,3 +558,38 @@ R1〜R4 の承認の後に、ユーザーの指示で R5 を追加した。WPF �
 - `dotnet test`: 383 件すべて成功
 - `dotnet format style Shos.Minesweeper.slnx --diagnostics IDE0005 --severity info --verify-no-changes`: 指摘なし（ファイルは変えていない）
 - このレビューでは、コードを変えていない
+
+### ユーザーの確認事項の扱い
+
+指摘 2（`InputMapping` を `PressMapping` に変えるか）は、確認事項として挙げ、ユーザーは個別の回答をせずにレビューを承認した（2026-09-26）。これまでの前例（docs/reviews/02-spec-review.md）に従い、推した案どおり、名前を変えることで確定した。
+
+## 工程 12: リファクタリングのやり直し
+
+| 項目 | 内容 |
+|------|------|
+| 作成日 | 2026-09-26 |
+| 状態 | 対象の一覧の案。ユーザーの承認を待っている |
+| 観点 | 「コードレビューのやり直し」の指摘 1〜4。sustainable-code-jp スキルの「リファクタリング」 |
+
+### 対象の一覧（案）
+
+| # | 場所 | 臭い（症状の根拠） | 技法 | 出どころ |
+|---|------|--------------------|------|----------|
+| RR1 | `Presentation/BestTimesJson`、`Presentation.Tests/BestTimesJsonTests` | 置き場所と中身の不一致（保存の形式が、表示と入力の部品のプロジェクトにある） | 責務の移動: GameLogic（名前空間 `Shos.Minesweeper.GameLogic`）と GameLogic.Tests へ `git mv` で移す。`BestTimeStorage` の `using`、`BestTimeStorageTests` のコメント、Presentation の csproj のコメントを直す | 指摘 1 |
+| RR2 | `BestTimesJson.Parse`・`RootObjectOf` | 後始末の漏れ（`JsonDocument` を破棄していない） | メソッドの形を変える: 文書を返す補助（`DocumentOf`）にし、`Parse` の中で `using` で持つ | 指摘 3 |
+| RR3 | `BestTimeStorageTests.UnreadableStorageMeansNoRecords` | 重複したコード（テスト）（`"not json"` を形式のテストでも確かめている） | 重複の削除: `null` の場合だけを残し、`[Fact]` にする（テストは 383 件から 382 件になる） | 指摘 4 |
+| RR4 | `Presentation/InputMapping`、`InputMappingTests` | 不適切な名前（押し方の割り当てだけなのに、入力全体を指す名前） | 名前の変更: `PressMapping`、`PressMappingTests`。`git mv` でファイル名も変える | 指摘 2 |
+
+進め方: RR1 → RR2（移した後の場所で直す）→ RR3 → RR4 の順に、一手ごとに全テストを流して Green を保つ。振る舞いは変えない。
+
+反映する文書:
+
+| 文書 | 変更 |
+|------|------|
+| クラス設計書 | 状態と 3.7 の「コードはリファクタリングのやり直しで移す」を、移したことに改める（RR1）。`InputMapping` を `PressMapping` に改める（RR4） |
+| アーキテクチャー設計書 | `InputMapping` を `PressMapping` に改める（RR4） |
+| CLAUDE.md | 変えない（「目的」と「コマンド」は、すでに `BestTimesJson` を GameLogic に置く書き方になっている）。やり直しが済んだら「コードの現状」を直す |
+
+見送るもの: 工程 12 の「見送るもの」から変わらない。
+
+最後に全テストが Green であることを確かめる。ブラウザーでの確認は、続く工程 13 で行う。
