@@ -65,7 +65,7 @@ Web 版の最初の版（1.0.0）を、GitHub Pages のプロジェクト サイ
 | 5 | 確認が済んだら、公開したコミットに `v1.0.0` のタグを付けて push する（ユーザーの指示で行う） | Claude（指示を受けて）かユーザー | `origin` に `v1.0.0` のタグがある |
 | 6 | 公開後の確認の結果を、docs/reviews/06-release-review.md に追記する | Claude | — |
 
-- ワークフローで使う Actions の版（`actions/checkout@v4`、`actions/setup-dotnet@v4`、`actions/upload-pages-artifact@v3`、`actions/deploy-pages@v4`）は、2026-09-26 に書いたものである。手順 3 で「古い版」の警告が出たら、その版を上げてから起動し直す。
+- ワークフローで使う Actions の版は、`actions/checkout@v7`、`actions/setup-dotnet@v6`、`actions/upload-pages-artifact@v5`、`actions/deploy-pages@v5` である（2026-09-26 の 1.0.0 の公開の後に、Node.js 20 の廃止の警告を受けて、その時点の最新に上げた。docs/reviews/06-release-review.md）。手順 3 で「古い版」の警告が出たら、その版を上げてから起動し直す。`upload-pages-artifact` は v4 から `.` で始まるファイルを既定で含めないので、`.nojekyll` のために `include-hidden-files: true` を指定している。
 - 手順 3 のワークフローが失敗したら、公開はされない（前の状態のまま）。ログを見て原因を直し、工程 15 の確認項目のうち、直した部分に関わるものを確かめ直してから起動し直す。
 
 ## 5. 確認項目（リリースレビュー、工程 15）

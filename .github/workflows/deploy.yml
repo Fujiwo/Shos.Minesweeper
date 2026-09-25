@@ -22,9 +22,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
 
@@ -48,9 +48,11 @@ jobs:
           # _framework などのフォルダーを、Jekyll の処理にかけずにそのまま配る（調査書 8.5）
           touch .nojekyll
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: publish/wwwroot
+          # v4 からは . で始まるファイルを既定で含めないので、.nojekyll を含めるために指定する
+          include-hidden-files: true
 
   deploy:
     needs: build
@@ -63,4 +65,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
