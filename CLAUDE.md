@@ -15,7 +15,7 @@ Web ブラウザーで遊べるマインスイーパーを作る。
 - 画面: 縦向きと横向きの両方で、画面サイズに合わせたレイアウトにする（レスポンシブ）
 
 ## 開発手順
-現在の工程: 13. 結合テストとデバッグ（工程が承認されたら、Claude がこの行を次の工程に更新する）
+現在の工程: 14. リリース準備（工程が承認されたら、Claude がこの行を次の工程に更新する）
 
 各工程の成果物は `docs/` に Markdown で作る（図は Mermaid）。
 **各工程が終わったらユーザーの承認を得て、承認されてから次の工程に進むこと。**
@@ -133,5 +133,6 @@ dotnet test --project Shos.Minesweeper.Tests --filter-method "*ClickingACellOpen
 - `wwwroot/index.html` はホストページである。csproj で `OverrideHtmlAssetPlaceholders` が有効なので、`<script type="importmap">`、`<link rel="preload" id="webassembly">`、`blazor.webassembly#[.{fingerprint}].js` は .NET 10 のビルド時に書き換えられるプレースホルダーである。削除や変更はしないこと。
 - コンポーネントの見た目は CSS 分離（`*.razor.css`）で書き、`index.html` で `Shos.Minesweeper.styles.css` を読み込んでいる。配色のトークン（UI デザイン 4.1）とページ全体のスタイルは `wwwroot/css/app.css` にある。
 - アプリの C# は、フォルダーごとの名前空間（`Components`、`Display`、`Browser` など）に置き、`_Imports.razor` で取り込んでいる。フォルダーを追加したときは、ここに `@using` を追記すること。
+- 公開は `.github/workflows/deploy.yml`（GitHub Actions）で行う。push では動かず、手動で起動したときだけ、テスト、発行、`<base href>` の書き換えをして GitHub Pages に置く。手順は docs/06-release.md にある。
 - JavaScript は `wwwroot/js/browser.js` だけで、C# から呼ぶのは `Browser/BrowserFeatures.cs` だけである（アーキテクチャー設計書 9 章）。
 - `Nullable` と `ImplicitUsings` が有効である。

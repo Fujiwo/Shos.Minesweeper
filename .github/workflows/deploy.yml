@@ -1,0 +1,64 @@
+# GitHub Pages への公開（docs/06-release.md）。
+# 公開はリリースレビューの承認の後に、ユーザーの指示で行うので（CLAUDE.md）、push では動かさず、手動で起動する。
+name: GitHub Pages に公開
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 公開を 2 つ同時に走らせない。走っている公開は途中で止めない
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  # プロジェクト サイトのサブパス（仕様書 7 章）
+  BASE_HREF: /Shos.Minesweeper/
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # 全テストが Green でなければ公開しない
+      - name: テスト
+        run: dotnet test
+
+      - name: 発行
+        run: dotnet publish Shos.Minesweeper -c Release -o publish
+
+      # ソースの <base href="/" /> は、ローカルの dotnet run のために変えない。公開する物だけをサブパスに合わせる（アーキテクチャー設計書 13 章）
+      - name: 公開用に整える
+        working-directory: publish/wwwroot
+        run: |
+          sed -i "s|<base href=\"/\" />|<base href=\"${BASE_HREF}\" />|" index.html
+          grep -q "<base href=\"${BASE_HREF}\" />" index.html
+          # 書き換える前の index.html を圧縮したものが残らないようにする
+          rm -f index.html.br index.html.gz
+          # アプリの外の URL でもアプリを読み込み、アプリの「見つからない」ページを出す
+          cp index.html 404.html
+          # _framework などのフォルダーを、Jekyll の処理にかけずにそのまま配る（調査書 8.5）
+          touch .nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: publish/wwwroot
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

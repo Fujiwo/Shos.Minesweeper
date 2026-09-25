@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- ブラウザーのタブのアイコン。形はゲームの地雷のアイコン（MineShape.razor）と同じ。ライトとダークのどちらのタブでも見えるように、明るい角丸の四角に載せる -->
+  <rect x="0.5" y="0.5" width="23" height="23" rx="4" fill="#ffffff" stroke="#7d8fa3" />
+  <g stroke="#1f2937" stroke-width="1.8" stroke-linecap="round">
+    <line x1="20.5" y1="12" x2="3.5" y2="12" />
+    <line x1="12" y1="20.5" x2="12" y2="3.5" />
+    <line x1="18.01" y1="18.01" x2="5.99" y2="5.99" />
+    <line x1="18.01" y1="5.99" x2="5.99" y2="18.01" />
+  </g>
+  <circle cx="12" cy="12" r="5.6" fill="#1f2937" />
+  <circle cx="10.2" cy="10.2" r="1.5" fill="#ffffff" opacity="0.85" />
+</svg>

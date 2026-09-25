@@ -268,7 +268,7 @@ CLAUDE.md の「動作環境」のとおり。
 ## 7. 公開
 
 - GitHub Pages のプロジェクト サイトとして公開する。リポジトリは `https://github.com/Fujiwo/Shos.Minesweeper` で、URL は `https://fujiwo.github.io/Shos.Minesweeper/` になる。サブパスに置くので、発行時に `<base href>` を `/Shos.Minesweeper/` に合わせる。
-- 具体的な手順は、リリース準備（工程 14）で決める。
+- 具体的な手順は、リリース準備（工程 14）で決めた（docs/06-release.md）。
 
 ## 8. 受け入れ基準
 

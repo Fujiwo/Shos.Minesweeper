@@ -511,7 +511,7 @@ CSS の分離を使うので、`index.html` でコメントアウトされてい
 - `dotnet publish -c Release` で出力した `wwwroot` を、GitHub Pages に置く（仕様書 7）。
 - サブパス（`/Shos.Minesweeper/`）に合わせるため、公開するときに `index.html` の `<base href>` を書き換える。ソースの `<base href="/" />` は変えない。ローカルで `dotnet run` したときに動くようにするためである。
 - GitHub Pages が `_framework` フォルダーを配るように、`.nojekyll` を置く（調査書 8.5）。
-- 具体的な手順（手作業か GitHub Actions か）は、リリース準備（工程 14）で決める。
+- 具体的な手順は、リリース準備（工程 14）で決めた。GitHub Actions のワークフロー（`.github/workflows/deploy.yml`）を手動で起動し、テスト、発行、`<base href>` の書き換え、`404.html` と `.nojekyll` の配置を行う（docs/06-release.md）。
 
 ## 14. 仕様書・UI デザインを補う決定
 
