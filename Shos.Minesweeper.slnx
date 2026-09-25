@@ -4,6 +4,7 @@
     <File Path="docs/02-spec.md" />
     <File Path="docs/03-ui-design.md" />
     <File Path="docs/04-architecture.md" />
+    <File Path="docs/05-class-design.md" />
   </Folder>
   <Folder Name="/Documents/Images/">
     <File Path="docs/images/cell-states.svg" />
