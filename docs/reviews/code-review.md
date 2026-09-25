@@ -15,6 +15,7 @@
 | 5 | キーボードと読み上げ | 指摘をすべて反映済み。ユーザーが承認した（2026-09-25） |
 | 6 | 難易度とベストタイム | 指摘をすべて反映済み。ユーザーが承認した（2026-09-25） |
 | 7 | ページ全体の仕上げ | 指摘をすべて反映済み。ユーザーが承認した（2026-09-26） |
+| 工程 12 のやり直し | R5 の後のコード全体（「工程 12: コードレビューのやり直し」） | ユーザーの承認待ち。指摘は、リファクタリングのやり直しで反映する |
 
 ## 区切り 1: テストの土台とゲームのルール
 
@@ -438,7 +439,7 @@
 | 項目 | 内容 |
 |------|------|
 | 作成日 | 2026-09-26 |
-| 状態 | 対象の一覧をユーザーが承認した（2026-09-26）。R1〜R5 を反映済み。R5 で設計が変わったので、アーキテクチャー設計書レビュー、クラス設計書レビュー、コードレビュー、リファクタリングをやり直す（ユーザーの指示） |
+| 状態 | 対象の一覧をユーザーが承認した（2026-09-26）。R1〜R5 を反映済み。R5 で設計が変わったので、アーキテクチャー設計書レビュー、クラス設計書レビュー、コードレビュー、リファクタリングをやり直す（ユーザーの指示）。アーキテクチャー設計書とクラス設計書の再レビューは承認された（2026-09-26）。コードレビューのやり直しは、下の「工程 12: コードレビューのやり直し」 |
 | 観点 | 機能のまとまり（区切り）をまたぐ見直し（CLAUDE.md の「各工程で扱う内容」）。sustainable-code-jp スキルの「リファクタリング」と、臭いと技法の名前 |
 
 ### 対象の一覧（案）
@@ -509,3 +510,51 @@ R1〜R4 の承認の後に、ユーザーの指示で R5 を追加した。WPF �
 | クラス設計書 | 状態、1.1 の方針、2 章の型の一覧、4.2（`InputMapping` と `KeyboardMapping`）、4.3（`DifficultyNames`・`Announcements`）、4.4（`BestTimesJson` と `BestTimeStorage`）、7.1 と 7.3（テストプロジェクトとテストの観点） |
 
 次にやること（ユーザーの指示）: アーキテクチャー設計書レビュー → クラス設計書レビュー → コードレビュー → リファクタリングの順にやり直し、その後に工程 13 に進む。
+
+## 工程 12: コードレビューのやり直し（2026-09-26）
+
+| 項目 | 内容 |
+|------|------|
+| レビュー日 | 2026-09-26 |
+| 対象 | R5 の後のコード全体。重点は、R5 で作った・移したもの（`Shos.Minesweeper.Presentation` とそのテスト、`Input/KeyboardMapping`、`Browser/BestTimeStorage` とそのテスト、各プロジェクトの参照）と、アーキテクチャー設計書・クラス設計書の再レビューで決めたこととの食い違い |
+| 意図（ひとことで） | WPF 版・コンソール版と共有できる、UI の技術に依存しない部品を Web アプリから分け、振る舞いを変えずに、Web アプリがそれを使う形にする |
+| 観点 | sustainable-code-jp スキルの七箇条と、臭いと技法の名前。R1〜R4 はコード全体を見直した結果なので、それ以外の場所は、R5 の影響（使わなくなった `using`、古い置き場所を指すコメント）に絞って見直した |
+
+### 指摘
+
+指摘はここに記録し、直すのはこの後のリファクタリングのやり直しで行う（一覧に載せて、ユーザーの承認を得てから）。
+
+| # | 重大度 | 箇条 | 指摘 | 直し方の案 |
+|---|--------|------|------|------------|
+| 1 | 中 | 的確な名前、単一責務 | `Shos.Minesweeper.Presentation/BestTimesJson.cs`・`Shos.Minesweeper.Presentation.Tests/BestTimesJsonTests.cs`: 置き場所と中身の不一致（表示と入力の部品を置く Presentation に、保存の形式がある。形式の中身は `BestTimes`・`Difficulty.Presets`・`Game.MaxElapsedSeconds` だけでできていて、変わる理由も GameLogic の側にある。アーキテクチャー設計書とクラス設計書の再レビューで、GameLogic に置くと決めた）→ 責務の移動 | `BestTimesJson` を GameLogic（名前空間 `Shos.Minesweeper.GameLogic`）へ、`BestTimesJsonTests` を GameLogic.Tests へ `git mv` で移す。`BestTimeStorage` の `using`、`BestTimeStorageTests` のコメントの参照先、Presentation の csproj のコメント（「記録の保存の形式」）を直す |
+| 2 | 軽微 | 的確な名前 | `Presentation/InputMapping`: 不適切な名前（R5 でキーボードの割り当てを `KeyboardMapping` に分けたので、今は押し方（`PressKind`）の割り当てだけを受け持つ。それなのに名前は入力全体を指していて、`KeyboardMapping` と並べると、キーボードも `InputMapping` の一部のように読める）→ 名前の変更 | `PressMapping` にする（`PressMapping.ActionFor(PressKind, bool, Cell)`）。テストクラスも `PressMappingTests` にし、アーキテクチャー設計書とクラス設計書の名前を直す。公開する名前の変更なので、ユーザーの判断で決める |
+| 3 | 軽微 | （七箇条の外: 後始末） | `BestTimesJson.Parse`・`RootObjectOf`: 後始末の漏れ（`JsonDocument` は `IDisposable` で、借りた配列をプールに返すのは `Dispose` のときである。`RootObjectOf` が `RootElement` を返す形なので、`using` を付けられない）→ メソッドの形を変える | 文書を返す補助（`DocumentOf`。読めなければ `null`）に変え、`Parse` の中で `using` で持って、文書が生きている間に値を読む。振る舞いは変わらないので、今のテストがそのまま安全網になる。直すのは指摘 1 で移した後 |
+| 4 | 軽微 | Once And Only Once | `BestTimeStorageTests.UnreadableStorageMeansNoRecords` の `"not json"`: 重複したコード（テスト）（同じ値を `BestTimesJsonTests.UnreadableTextMeansNoRecords` で確かめている。R5 で形式のテストを移したときの残りで、形式が変わると 2 か所を直すことになる）→ 重複の削除 | 保存先に特有の場合（値がない・保存が禁止されている＝`null`）だけを残し、`[Fact]` にする。キーから読んだ値を形式に渡すことは `RecordsAreLoadedFromTheStorageKey` で確かめている |
+
+指摘がなかったもの:
+
+- 各プロジェクトの参照は、アーキテクチャー設計書 4 章の図どおりである（Presentation → GameLogic だけ、Presentation.Tests → Presentation だけ、Web アプリ → GameLogic・Presentation）。Presentation にも GameLogic にも、Blazor と JavaScript への依存はない。
+- R5 で使わなくなった `using` は残っていない（`dotnet format style --diagnostics IDE0005 --severity info --verify-no-changes` で指摘なし）。古い置き場所（`Display`・`Input` の `DifficultyNames`・`InputMapping` など、`ComponentTestBase`）を指すコメントも残っていない。ただし、指摘 1 の移動に関わる 3 か所は除く。
+- `KeyboardMapping` は、DOM のキー名を扱う部分だけで、`Input` にある。テストは表（`[Theory]`）で、仕様書 4.5 のキーと、キーでないもの（`a`・`Tab`）を確かめている。
+
+### 引き算の点検
+
+| 単位・仕組み | 解いている問題 | 判定 |
+|--------------|----------------|------|
+| `Shos.Minesweeper.Presentation`（5 つの型） | 表示の文言と押し方の割り当てを、WPF 版・コンソール版と共有する（ユーザーが作ると決めた） | 残す |
+| `Shos.Minesweeper.Presentation.Tests` | Presentation を、Web アプリをビルドせずに確かめる | 残す |
+| `KeyboardMapping` | DOM のキー名から操作と方向を決める規則を、表でテストできる形で 1 か所に置く | 残す。WPF 版・コンソール版はキーの受け方が違うので、共有しない |
+| `BestTimeStorage` | localStorage のキーと、`BrowserFeatures` への橋渡し | 残す（クラス設計書の再レビューの引き算の点検のとおり） |
+
+### 良い点
+
+- R5 は、移す型のテストを一緒に `git mv` で移しているので、テストの履歴を追える。件数も移す前と後で変わっていない（形式のテストを先に書いた一手の 4 件を除く）。
+- `InputMapping` の中の DOM に依存する部分だけを `KeyboardMapping` に分けていて、共有する側に Web の都合（キーの名前）が漏れていない。
+- `BestTimeStorage` は、保存先の知識（キーの名前、`BrowserFeatures` を通ること）だけを持つ 2 行のメソッドになり、形式の規則と混ざっていない。
+
+### 検証結果
+
+- `dotnet build Shos.Minesweeper.slnx`: 警告 0、エラー 0
+- `dotnet test`: 383 件すべて成功
+- `dotnet format style Shos.Minesweeper.slnx --diagnostics IDE0005 --severity info --verify-no-changes`: 指摘なし（ファイルは変えていない）
+- このレビューでは、コードを変えていない
