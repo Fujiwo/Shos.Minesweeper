@@ -9,5 +9,6 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<BrowserFeatures>();
+builder.Services.AddScoped<BestTimeStorage>();
 
 await builder.Build().RunAsync();

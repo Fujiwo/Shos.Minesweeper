@@ -172,6 +172,7 @@ public sealed record Difficulty
     public static AllowedRange WidthRange { get; }    // 5〜30
     public static AllowedRange HeightRange { get; }   // 5〜24
     public static AllowedRange MineCountRange(int width, int height);  // 1〜（幅×高さ − 9）。前提: 幅と高さが範囲の中
+    public static AllowedRange? FindMineCountRange(int? width, int? height);  // 幅か高さが誤っていれば null
 
     public static CustomDifficultyValidation ValidateCustom(int? width, int? height, int? mineCount);
     public static Difficulty Custom(int width, int height, int mineCount);  // 前提: ValidateCustom が IsValid を返す値
@@ -714,6 +715,8 @@ async Task ShowWinAsync()
 | 勝利カードを閉じた | カードを閉じ、リセット ボタンにフォーカスを移す |
 | 旗モード ボタン | `isFlagMode` を反転する（新しいゲームでも保つ。仕様書 4.3） |
 
+- フォーカスは、描き直しの後（`OnAfterRenderAsync`）に移す。難易度ダイアログを閉じた直後はツールバーにまだ `inert` が付いていて、その場で移しても効かないためである。
+- 盤面の領域と勝利カードは、`board-region` の中に置く。勝利カードは、その中央に重ねる。
 - 新しいゲームを始めるときは、`new Game(difficulty, timeProvider)` を作り直し、`isPressing` を偽にし、勝利カードを閉じ、`Announcements.NewGame` を読み上げる。`isPressing` を戻すのは、盤面を押している間に別の指でリセット ボタンを押した場合に、顔が「驚き」のまま残らないようにするためである（`BoardView` は新しいゲームで押下を捨てる）。
 - 同じ文を続けて読み上げる場合（同じ難易度で 2 回続けてリセットしたときなど）に読み上げが起きるように、前と同じ文なら末尾に見えない文字（U+200B）を足して、読み上げ用の領域の中身を変える。
 - `BestTimes` は区切り 5 からメモリーの中で持ち、勝ったときの読み上げの文に使う。ブラウザーへの保存（`BestTimeStorage`）は区切り 6 で加える。
@@ -843,7 +846,8 @@ async Task ShowWinAsync()
 | 描くもの | UI デザイン 2.3 のとおり。行ごとに `DifficultyNames.Of`、大きさ、地雷数、`BestTimes.SecondsOf`。範囲の表示は `Difficulty.WidthRange`・`HeightRange`・`MineCountRange` から作る |
 
 - 入力欄の文字列は、`int.TryParse` で変換できなければ `null` として `ValidateCustom` に渡す。
-- 地雷数の範囲の表示は、入力中の幅と高さが範囲の中なら `MineCountRange` の値を、そうでなければ「1〜（幅×高さ − 9）」を出す。誤りの文も同じ範囲の表示を使う（「{範囲} の整数を入力してください」）。
+- 地雷数の範囲の表示は、`Difficulty.FindMineCountRange` が範囲を返せばその値を、`null`（幅か高さが誤っている）なら「1〜（幅×高さ − 9）」を出す。誤りの文も同じ範囲の表示を使う（「{範囲} の整数を入力してください」）。「幅と高さが正しいときだけ上限が決まる」という規則は、`FindMineCountRange` の 1 か所に置き、`ValidateCustom` もこれを使う（docs/reviews/code-review.md の区切り 6 の指摘 1）。
+- 3 つの入力欄は、欄の状態（入力中の文字列、誤りの有無、要素の参照）を小さなクラス（`CustomField`）にまとめ、同じ書き方で描く。
 - 開いたときは、現在の難易度の行にフォーカスを移す。カスタムのゲーム中なら、「幅」の入力欄に移す（9 章の決定 4）。
 - Esc キー、× ボタン、幕を押したら `OnClose` を呼ぶ。
 

@@ -83,6 +83,18 @@ public class DifficultyTests
         => Assert.Throws<ArgumentOutOfRangeException>(() => Difficulty.MineCountRange(width, height));
 
     [Fact]
+    public void MineCountRangeIsFoundForAValidSize()
+        => Assert.Equal(new AllowedRange(1, 151), Difficulty.FindMineCountRange(10, 16));
+
+    [Theory]
+    [InlineData(null, 16)]
+    [InlineData(10, null)]
+    [InlineData(4, 16)]
+    [InlineData(10, 25)]
+    public void MineCountRangeIsNotFoundUntilTheSizeIsValid(int? width, int? height)
+        => Assert.Null(Difficulty.FindMineCountRange(width, height));
+
+    [Fact]
     public void CustomDifficultyHasTheGivenValues()
         => AssertDifficulty(Difficulty.Custom(20, 10, 30), DifficultyKind.Custom, width: 20, height: 10, mineCount: 30);
 

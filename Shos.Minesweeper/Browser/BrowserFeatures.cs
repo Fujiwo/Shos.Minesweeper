@@ -23,6 +23,14 @@ public sealed class BrowserFeatures(IJSRuntime jsRuntime) : IAsyncDisposable
     public async ValueTask VibrateAsync(int milliseconds)
         => await (await Module).InvokeVoidAsync("vibrate", milliseconds);
 
+    /// <summary>localStorage から読む。読めない（保存が禁止されている、値がない）ときは null。</summary>
+    public async ValueTask<string?> ReadStorageAsync(string key)
+        => await (await Module).InvokeAsync<string?>("readStorage", key);
+
+    /// <summary>localStorage に書く。書けないときは何もしない（仕様書 3.8。メモリーの記録は残る）。</summary>
+    public async ValueTask WriteStorageAsync(string key, string value)
+        => await (await Module).InvokeVoidAsync("writeStorage", key, value);
+
     /// <summary>
     /// 要素の上で、矢印キーと Space の既定の動作（ページのスクロール）を止める。
     /// Blazor の :preventDefault はキーごとに切り替えられず、すべて止めると Tab キーで外に出られなくなるため（アーキテクチャー設計書 9.1）。

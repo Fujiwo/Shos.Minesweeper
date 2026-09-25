@@ -1,4 +1,5 @@
 using Bunit;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Shos.Minesweeper.Pages;
 
@@ -136,6 +137,137 @@ public class GamePageTests : ComponentTestBase
 
         Assert.Contains("opened", cut.Find("#cell-1-0").ClassList);
     }
+
+    [Fact]
+    public async Task DifficultyButtonOpensTheDialogAndMakesTheRestInert()
+    {
+        var cut = await RenderPageWithBoardAsync();
+
+        cut.Find("button.difficulty").Click();
+
+        Assert.NotNull(cut.Find("[role=dialog][aria-modal=true]"));
+        Assert.True(cut.Find(".toolbar-area").HasAttribute("inert"));
+        Assert.True(cut.Find(".board-region").HasAttribute("inert"));
+    }
+
+    [Fact]
+    public async Task ChoosingADifficultyStartsANewGameAndReturnsFocusToTheDifficultyButton()
+    {
+        var cut = Render<GamePage>();
+        var difficultyButtonId = ElementReferenceIdOf(cut.Find("button.difficulty"));
+        await NotifyBoardAreaResizedAsync(352, 576);
+        cut.Find("button.difficulty").Click();
+
+        cut.FindAll("button.preset")[2].Click();
+
+        Assert.Empty(cut.FindAll("[role=dialog]"));
+        Assert.False(cut.Find(".toolbar-area").HasAttribute("inert"));
+        Assert.Contains("上級", cut.Find("button.difficulty").TextContent);
+        Assert.Equal(480, cut.FindAll("[role=gridcell]").Count);
+        Assert.Equal("新しいゲーム、上級、30×16、地雷 99。", AnnouncementOf(cut));
+        Assert.Equal(difficultyButtonId, LastFocusedId());
+    }
+
+    [Fact]
+    public async Task ClosingTheDialogKeepsTheGame()
+    {
+        var cut = Render<GamePage>();
+        var difficultyButtonId = ElementReferenceIdOf(cut.Find("button.difficulty"));
+        await NotifyBoardAreaResizedAsync(352, 576);
+        cut.Find("#cell-4-4").PointerDown(Mouse(button: 0));
+        cut.Find("[role=grid]").PointerUp(Mouse(button: 0));
+        cut.Find("button.difficulty").Click();
+
+        cut.Find("button.close").Click();
+
+        Assert.Empty(cut.FindAll("[role=dialog]"));
+        Assert.Contains("opened", cut.Find("#cell-4-4").ClassList);
+        Assert.Equal(difficultyButtonId, LastFocusedId());
+    }
+
+    [Fact]
+    public async Task SavedBestTimesAreShownInTheDialog()
+    {
+        JSInterop.SetupModule("./js/browser.js").Setup<string?>("readStorage", "Shos.Minesweeper.BestTimes").SetResult("""{"Beginner":23}""");
+        var cut = await RenderPageWithBoardAsync();
+
+        cut.Find("button.difficulty").Click();
+
+        Assert.Equal("ベスト 23 秒", cut.FindAll("button.preset .best")[0].TextContent);
+    }
+
+    [Fact]
+    public async Task WinningShowsTheWinCard()
+    {
+        var cut = await RenderPageWithWinningCustomBoardAsync();
+
+        cut.Find("#cell-2-2").PointerDown(Mouse(button: 0));
+        cut.Find("[role=grid]").PointerUp(Mouse(button: 0));
+
+        Assert.Equal("クリア！", cut.Find(".win-card h2").TextContent);
+        Assert.Empty(cut.FindAll(".win-card .best-time"));   // カスタムは記録しない
+        Assert.Equal("クリア。0 秒。", AnnouncementOf(cut));
+    }
+
+    [Fact]
+    public async Task ClosingTheWinCardShowsTheBoardAndFocusesTheResetButton()
+    {
+        var cut = Render<GamePage>();
+        var resetButtonId = ElementReferenceIdOf(cut.Find("button.reset"));
+        await WinCustomGameAsync(cut);
+
+        cut.Find(".win-card button.close").Click();
+
+        Assert.Empty(cut.FindAll(".win-card"));
+        Assert.Equal("FaceWon", cut.Find("button.reset svg").GetAttribute("data-kind"));
+        Assert.Equal(resetButtonId, LastFocusedId());
+    }
+
+    [Fact]
+    public async Task PlayAgainStartsANewGameOfTheSameDifficulty()
+    {
+        var cut = Render<GamePage>();
+        var resetButtonId = ElementReferenceIdOf(cut.Find("button.reset"));
+        await WinCustomGameAsync(cut);
+
+        cut.Find(".win-card button.play-again").Click();
+
+        Assert.Empty(cut.FindAll(".win-card"));
+        Assert.Equal("cell closed", cut.Find("#cell-2-2").ClassName);
+        Assert.Equal(25, cut.FindAll("[role=gridcell]").Count);
+        Assert.Equal(resetButtonId, LastFocusedId());
+    }
+
+    async Task<IRenderedComponent<GamePage>> RenderPageWithWinningCustomBoardAsync()
+    {
+        var cut = await RenderPageWithBoardAsync();
+        StartWinningCustomGame(cut);
+        return cut;
+    }
+
+    async Task WinCustomGameAsync(IRenderedComponent<GamePage> cut)
+    {
+        await NotifyBoardAreaResizedAsync(352, 576);
+        StartWinningCustomGame(cut);
+        cut.Find("#cell-2-2").PointerDown(Mouse(button: 0));
+        cut.Find("[role=grid]").PointerUp(Mouse(button: 0));
+    }
+
+    // 5×5・地雷 16 は、最初に開いたマスとその周り 9 マス以外がすべて地雷になるので、最初の一手で必ず勝つ（仕様書 3.2）
+    static void StartWinningCustomGame(IRenderedComponent<GamePage> cut)
+    {
+        cut.Find("button.difficulty").Click();
+        cut.Find("#custom-width").Input("5");
+        cut.Find("#custom-height").Input("5");
+        cut.Find("#custom-mine-count").Input("16");
+        cut.Find("button.start-custom").Click();
+    }
+
+    // bUnit は、描き直した要素の参照の印を空にするので、最初の描画の印を取っておいて比べる
+    static string? ElementReferenceIdOf(AngleSharp.Dom.IElement element) => element.GetAttribute("blazor:elementreference");
+
+    string LastFocusedId()
+        => ((ElementReference)JSInterop.Invocations.Last(invocation => invocation.Identifier.EndsWith("focus")).Arguments[0]!).Id;
 
     static string AnnouncementOf(IRenderedComponent<GamePage> cut)
         => cut.Find("[aria-live=polite]").TextContent.Replace("\u200B", "").Trim();

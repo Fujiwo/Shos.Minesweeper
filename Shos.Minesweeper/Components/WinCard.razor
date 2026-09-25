@@ -1,0 +1,54 @@
+@* 勝利カード（UI デザイン 2.4）。盤面の操作はもう受け付けないので、盤面の上に重ねる。モードレスのダイアログ *@
+<div class="win-card" role="dialog" aria-labelledby="win-card-title" @onkeydown="HandleKeyDownAsync">
+    <div class="heading">
+        <span class="face"><Icon Kind="IconKind.FaceWon" /></span>
+        <h2 id="win-card-title" tabindex="-1" @ref="heading">クリア！</h2>
+    </div>
+    <p class="time">タイム @Seconds 秒</p>
+    @switch (BestTime.Outcome)
+    {
+        case BestTimeOutcome.Updated:
+            <p class="best-time new"><span class="star"><Icon Kind="IconKind.Star" /></span>ベストタイム更新！（これまで @BestTime.PreviousSeconds 秒）</p>
+            break;
+        case BestTimeOutcome.FirstRecord:
+            <p class="best-time new"><span class="star"><Icon Kind="IconKind.Star" /></span>ベストタイムを記録しました</p>
+            break;
+        case BestTimeOutcome.NotUpdated:
+            <p class="best-time">ベスト @BestTime.PreviousSeconds 秒</p>
+            break;
+        case BestTimeOutcome.NotEligible:
+            @* カスタムは記録しないので、ベストタイムの行を出さない *@
+            break;
+    }
+    <div class="actions">
+        <button type="button" class="play-again" @onclick="OnPlayAgain">もう一度</button>
+        <button type="button" class="close" @onclick="OnClose">閉じる</button>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public int Seconds { get; set; }
+    [Parameter, EditorRequired] public BestTimeResult BestTime { get; set; }
+
+    /// <summary>同じ難易度で新しいゲームを始める（リセット ボタンと同じ）。</summary>
+    [Parameter] public EventCallback OnPlayAgain { get; set; }
+
+    /// <summary>カードを閉じて、勝った盤面を見られるようにする。</summary>
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    ElementReference heading;
+
+    // フォーカスはボタンではなく見出しに移す。最後のマスを開くために押した Space や Enter を
+    // 続けて押したときに、意図せず新しいゲームが始まらないようにするため（UI デザイン 2.4）
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await heading.FocusAsync();
+    }
+
+    async Task HandleKeyDownAsync(KeyboardEventArgs key)
+    {
+        if (key.Key == "Escape")
+            await OnClose.InvokeAsync();
+    }
+}

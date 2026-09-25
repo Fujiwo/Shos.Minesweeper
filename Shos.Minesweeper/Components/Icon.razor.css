@@ -91,3 +91,27 @@
     stroke-linecap: round;
     stroke-linejoin: round;
 }
+
+/* 勝利カードのベストタイムの行 */
+.star {
+    fill: var(--accent);
+}
+
+.check {
+    stroke-width: 2.6;
+}
+
+/* 入力の誤りの警告。三角は誤りの文と同じ色、「!」は背景の色で抜く */
+.warning {
+    fill: var(--danger-text);
+}
+
+.warning-mark {
+    stroke: var(--surface);
+    stroke-width: 2.2;
+    stroke-linecap: round;
+}
+
+.warning-dot {
+    fill: var(--surface);
+}

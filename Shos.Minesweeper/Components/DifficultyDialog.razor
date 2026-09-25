@@ -1,0 +1,139 @@
+@using System.Globalization
+@* 難易度ダイアログ（UI デザイン 2.3）。開いている間、ページのほかの部分は GamePage が inert にする *@
+<div class="backdrop" @onclick="OnClose"></div>
+<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="difficulty-dialog-title" @onkeydown="HandleKeyDownAsync">
+    <div class="header">
+        <h2 id="difficulty-dialog-title">難易度</h2>
+        <button type="button" class="close" aria-label="閉じる" title="閉じる" @onclick="OnClose">
+            <span class="close-icon"><Icon Kind="IconKind.Close" /></span>
+        </button>
+    </div>
+
+    <ul class="presets">
+        @for (var index = 0; index < Difficulty.Presets.Count; index++)
+        {
+            var presetIndex = index;
+            var preset = Difficulty.Presets[presetIndex];
+            var isCurrent = preset.Kind == Current.Kind;
+            <li>
+                <button type="button" class="preset" aria-current="@(isCurrent ? "true" : null)"
+                        @ref="presetButtons[presetIndex]" @onclick="() => OnSelect.InvokeAsync(preset)">
+                    <span class="name">@DifficultyNames.Of(preset.Kind)</span>
+                    <span class="size">@preset.Width×@preset.Height・地雷 @preset.MineCount</span>
+                    <span class="best">@BestTimeTextOf(preset.Kind)</span>
+                    <span class="check">
+                        @* 現在の難易度は、色だけでなくチェックの印でも示す *@
+                        @if (isCurrent)
+                        {
+                            <Icon Kind="IconKind.Check" />
+                        }
+                    </span>
+                </button>
+            </li>
+        }
+    </ul>
+
+    <section class="custom" aria-labelledby="custom-title">
+        <h3 id="custom-title">カスタム</h3>
+        @foreach (var field in Fields)
+        {
+            <div class="field">
+                <label for="@field.Id">@field.Label</label>
+                <input id="@field.Id" type="text" inputmode="numeric" @bind="field.Text" @bind:event="oninput" @ref="field.Input"
+                       aria-invalid="@(field.IsInvalid ? "true" : null)" aria-describedby="@DescriptionIdsOf(field)" />
+                <span id="@field.Id-range" class="range">@RangeTextOf(field)</span>
+                @if (field.IsInvalid)
+                {
+                    <p id="@field.Id-error" class="error">
+                        <span class="warning-icon"><Icon Kind="IconKind.Warning" /></span>
+                        @RangeTextOf(field) の整数を入力してください
+                    </p>
+                }
+            </div>
+        }
+        <button type="button" class="start-custom" @onclick="StartCustomAsync">カスタムで始める</button>
+    </section>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Difficulty Current { get; set; } = default!;
+    [Parameter, EditorRequired] public BestTimes BestTimes { get; set; } = default!;
+
+    /// <summary>難易度の行を押したとき、またはカスタムの値が正しいときに、選んだ難易度を知らせる。</summary>
+    [Parameter] public EventCallback<Difficulty> OnSelect { get; set; }
+
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    /// <summary>カスタムの入力欄 1 つの状態。</summary>
+    sealed class CustomField(string id, string label, int initialValue)
+    {
+        public string Id { get; } = id;
+        public string Label { get; } = label;
+        public string Text { get; set; } = initialValue.ToString(CultureInfo.InvariantCulture);
+        public bool IsInvalid { get; set; }
+        public ElementReference Input { get; set; }
+
+        // 整数に変換できない入力は null（ValidateCustom が範囲の外と同じ誤りとして扱う）
+        public int? Value => int.TryParse(Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : null;
+    }
+
+    readonly ElementReference[] presetButtons = new ElementReference[Difficulty.Presets.Count];
+    CustomField width = default!;
+    CustomField height = default!;
+    CustomField mineCount = default!;
+
+    CustomField[] Fields => [width, height, mineCount];
+
+    // 入力欄の初期値は、現在の盤面の値（UI デザイン 8 章の決定 3）
+    protected override void OnInitialized()
+    {
+        width = new CustomField("custom-width", "幅", Current.Width);
+        height = new CustomField("custom-height", "高さ", Current.Height);
+        mineCount = new CustomField("custom-mine-count", "地雷数", Current.MineCount);
+    }
+
+    // 開いたときは現在の難易度の行に、カスタムのゲーム中なら「幅」の入力欄にフォーカスを置く（クラス設計書 9.1 の決定 4）
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+        var presetIndex = Difficulty.Presets.ToList().FindIndex(preset => preset.Kind == Current.Kind);
+        await (presetIndex >= 0 ? presetButtons[presetIndex] : width.Input).FocusAsync();
+    }
+
+    async Task StartCustomAsync()
+    {
+        var validation = Difficulty.ValidateCustom(width.Value, height.Value, mineCount.Value);
+        width.IsInvalid = !validation.IsWidthValid;
+        height.IsInvalid = !validation.IsHeightValid;
+        mineCount.IsInvalid = !validation.IsMineCountValid;
+        if (validation.IsValid)
+            await OnSelect.InvokeAsync(Difficulty.Custom(width.Value!.Value, height.Value!.Value, mineCount.Value!.Value));
+        else
+            await Fields.First(field => field.IsInvalid).Input.FocusAsync();
+    }
+
+    async Task HandleKeyDownAsync(KeyboardEventArgs key)
+    {
+        if (key.Key == "Escape")
+            await OnClose.InvokeAsync();
+    }
+
+    string BestTimeTextOf(DifficultyKind kind)
+        => BestTimes.SecondsOf(kind) is int seconds ? $"ベスト {seconds} 秒" : "記録なし";
+
+    // 地雷数の上限は、入力中の幅と高さから計算する。幅か高さが範囲の外なら、式で示す（UI デザイン 2.3）
+    string RangeTextOf(CustomField field)
+    {
+        if (field == width)
+            return TextOf(Difficulty.WidthRange);
+        if (field == height)
+            return TextOf(Difficulty.HeightRange);
+        return Difficulty.FindMineCountRange(width.Value, height.Value) is { } range ? TextOf(range) : "1〜（幅×高さ − 9）";
+    }
+
+    static string TextOf(AllowedRange range) => $"{range.Minimum}〜{range.Maximum}";
+
+    static string DescriptionIdsOf(CustomField field)
+        => field.IsInvalid ? $"{field.Id}-range {field.Id}-error" : $"{field.Id}-range";
+}

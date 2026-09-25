@@ -23,14 +23,18 @@ public sealed record Difficulty
         return new(MinimumMineCount, width * height - SafeCellCount);
     }
 
+    /// <summary>地雷数の範囲。上限は幅と高さで決まるので、幅か高さが誤っている（範囲の外か、整数でない）ときは null。</summary>
+    public static AllowedRange? FindMineCountRange(int? width, int? height)
+        => width is int w && WidthRange.Contains(w) && height is int h && HeightRange.Contains(h)
+           ? MineCountRange(w, h)
+           : null;
+
     public static CustomDifficultyValidation ValidateCustom(int? width, int? height, int? mineCount)
     {
         var isWidthValid = width is int w && WidthRange.Contains(w);
         var isHeightValid = height is int h && HeightRange.Contains(h);
-        // 地雷数の上限は幅と高さで決まるので、どちらかが誤っているときは下限だけを確かめる
-        var mineCountRange = isWidthValid && isHeightValid
-                             ? MineCountRange(width!.Value, height!.Value)
-                             : new AllowedRange(MinimumMineCount, int.MaxValue);
+        // 幅か高さが誤っていて地雷数の上限が決まらないときは、下限だけを確かめる
+        var mineCountRange = FindMineCountRange(width, height) ?? new AllowedRange(MinimumMineCount, int.MaxValue);
         var isMineCountValid = mineCount is int m && mineCountRange.Contains(m);
         return new(isWidthValid, isHeightValid, isMineCountValid);
     }

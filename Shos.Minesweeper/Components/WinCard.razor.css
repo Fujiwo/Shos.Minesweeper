@@ -1,0 +1,103 @@
+/* 盤面の領域の中央に重ねる。幅は盤面の領域の幅と 320px の小さいほう（UI デザイン 2.4） */
+.win-card {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 5;
+    box-sizing: border-box;
+    width: min(100%, 320px);
+    padding: 16px;
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    transform: translate(-50%, -50%);
+    animation: fade-in 150ms ease-out;
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+}
+
+/* 動きを減らす設定では、すぐに表示する（UI デザイン 5.7） */
+@media (prefers-reduced-motion: reduce) {
+    .win-card {
+        animation: none;
+    }
+}
+
+.heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.face {
+    width: 36px;
+    height: 36px;
+    flex: none;
+}
+
+h2 {
+    margin: 0;
+    font-size: 22px;
+}
+
+h2:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+}
+
+.time,
+.best-time {
+    margin: 12px 0 0;
+}
+
+.best-time {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.best-time.new {
+    font-weight: 700;
+}
+
+.star {
+    width: 20px;
+    height: 20px;
+    flex: none;
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+button {
+    box-sizing: border-box;
+    min-width: 88px;
+    height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+}
+
+button:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+}
+
+@media (hover: hover) {
+    button:hover {
+        background: color-mix(in srgb, var(--surface), var(--text) 8%);
+    }
+}

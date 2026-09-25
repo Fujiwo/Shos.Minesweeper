@@ -25,3 +25,12 @@
         grid-template-rows: minmax(0, 1fr);
     }
 }
+
+/* 盤面の領域と、その中央に重ねる勝利カードの置き場所 */
+.board-region {
+    position: relative;
+    display: grid;
+    grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+    min-width: 0;
+    min-height: 0;
+}

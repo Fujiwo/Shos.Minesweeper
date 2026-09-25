@@ -27,3 +27,19 @@ export function suppressKeyScrolling(element) {
             event.preventDefault();
     });
 }
+
+// localStorage の読み書き。プライベートブラウズなどで保存が禁止されていても、例外を C# に渡さない（仕様書 3.8）
+export function readStorage(key) {
+    try {
+        return localStorage.getItem(key);
+    } catch {
+        return null;
+    }
+}
+
+export function writeStorage(key, value) {
+    try {
+        localStorage.setItem(key, value);
+    } catch {
+    }
+}

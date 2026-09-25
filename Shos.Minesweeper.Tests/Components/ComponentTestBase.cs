@@ -16,6 +16,7 @@ public abstract class ComponentTestBase : BunitContext
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddSingleton<TimeProvider>(Time);
         Services.AddScoped<BrowserFeatures>();
+        Services.AddScoped<BestTimeStorage>();
     }
 
     /// <summary>盤面の領域の大きさが変わったことを、ブラウザーの代わりに知らせる。</summary>

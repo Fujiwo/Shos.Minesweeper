@@ -1,12 +1,12 @@
 @* ツールバー。左（横バーでは上）から、難易度、残り地雷数、リセット、経過時間、旗モードの順に並べる（UI デザイン 2.1） *@
 <div class="toolbar">
-    <button type="button" class="difficulty" aria-label="難易度、@DifficultyName" title="難易度を変える" @onclick="OnDifficultyClick">
+    <button type="button" class="difficulty" aria-label="難易度、@DifficultyName" title="難易度を変える" @ref="difficultyButton" @onclick="OnDifficultyClick">
         <span class="difficulty-name">@DifficultyName</span>
         <span class="chevron"><Icon Kind="IconKind.Chevron" /></span>
     </button>
     <ToolbarCounter Class="remaining-mines" Icon="IconKind.Mine" Value="Game.RemainingMineCount"
                     AccessibleName="@($"残り地雷 {Game.RemainingMineCount}")" />
-    <button type="button" class="reset" aria-label="新しいゲーム" title="新しいゲーム" @onclick="OnResetClick">
+    <button type="button" class="reset" aria-label="新しいゲーム" title="新しいゲーム" @ref="resetButton" @onclick="OnResetClick">
         <span class="face-icon"><Icon Kind="Face" /></span>
     </button>
     <ElapsedTime Game="Game" />
@@ -25,6 +25,15 @@
     [Parameter] public EventCallback OnDifficultyClick { get; set; }
     [Parameter] public EventCallback OnResetClick { get; set; }
     [Parameter] public EventCallback OnFlagModeClick { get; set; }
+
+    ElementReference difficultyButton;
+    ElementReference resetButton;
+
+    /// <summary>難易度ダイアログを閉じたときに、フォーカスを戻す（UI デザイン 6.3）。</summary>
+    public ValueTask FocusDifficultyButtonAsync() => difficultyButton.FocusAsync();
+
+    /// <summary>勝利カードを閉じたときに、フォーカスを移す（UI デザイン 2.4）。</summary>
+    public ValueTask FocusResetButtonAsync() => resetButton.FocusAsync();
 
     string DifficultyName => DifficultyNames.Of(Game.Difficulty.Kind);
 

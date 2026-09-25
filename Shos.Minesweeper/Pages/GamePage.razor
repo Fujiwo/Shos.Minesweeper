@@ -1,20 +1,33 @@
 @page "/"
 @inject TimeProvider TimeProvider
+@inject BestTimeStorage BestTimeStorage
 
 <PageTitle>マインスイーパー</PageTitle>
 
 <h1 class="visually-hidden">マインスイーパー</h1>
 
+@* 難易度ダイアログを開いている間は、ほかの部分を inert にする。フォーカスが入らず、スクリーンリーダーからも隠れる（アーキテクチャー設計書 9.2） *@
 <div class="game">
-    <div class="toolbar-area">
-        <Toolbar Game="game" IsPressing="isPressing" IsFlagMode="isFlagMode"
-                 OnResetClick="ResetGame" OnFlagModeClick="ToggleFlagMode" />
+    <div class="toolbar-area" inert="@isDifficultyDialogOpen">
+        <Toolbar @ref="toolbar" Game="game" IsPressing="isPressing" IsFlagMode="isFlagMode"
+                 OnDifficultyClick="OpenDifficultyDialog" OnResetClick="ResetGame" OnFlagModeClick="ToggleFlagMode" />
     </div>
-    <BoardArea Difficulty="game.Difficulty" Context="placement">
-        <BoardView Game="game" Placement="placement" IsFlagMode="isFlagMode"
-                   OnOpen="OpenCell" OnToggleFlag="ToggleFlag" OnPressingChanged="SetPressing" />
-    </BoardArea>
+    <div class="board-region" inert="@isDifficultyDialogOpen">
+        <BoardArea Difficulty="game.Difficulty" Context="placement">
+            <BoardView Game="game" Placement="placement" IsFlagMode="isFlagMode"
+                       OnOpen="OpenCellAsync" OnToggleFlag="ToggleFlag" OnPressingChanged="SetPressing" />
+        </BoardArea>
+        @if (isWinCardOpen)
+        {
+            <WinCard Seconds="game.ElapsedSeconds" BestTime="winBestTime" OnPlayAgain="PlayAgain" OnClose="CloseWinCard" />
+        }
+    </div>
 </div>
+
+@if (isDifficultyDialogOpen)
+{
+    <DifficultyDialog Current="game.Difficulty" BestTimes="bestTimes" OnSelect="SelectDifficulty" OnClose="CloseDifficultyDialog" />
+}
 
 <div class="visually-hidden" aria-live="polite">@announcement</div>
 
@@ -26,22 +39,71 @@
     BestTimes bestTimes = new();
     bool isFlagMode;
     bool isPressing;
+    bool isDifficultyDialogOpen;
+    bool isWinCardOpen;
+    BestTimeResult winBestTime;
     string announcement = "";
+    Toolbar toolbar = default!;
+    Func<ValueTask>? focusAfterRender;
 
-    protected override void OnInitialized() => StartNewGame(Difficulty.Beginner);
+    protected override async Task OnInitializedAsync()
+    {
+        StartNewGame(Difficulty.Beginner);
+        bestTimes = await BestTimeStorage.LoadAsync();
+    }
+
+    // フォーカスは描き直しの後に移す。inert を外す前の要素には、フォーカスが入らないため
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (focusAfterRender is not { } focus)
+            return;
+        focusAfterRender = null;
+        await focus();
+    }
 
     void StartNewGame(Difficulty difficulty)
     {
         game = new Game(difficulty, TimeProvider);
         // 盤面を押している間に別の指でリセットしても、顔が「驚き」のまま残らないようにする
         isPressing = false;
+        isWinCardOpen = false;
     }
 
     // ページを開いたときは読み上げず、利用者が新しいゲームを始めたときだけ知らせる（クラス設計書 9.1 の決定 7）
-    void ResetGame()
+    void StartNewGameAndAnnounce(Difficulty difficulty)
     {
-        StartNewGame(game.Difficulty);
-        Announce(Announcements.NewGame(game.Difficulty));
+        StartNewGame(difficulty);
+        Announce(Announcements.NewGame(difficulty));
+    }
+
+    void ResetGame() => StartNewGameAndAnnounce(game.Difficulty);
+
+    void OpenDifficultyDialog() => isDifficultyDialogOpen = true;
+
+    // 現在と同じ難易度を選んだ場合も、新しいゲームを始める（UI デザイン 8 章の決定 7）
+    void SelectDifficulty(Difficulty difficulty)
+    {
+        StartNewGameAndAnnounce(difficulty);
+        CloseDifficultyDialog();
+    }
+
+    // 閉じても、プレイ中のゲームはそのまま続く
+    void CloseDifficultyDialog()
+    {
+        isDifficultyDialogOpen = false;
+        focusAfterRender = toolbar.FocusDifficultyButtonAsync;
+    }
+
+    void PlayAgain()
+    {
+        ResetGame();
+        focusAfterRender = toolbar.FocusResetButtonAsync;
+    }
+
+    void CloseWinCard()
+    {
+        isWinCardOpen = false;
+        focusAfterRender = toolbar.FocusResetButtonAsync;
     }
 
     // 旗モードは、新しいゲームを始めても保つ（仕様書 4.3）
@@ -49,14 +111,24 @@
 
     void SetPressing(bool pressing) => isPressing = pressing;
 
-    void OpenCell(CellPosition position)
+    async Task OpenCellAsync(CellPosition position)
     {
         game.Open(position);
         // Game.Open は勝敗が決まった後には呼ばれないので、ここで勝敗が決まっていれば、いま決まったことになる
         if (game.Status == GameStatus.Won)
-            Announce(Announcements.Won(game.ElapsedSeconds, bestTimes.Record(game.Difficulty.Kind, game.ElapsedSeconds)));
+            await ShowWinAsync();
         else if (game.Status == GameStatus.Lost)
             Announce(Announcements.Lost);
+    }
+
+    async Task ShowWinAsync()
+    {
+        winBestTime = bestTimes.Record(game.Difficulty.Kind, game.ElapsedSeconds);
+        // 保存できなくても、メモリーの記録は残る（仕様書 3.8）
+        if (winBestTime.IsNewBest)
+            await BestTimeStorage.SaveAsync(bestTimes);
+        isWinCardOpen = true;
+        Announce(Announcements.Won(game.ElapsedSeconds, winBestTime));
     }
 
     void ToggleFlag(CellPosition position) => game.ToggleFlag(position);
