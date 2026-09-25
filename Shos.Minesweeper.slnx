@@ -1,3 +1,17 @@
 <Solution>
+  <Folder Name="/Documents/">
+    <File Path="docs/01-research.md" />
+    <File Path="docs/02-spec.md" />
+    <File Path="docs/03-ui-design.md" />
+    <File Path="docs/04-architecture.md" />
+  </Folder>
+  <Folder Name="/Documents/Images/">
+    <File Path="docs/images/cell-states.svg" />
+  </Folder>
+  <Folder Name="/Documents/Reviews/">
+    <File Path="docs/reviews/01-research-review.md" />
+    <File Path="docs/reviews/02-spec-review.md" />
+    <File Path="docs/reviews/03-ui-design-review.md" />
+  </Folder>
   <Project Path="Shos.Minesweeper/Shos.Minesweeper.csproj" />
 </Solution>
