@@ -4,7 +4,7 @@
 |------|------|
 | 工程 | 9. クラス設計書作成 |
 | 作成日 | 2026-09-25 |
-| 状態 | レビュー指摘を反映済み（docs/reviews/05-class-design-review.md） |
+| 状態 | レビュー指摘を反映済み（docs/reviews/05-class-design-review.md）。工程 12 で、WPF 版・コンソール版と共有する部品を Presentation に移した（docs/reviews/code-review.md の工程 12 の R5）。この変更のレビューのやり直しを待っている |
 | 入力 | docs/04-architecture.md（アーキテクチャー設計書）、docs/02-spec.md（仕様書）、docs/03-ui-design.md（UI デザイン） |
 
 ## 1. 概要
@@ -22,6 +22,7 @@
 | 値の組に名前を付ける | 行と列、下限と上限のように、いつも組で現れる値には型を作る。盤面の座標（`CellPosition`）と表示の座標（`DisplayPosition`）は別の型にして、取り違えるとコンパイルが通らないようにする |
 | 規則は情報を持つ者に置く | 「このマスに『開く』が効くか」はマス（`Cell`）が、「このマスをどう見せるか」はゲームの状態を知る `Game` が答える |
 | 継承はしない | クラスは `sealed` にする。インターフェイスは作らない（アーキテクチャー設計書 15 章） |
+| 共有できる部品は Presentation に置く | 次に作る WPF 版とコンソール版でも形が変わらない部品（表示の文言、押し方からの操作の割り当て、ベストタイムの保存の形式）は、UI の技術に依存しない `Shos.Minesweeper.Presentation` に置く（アーキテクチャー設計書 4 章） |
 
 ### 1.2 用語と名前の対応
 
@@ -70,24 +71,28 @@
 | | `BestTimeOutcome` | enum | ベストタイムを記録した結果の種類 |
 | | `BestTimeResult` | record struct | ベストタイムを記録した結果と、それまでの記録 |
 | | `BestTimes` | class | 初級〜上級のベストタイムと、その更新の規則 |
-| Input | `PointerInput` | record struct | ポインターのイベントのうち、押し方の判定に要る値 |
+| Presentation | `DifficultyNames` | static class | 難易度の表示名（「初級」など） |
+| | `Announcements` | static class | 新しいゲームと勝敗を知らせる文 |
 | | `PressKind` | enum | 判定した押し方 |
-| | `PressGesture` | class | 1 回の「押して離す」を、タップ・長押し・右クリックに判定する |
 | | `CellAction` | enum | マスに行う操作（何もしない・開く・旗） |
 | | `InputMapping` | static class | 押し方と旗モードとマスから、行う操作を決める |
+| | `BestTimesJson` | static class | ベストタイムの保存の形式（JSON）の読み書き |
+| Input | `PointerInput` | record struct | ポインターのイベントのうち、押し方の判定に要る値 |
+| | `PressGesture` | class | 1 回の「押して離す」を、タップ・長押し・右クリックに判定する |
+| | `KeyboardMapping` | static class | キーボードのキー（DOM のキー名）から、行う操作と矢印の方向を決める |
 | | `Direction` | enum | 矢印キーの方向 |
 | | `BoardCursor` | class | キーボードで選択しているマス |
 | Display | `DisplayPosition` | record struct | 表示している向きでのマスの位置（行と列） |
 | | `BoardPlacement` | record | 盤面の置き方（向き、マスの大きさ）と、座標の変換 |
 | | `IconKind` | enum | アイコンの種類 |
 | | `CellPresentation` | static class | マスの見た目（CSS のクラス、アイコン）と読み上げの名前を決める |
-| | `DifficultyNames` | static class | 難易度の表示名（「初級」など） |
-| | `Announcements` | static class | 読み上げ用の領域で知らせる文 |
 | Browser | `BrowserFeatures` | class | `browser.js` の関数を呼ぶ窓口 |
 | | `BestTimeStorage` | class | `BestTimes` を localStorage に読み書きする |
 | Components・Pages | `GamePage` ほか 9 個 | Razor | 5 章 |
 
-アーキテクチャー設計書で名前を挙げていない型（`Cell`、`CellAppearance`、`PointerInput`、`DisplayPosition`、`CellPresentation`、`DifficultyNames`、`Announcements` など）は、この設計で足した。足した理由は各節に書く。
+アーキテクチャー設計書で名前を挙げていない型（`Cell`、`CellAppearance`、`PointerInput`、`DisplayPosition`、`CellPresentation`、`DifficultyNames`、`Announcements` など）は、この設計で足した。足した理由は各節に書く。`KeyboardMapping` と `BestTimesJson` は、工程 12 で共有する部品を分けたときに足した（4.2、4.4）。
+
+Presentation の型は、節を分けずに、使われ方の近い 4.2（`PressKind`・`CellAction`・`InputMapping`）、4.3（`DifficultyNames`・`Announcements`）、4.4（`BestTimesJson`）で説明する。見出しに「Presentation」と書く。
 
 ## 3. GameLogic
 
@@ -428,7 +433,7 @@ classDiagram
 
 ### 4.2 Input
 
-#### `PointerInput`、`PressKind`、`PressGesture`
+#### `PointerInput`、`PressKind`（Presentation）、`PressGesture`
 
 ```csharp
 public readonly record struct PointerInput(long PointerId, string PointerType, long Button, double ClientX, double ClientY);
@@ -473,20 +478,26 @@ public sealed class PressGesture : IDisposable
 | 長押し成立 | `Up` | 待機 | —（二重に操作しない。仕様書 4.1） |
 | 押下中・長押し成立 | 別のポインターの `Down`・`Move`・`Up`・`Cancel` | そのまま | —（最初のポインターだけを追う） |
 
-#### `CellAction`、`InputMapping`
+#### `CellAction`、`InputMapping`（Presentation）、`KeyboardMapping`
 
 ```csharp
+// Presentation（WPF 版・コンソール版でも同じ規則）
 public enum CellAction { None, Open, ToggleFlag }
 
 public static class InputMapping
 {
     public static CellAction ActionFor(PressKind press, bool isFlagMode, Cell cell);
-    public static CellAction ActionForKey(string key);        // Space・Enter は Open、F は ToggleFlag、ほかは None（仕様書 4.5）
-    public static Direction? DirectionForKey(string key);     // 矢印キーの方向。ほかは null
+}
+
+// Web アプリの Input（DOM のキー名に依存する）
+public static class KeyboardMapping
+{
+    public static CellAction ActionFor(string key);       // Space・Enter は Open、F は ToggleFlag、ほかは None（仕様書 4.5）
+    public static Direction? DirectionFor(string key);    // 矢印キーの方向。ほかは null
 }
 ```
 
-- キーボードの割り当て（仕様書 4.5）も、マウスとタッチの割り当て（仕様書 4.1）と同じく `InputMapping` に置き、表でテストする（docs/reviews/code-review.md の区切り 5 の指摘 1）。キーの名前は DOM の `KeyboardEvent.key` の値のまま受け取る。
+- キーボードの割り当て（仕様書 4.5）は、区切り 5 で `InputMapping` に集めて表でテストするようにした（docs/reviews/code-review.md の区切り 5 の指摘 1）。工程 12 で `InputMapping` を Presentation に移すときに、キーの名前が DOM の `KeyboardEvent.key` の値である部分だけを、Web アプリの `KeyboardMapping` に分けた（同じく工程 12 の R5）。WPF は `Key`、コンソールは `ConsoleKey` でキーを受けるので、キーの受け方は各アプリに置く。表でテストすることは変わらない。
 
 仕様書 4.1 の表と、仕様書 3.4 の表の 2 段で決める。
 
@@ -586,7 +597,7 @@ public static class CellPresentation
 - **このクラスを作った理由**: アーキテクチャー設計書レビューの「残る課題」で、`BoardView` がマスの見た目まで受け持つかを判断することになっていた。見た目と読み上げの名前は、UI デザイン（4.2、6.4）が変わったときに変わり、入力の流れとは変更理由が違う。そこで `BoardView` から出して、表で xUnit のテストをできるようにした。
 - 踏んだ地雷（爆発の形の上に地雷）と誤った旗（旗の上に ×）は、2 つのアイコンを重ねずに 1 つのアイコンとして描く。マスの中身を 1 つの要素にしておくと、マスの描き方が単純になる。
 
-#### `DifficultyNames`、`Announcements`
+#### `DifficultyNames`、`Announcements`（Presentation）
 
 ```csharp
 public static class DifficultyNames
@@ -602,7 +613,7 @@ public static class Announcements
 }
 ```
 
-- 難易度の表示名は、ツールバー、難易度ダイアログ、読み上げの 3 か所で使うので、1 か所に置く。
+- 難易度の表示名は、ツールバー、難易度ダイアログ、読み上げの 3 か所で使うので、1 か所に置く。WPF 版とコンソール版でも同じ文言を使うので、Presentation に置く。
 - `Won` の後半は、`BestTimeResult` で出し分ける: `Updated` は「ベストタイムを更新しました。」、`FirstRecord` は「ベストタイムを記録しました。」、`NotUpdated` は「ベスト {n} 秒。」、`NotEligible` は何も付けない（UI デザイン 6.4）。
 - 新しいゲームの文は、UI デザイン 6.4 の「9 行 9 列」を「9×9」に改めた（9 章の決定 6。11 章）。
 
@@ -634,20 +645,30 @@ public sealed class BrowserFeatures(IJSRuntime jsRuntime) : IAsyncDisposable
 - 監視は `SizeObservation`（`public sealed class`。コンストラクターは `internal`）で表す。JavaScript から呼ばれる `NotifyResized` を持つ。bUnit のテストでは、この `NotifyResized` を呼んで、大きさの変化をブラウザーの代わりに知らせる。
 - `ObserveSizeAsync` が `IAsyncDisposable` を返すのは、監視を止める手順（JavaScript の監視の停止と .NET の参照の解放）を利用者に見せないためである。`BoardArea` は受け取ったものを破棄するだけで済む（アーキテクチャー設計書 7.4）。
 
-#### `BestTimeStorage`
+#### `BestTimesJson`（Presentation）、`BestTimeStorage`
 
 ```csharp
+// Presentation（どのアプリでも同じ形式）
+public static class BestTimesJson
+{
+    public static BestTimes Parse(string? json);        // 読めない値は「記録なし」として捨てる。例外は投げない
+    public static string Serialize(BestTimes bestTimes);
+}
+
+// Web アプリの Browser（保存先は localStorage）
 public sealed class BestTimeStorage(BrowserFeatures browser)
 {
     public const string StorageKey = "Shos.Minesweeper.BestTimes";
-    public Task<BestTimes> LoadAsync();
-    public Task SaveAsync(BestTimes bestTimes);
+    public Task<BestTimes> LoadAsync();                 // BestTimesJson.Parse(localStorage の値)
+    public Task SaveAsync(BestTimes bestTimes);         // localStorage に BestTimesJson.Serialize(bestTimes) を書く
 }
 ```
 
 - 形式は、難易度の種類の名前をキーにした JSON である（例: `{"Beginner":23,"Intermediate":98}`）。記録のない難易度は書かない（アーキテクチャー設計書 10 章）。
-- `LoadAsync` は、読めない、JSON でない、キーが初級〜上級の名前でない、値が整数でない、0〜`Game.MaxElapsedSeconds` の外、のどれかに当たる値を捨て、残りから `BestTimes` を作る。何も残らなければ、記録のない `BestTimes` になる。
-- `SaveAsync` は、`Difficulty.Presets` の順に `SecondsOf` を読み、記録のあるものだけを書く。書けなくても何もしない（`BrowserFeatures` が例外を受け止める）。
+- 保存の形式（`BestTimesJson`）と保存先（`BestTimeStorage`）を分けたのは、WPF 版とコンソール版が、保存先（ファイルなど）は違っても同じ形式を使うためである（工程 12 の R5）。
+- `Parse` は、`null`（読めない・値がない）、JSON でない、キーが初級〜上級の名前でない、値が整数でない、0〜`Game.MaxElapsedSeconds` の外、のどれかに当たる値を捨て、残りから `BestTimes` を作る。何も残らなければ、記録のない `BestTimes` になる。
+- `Serialize` は、`Difficulty.Presets` の順に `SecondsOf` を読み、記録のあるものだけを書く。公開するときのトリミングで壊れないように、リフレクションを使わず `Utf8JsonWriter` で書く。
+- `SaveAsync` は、書けなくても何もしない（`BrowserFeatures` が例外を受け止める）。
 - 上限の 999 は `Game.MaxElapsedSeconds` を使い、値を二重に書かない。
 
 ## 5. コンポーネント
@@ -910,6 +931,7 @@ builder.Services.AddScoped<BestTimeStorage>();
 | プロジェクト | 中身 | 参照 |
 |--------------|------|------|
 | `Shos.Minesweeper.GameLogic.Tests` | GameLogic のテスト（xUnit） | GameLogic、TestSupport |
+| `Shos.Minesweeper.Presentation.Tests` | Presentation のテスト（xUnit） | Presentation |
 | `Shos.Minesweeper.Tests` | Web アプリの C# クラスとコンポーネントのテスト（xUnit ＋ bUnit） | Web アプリ、TestSupport |
 | `Shos.Minesweeper.TestSupport` | テストの共通の補助（`TestGames`。クラスライブラリ） | GameLogic |
 
@@ -918,12 +940,13 @@ builder.Services.AddScoped<BestTimeStorage>();
 - 工程 11 の時点の最新の安定版は xUnit v3（`xunit.v3` 4.0.1）で、.NET 10 の SDK では Microsoft.Testing.Platform で動かす必要がある。そこで、リポジトリ直下に `global.json` を置いてこのモードを選び、VSTest 用のパッケージ（`Microsoft.NET.Test.Sdk`、`xunit.runner.visualstudio`）は入れない（docs/reviews/code-review.md の区切り 1）。
 
 ```text
-Shos.Minesweeper.GameLogic.Tests/   DifficultyTests, BoardTests, GameTests, BestTimesTests
-Shos.Minesweeper.TestSupport/       TestGames（補助）
+Shos.Minesweeper.GameLogic.Tests/      DifficultyTests, BoardTests, GameTests, BestTimesTests
+Shos.Minesweeper.Presentation.Tests/   DifficultyNamesTests, AnnouncementsTests, InputMappingTests, BestTimesJsonTests
+Shos.Minesweeper.TestSupport/          TestGames（補助）
 Shos.Minesweeper.Tests/
 ├─ AppTestContext.cs  Web アプリのテストの共通の準備（DI、時刻の偽物、JavaScript の偽物、ポインターのイベントを作る補助など）
-├─ Input/        PressGestureTests, InputMappingTests, BoardCursorTests
-├─ Display/      BoardPlacementTests, CellPresentationTests, DifficultyNamesTests, AnnouncementsTests
+├─ Input/        PressGestureTests, KeyboardMappingTests, BoardCursorTests
+├─ Display/      BoardPlacementTests, CellPresentationTests
 ├─ Browser/      BestTimeStorageTests
 └─ Components/   GamePageTests, ToolbarTests, ElapsedTimeTests, BoardAreaTests, BoardViewTests, BoardViewPointerTests,
                  BoardViewKeyboardTests, DifficultyDialogTests, WinCardTests, HostPageTests
@@ -965,11 +988,13 @@ Assert.Equal("""
 | `BestTimesTests` | 3.6 の表のすべての行。同じ値では更新しない |
 | `PressGestureTests` | 4.2 の状態の表のすべての行。399 ミリ秒と 400 ミリ秒、9.9px と 10px の境界 |
 | `InputMappingTests` | 押し方 3 × モード 2 × マス（未開放・旗・数字・0）のすべての組み合わせ |
+| `KeyboardMappingTests` | Space・Enter・F・ほかのキーの操作、4 つの矢印キーの方向、矢印でないキーは方向なし |
 | `BoardCursorTests` | 4 方向、端で止まる、入れ替えた表示での方向、向きが変わっても同じマス |
 | `BoardPlacementTests` | UI デザイン 3.3 の表の値（画面の大きさから、UI デザイン 3.2 の式で領域の大きさを求めて渡す）、入れ替えの同点、20 と 48 で止まる、座標の変換 |
 | `CellPresentationTests` | 4.3 の表のすべての行 |
 | `AnnouncementsTests` | 新しいゲームの文、勝利の文（`BestTimeOutcome` の 4 つ）、敗北の文 |
-| `BestTimeStorageTests` | bUnit の JavaScript interop の偽物で、読めない値・形式の違い・範囲の外・書けない場合、保存の形式 |
+| `BestTimesJsonTests` | 保存の形式。記録なし（`null`）、読めない値・形式の違い・範囲の外・カスタム、書く形式、書いたものを読み直せること |
+| `BestTimeStorageTests` | bUnit の JavaScript interop の偽物で、どのキーで読み書きするか、読めないときは記録なしになること |
 | コンポーネントのテスト | bUnit で、描いた結果（マスのクラスと名前、顔、残り地雷数）、クリック・タッチ・キーボードの操作から `Game` が変わること、ダイアログの開閉と `inert`、フォーカスの移動、勝利カードの表示、読み上げの文 |
 
 - bUnit のテストでは、`TimeProvider` に `FakeTimeProvider` を登録し、`BrowserFeatures` は本物を登録して、その先の JavaScript の呼び出しを bUnit の偽物で受ける。

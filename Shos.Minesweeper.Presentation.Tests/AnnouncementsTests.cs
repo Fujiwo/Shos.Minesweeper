@@ -1,7 +1,6 @@
-using Shos.Minesweeper.Display;
 using Shos.Minesweeper.GameLogic;
 
-namespace Shos.Minesweeper.Tests.Display;
+namespace Shos.Minesweeper.Presentation.Tests;
 
 /// <summary>読み上げ用の領域で知らせる文（UI デザイン 6.4、クラス設計書 9.1 の決定 6）。</summary>
 public class AnnouncementsTests

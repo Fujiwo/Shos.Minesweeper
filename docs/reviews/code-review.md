@@ -438,7 +438,7 @@
 | 項目 | 内容 |
 |------|------|
 | 作成日 | 2026-09-26 |
-| 状態 | 対象の一覧をユーザーが承認した（2026-09-26）。R1〜R4 を反映済み。ユーザーの承認待ち |
+| 状態 | 対象の一覧をユーザーが承認した（2026-09-26）。R1〜R5 を反映済み。R5 で設計が変わったので、アーキテクチャー設計書レビュー、クラス設計書レビュー、コードレビュー、リファクタリングをやり直す（ユーザーの指示） |
 | 観点 | 機能のまとまり（区切り）をまたぐ見直し（CLAUDE.md の「各工程で扱う内容」）。sustainable-code-jp スキルの「リファクタリング」と、臭いと技法の名前 |
 
 ### 対象の一覧（案）
@@ -449,6 +449,7 @@
 | R2 | CSS（`Toolbar`、`WinCard`、`DifficultyDialog`、`NotFound`） | 重複したコード（ボタンの基本の見た目（枠、角の丸み 8px、背景、文字の色、指したときの色）が 3 つのコンポーネントに、フォーカスの枠（`focus` の色の 3px を 2px 離す。UI デザイン 6.3）が 5 か所に書かれている。区切りごとに書いたので、まとまりをまたいで重なった） | ページ全体の決まりとして `app.css` の 1 か所に置き、各コンポーネントには大きさなど固有の指定だけを残す | 中 |
 | R3 | テスト（`BoardViewPointerTests`、`GamePageTests`、`DifficultyDialogTests`） | 重複したコード（ポインターのイベントを作る補助 `Mouse`・`Touch` が 2 つのクラスに、描き直した要素の参照の ID を取っておいて比べる手順が 2 つのクラスに書かれている） | `ComponentTestBase` に移して 1 か所にする | 中 |
 | R4 | `ComponentTestBase` | 不適切な名前（コンポーネントのテストだけでなく、`BestTimeStorageTests` の土台にも使っている。仕事は「Web アプリのテストのための DI と JavaScript の偽物の準備」） | 名前の変更: `AppTestContext` にする | 低 |
+| R5 | `Display/DifficultyNames`、`Display/Announcements`、`Input/InputMapping`（ポインターの割り当て）、`Input/PressKind`、`Input/CellAction`、`Browser/BestTimeStorage`（JSON の形式） | 変更の分散（WPF 版・コンソール版を作ると決めた。この型は UI の技術に依存しないのに Web アプリの中にあるので、そのままでは各アプリに同じ規則を書くことになり、規則が変わると複数のアプリを直すことになる）。R1〜R4 の承認の後に、ユーザーの指示で追加した（2026-09-26） | 責務の移動: UI の技術に依存しない共有部品のライブラリ `Shos.Minesweeper.Presentation` を作り、移す。`InputMapping` の DOM のキー名の割り当て（`ActionForKey`・`DirectionForKey`）は Web 専用なので、Web アプリの `KeyboardMapping` に分ける。`BestTimeStorage` は、保存の形式（JSON の読み書き）と保存先（localStorage）を分け、形式を `BestTimesJson` として移す。盤面の置き方（`BoardPlacement` など）、`PressGesture`、`CellPresentation` は、形が UI の設計に左右されるので移さない | 高（ユーザーの指示） |
 
 進め方: R1（プロジェクトの構成）→ R3・R4（テストの補助。新しい構成の中で整える）→ R2（CSS。写真で見た目が変わらないことを確かめる）の順に、一手ごとに全テストを Green に保つ。R1 の後は、アーキテクチャー設計書 4 章（「テストプロジェクトを 1 つにする理由」）、クラス設計書 7.1、CLAUDE.md の「コマンド」を直す。
 
@@ -486,3 +487,25 @@
 
 - ソリューション全体に `--filter-class` を付けて実行すると、ビルドのロック（MSB4018）に 3 回続けて当たり、確かめられなかった。当てはまるテストのないプロジェクトが失敗扱いになるおそれもあるので、CLAUDE.md には、絞り込みはプロジェクトを指定して行うと書いた。
 - `dotnet test` の中のビルドがロックに当たったときは、直前に `dotnet build` が通っていれば、`dotnet test --no-build` でテストだけを流せる。
+
+### R5 の結果（2026-09-26）
+
+R1〜R4 の承認の後に、ユーザーの指示で R5 を追加した。WPF 版・コンソール版を作ることを CLAUDE.md の「目的」に前提として書き、UI の技術に依存しない共有部品のライブラリ `Shos.Minesweeper.Presentation` を作った。振る舞いは変えていない。
+
+| 一手 | 内容 | 検証 |
+|------|------|------|
+| 1 | `Shos.Minesweeper.Presentation`（GameLogic だけに依存）と `Shos.Minesweeper.Presentation.Tests` を作り、`DifficultyNames`・`Announcements`・`PressKind`・`CellAction`・`InputMapping` とそのテストを `git mv` で移した。`InputMapping` のうち DOM のキー名に依存する部分（`ActionForKey`・`DirectionForKey`）は、Web アプリの `Input/KeyboardMapping`（`ActionFor`・`DirectionFor`）に分け、テストも `KeyboardMappingTests` に分けた | 3 つのテストプロジェクトで 379 件成功（件数は変わらない） |
+| 2 | 保存の形式のテスト（`BestTimesJsonTests`）を Presentation の側に先に書き（Red を確かめた）、`BestTimeStorage` から JSON の読み書きを `BestTimesJson`（`Parse`・`Serialize`）に移した。`BestTimeStorage` は保存先（localStorage のキー）との読み書きだけになった。形式のいろいろな値を確かめるテストは `BestTimesJsonTests` に移し、`BestTimeStorageTests` はキーでの読み書きと読めないときのテストだけにした（テストの重複をなくした） | 383 件成功 |
+| 3 | 実際のブラウザーで、キーボード操作（Tab の順、Enter で開く、F で旗）、勝ったときの流れ、保存したベストタイムの読み込みが、今までどおり動くことを確かめた | ヘッドレスの Chrome |
+
+移さなかったもの（形が UI の設計に左右されるので、WPF 版・コンソール版の設計で要る形が見えてから移す）: `BoardPlacement`・`DisplayPosition`・`BoardCursor`・`Direction`（盤面の置き方と、表示の向きでの選択）、`PointerInput`・`PressGesture`・`KeyboardMapping`（DOM の値で入力を受ける）、`CellPresentation`・`IconKind`（CSS のクラスと SVG のアイコン）。
+
+反映した文書:
+
+| 文書 | 変更 |
+|------|------|
+| CLAUDE.md | 「目的」に WPF 版・コンソール版を作る前提と共有部品の置き場所、「コードの現状」にやり直しの計画、「コマンド」に 7 つのプロジェクトと Presentation のテストの実行方法 |
+| アーキテクチャー設計書 | 状態、1.1 の方針、3 章の関心事の置き場所（5、7、13）、4 章の構成図・参照の図・「共有する部品を別のプロジェクトにする理由」、5 章の図と依存の規則、6.2（Presentation とアプリの C# クラス）、10 章（形式）、12 章（テストの方針） |
+| クラス設計書 | 状態、1.1 の方針、2 章の型の一覧、4.2（`InputMapping` と `KeyboardMapping`）、4.3（`DifficultyNames`・`Announcements`）、4.4（`BestTimesJson` と `BestTimeStorage`）、7.1 と 7.3（テストプロジェクトとテストの観点） |
+
+次にやること（ユーザーの指示）: アーキテクチャー設計書レビュー → クラス設計書レビュー → コードレビュー → リファクタリングの順にやり直し、その後に工程 13 に進む。

@@ -88,7 +88,7 @@
     // キーボードの操作（仕様書 4.5）。旗モードはキーボードの操作に影響しない
     async Task HandleKeyDownAsync(KeyboardEventArgs key)
     {
-        if (InputMapping.DirectionForKey(key.Key) is { } direction) {
+        if (KeyboardMapping.DirectionFor(key.Key) is { } direction) {
             // 勝敗が決まった後も動かせる。敗北した盤面をスクリーンリーダーで確かめられるようにするため
             cursor.Move(direction, Placement);
             shouldRender = true;
@@ -96,7 +96,7 @@
         }
         if (Game.IsOver)
             return;
-        await RequestAsync(InputMapping.ActionForKey(key.Key), cursor.Position);
+        await RequestAsync(KeyboardMapping.ActionFor(key.Key), cursor.Position);
     }
 
     async Task HandlePointerDownAsync(CellPosition position, PointerEventArgs pointer)

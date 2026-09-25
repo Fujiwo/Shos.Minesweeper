@@ -4,7 +4,7 @@
 |------|------|
 | 工程 | 7. アーキテクチャー設計書作成 |
 | 作成日 | 2026-09-25 |
-| 状態 | レビュー指摘を反映済み（docs/reviews/04-architecture-review.md）。クラス設計で改めた点を反映済み（docs/reviews/05-class-design-review.md） |
+| 状態 | レビュー指摘を反映済み（docs/reviews/04-architecture-review.md）。クラス設計で改めた点を反映済み（docs/reviews/05-class-design-review.md）。工程 12 で、WPF 版・コンソール版と共有する部品のプロジェクトを加えた（docs/reviews/code-review.md の工程 12 の R5）。この変更を含めてレビューをやり直し、指摘を反映した（docs/reviews/04-architecture-review.md の「再レビュー」） |
 | 入力 | docs/02-spec.md（仕様書）、docs/03-ui-design.md（UI デザイン）、CLAUDE.md（開発環境・設計方針） |
 
 ## 1. 概要
@@ -17,6 +17,7 @@
 |------|------|
 | 関心事で分ける | 先に関心事を列挙し（3 章）、関心事ごとに置き場所を決める。クラスの一覧はその結果である |
 | ゲームのルールは UI を知らない | ルールは別のクラスライブラリに置き、Blazor にもブラウザーにも依存させない（CLAUDE.md の設計方針）。依存の向きはコンパイラーに守らせる |
+| アプリで共有できる部品は、UI の技術から分ける | 次に同じゲームの WPF 版とコンソール版を作る（CLAUDE.md の「目的」の前提）。どの UI でも形が変わらない表示と入力の部品（表示の文言、ポインターの操作の割り当て）は、UI の技術に依存しないクラスライブラリ（Presentation）に置く。ベストタイムの保存の形式は、`BestTimes` と同じ GameLogic に置く。形が UI の設計に左右されるもの（盤面の置き方、キーやポインターの受け方、マスの見た目）は、Web アプリに置く |
 | 表示と入力の判断も C# のクラスにする | 盤面の向きとマスの大きさ、タップと長押しの判定、操作の割り当ては、画面の部品から切り離した C# のクラスにして、xUnit で確かめられるようにする |
 | JavaScript は最小限 | Blazor と CSS でできることは、JavaScript を使わない。JavaScript が要るものは 1 つのファイルにまとめ、C# の窓口も 1 つにする（9 章） |
 | 差し替え口はテストが求めるものだけ | 時刻、乱数（地雷の配置）は、テストで固定する必要があるので差し替えられるようにする。それ以外の抽象（インターフェイスなど）は作らない（15 章） |
@@ -35,7 +36,7 @@ flowchart LR
     end
 ```
 
-- 通信は、最初にアプリを読み込むときだけである。テンプレートが登録している `HttpClient`（`Program.cs`）は使わないので、実装のときに削除する。
+- 通信は、最初にアプリを読み込むときだけである。テンプレートが登録していた `HttpClient`（`Program.cs`）は使わないので、実装のときに削除した。
 
 ## 3. 関心事と置き場所
 
@@ -47,16 +48,17 @@ flowchart LR
 | 2 | 盤面 | マス、地雷、周囲の地雷の数、開く・連鎖・旗・コード | 仕様 3.3〜3.5 | GameLogic: `Board` |
 | 3 | 1 回のゲームの進行 | 状態（未開始・プレイ中・勝利・敗北）、最初に開いたときの地雷の配置、勝敗の判定、残り地雷数、経過時間 | 仕様 3.2、3.6、3.7 | GameLogic: `Game` |
 | 4 | ベストタイムの規則 | 初級〜上級だけ、短いときだけ更新、更新の結果 | 仕様 3.8 | GameLogic: `BestTimes` |
-| 5 | ベストタイムの保存 | localStorage への読み書き、保存できないときはメモリーだけ | 仕様 3.8、6.4 | アプリ: `BestTimeStorage` |
+| 5 | ベストタイムの保存 | 保存の形式（JSON）、localStorage への読み書き、保存できないときはメモリーだけ | 仕様 3.8、6.4 | GameLogic: `BestTimesJson`（形式）。アプリ: `BestTimeStorage`（保存先） |
 | 6 | 押す操作の判定 | タップ・長押し・取り消しの判定（400 ミリ秒、10px）、マウスとタッチの違い | 仕様 4.1、4.4 | アプリ: `PressGesture` |
-| 7 | 操作の割り当て | 入力（タップ・長押し・右クリック）と旗モードとマスの状態から、「開く」「旗」「何もしない」を決める | 仕様 4.1、4.3、UI 5.2 | アプリ: `InputMapping` |
+| 7 | 操作の割り当て | 押し方（タップ・長押し・右クリック）と旗モードとマスの状態から、「開く」「旗」「何もしない」を決める。キーボードのキーから操作と方向を決める | 仕様 4.1、4.3、4.5、UI 5.2 | Presentation: `InputMapping`（押し方）。アプリ: `KeyboardMapping`（DOM のキー名） |
 | 8 | キーボードの選択中のマス | 矢印キーでの移動、盤面に入ったときの位置 | 仕様 4.5 | アプリ: `BoardCursor` |
 | 9 | 盤面の置き方 | 盤面の向き（入れ替えるか）、マスの大きさ、表示の座標と盤面の座標の変換 | 仕様 5.2、UI 3.2 | アプリ: `BoardPlacement`（スクロールは CSS） |
 | 10 | ブラウザーの機能 | 領域の大きさの監視、振動、localStorage、キーでのスクロールの抑止 | 仕様 4.4、4.5、5.3 | アプリ: `BrowserFeatures` と `browser.js` |
 | 11 | 画面の描画と画面の部品 | ツールバー、盤面、ダイアログ、勝利カード、読み上げ | UI 2 章、4〜6 章 | アプリ: Razor コンポーネント |
 | 12 | 見た目 | 配色、レイアウトの切り替え（上バー・横バー）、アニメーション | UI 3、4、5 章 | アプリ: CSS |
+| 13 | 表示の文言 | 難易度の表示名、読み上げ用の領域で知らせる文 | UI 6.4、7 章 | Presentation: `DifficultyNames`、`Announcements` |
 
-関心事 6〜9 は画面に関わるが、計算と判定だけで、画面の部品を必要としない。そこで Razor コンポーネントから切り離し、ふつうの C# のクラスにする。コンポーネントは、これらのクラスの結果を描くことと、イベントを渡すことだけを受け持つ。
+関心事 5〜9、13 は画面に関わるが、計算と判定だけで、画面の部品を必要としない。そこで Razor コンポーネントから切り離し、ふつうの C# のクラスにする。コンポーネントは、これらのクラスの結果を描くことと、イベントを渡すことだけを受け持つ。
 
 ## 4. ソリューションとプロジェクトの構成
 
@@ -66,12 +68,16 @@ Shos.Minesweeper.slnx
 │   ├─ Difficulty.cs
 │   ├─ Board.cs
 │   ├─ Game.cs
-│   └─ BestTimes.cs                   ほかの小さな型はクラス設計で決める
+│   ├─ BestTimes.cs
+│   └─ BestTimesJson.cs               ベストタイムの保存の形式。ほかの小さな型はクラス設計で決める
+├─ Shos.Minesweeper.Presentation/     クラスライブラリ（net10.0）。UI の技術に依存しない、アプリで共有する表示と入力の部品
+│   ├─ DifficultyNames.cs、Announcements.cs   表示の文言
+│   └─ InputMapping.cs、PressKind.cs、CellAction.cs   押し方からの操作の割り当て
 ├─ Shos.Minesweeper/                  Blazor WebAssembly アプリ（既存）
 │   ├─ Pages/GamePage.razor           唯一のページ（ルートは "/"）。ゲームの画面。テンプレートの Home.razor の名前を変える
 │   ├─ Components/                    画面の部品（6.3）
-│   ├─ Input/                         PressGesture, InputMapping, BoardCursor
-│   ├─ Display/                       BoardPlacement, CellPresentation, DifficultyNames, Announcements
+│   ├─ Input/                         PressGesture, KeyboardMapping, BoardCursor
+│   ├─ Display/                       BoardPlacement, CellPresentation
 │   ├─ Browser/                       BrowserFeatures, BestTimeStorage
 │   ├─ Layout/MainLayout.razor        既存。@Body だけを描く
 │   └─ wwwroot/
@@ -79,6 +85,7 @@ Shos.Minesweeper.slnx
 │       ├─ js/browser.js              JavaScript の機能（9 章）
 │       └─ index.html
 ├─ Shos.Minesweeper.GameLogic.Tests/  GameLogic のテスト（xUnit）
+├─ Shos.Minesweeper.Presentation.Tests/  Presentation のテスト（xUnit）
 ├─ Shos.Minesweeper.TestSupport/      テストの共通の補助（クラスライブラリ）。盤面を文字の絵で書く TestGames
 └─ Shos.Minesweeper.Tests/            アプリのテスト（xUnit ＋ bUnit）
     ├─ Input/、Display/、Browser/     アプリの C# クラスのテスト
@@ -94,6 +101,9 @@ flowchart LR
     GameLogicTests["Shos.Minesweeper.GameLogic.Tests"] --> GameLogic["Shos.Minesweeper.GameLogic"]
     GameLogicTests --> TestSupport
     TestSupport --> GameLogic
+    PresentationTests["Shos.Minesweeper.Presentation.Tests"] --> Presentation["Shos.Minesweeper.Presentation"]
+    AppProject --> Presentation
+    Presentation --> GameLogic
     AppProject --> GameLogic
 ```
 
@@ -102,11 +112,18 @@ flowchart LR
 - 「ルールは UI に依存しない」という方針を、コンパイラーで守れる。GameLogic のプロジェクトは Blazor のパッケージを参照しないので、UI の型を使うとビルドが通らない。
 - 同じプロジェクトのフォルダーで分ける案も考えた。ファイルは 1 つ少なくて済むが、依存の向きを人が見張り続けることになる。プロジェクトを 1 つ増やす手間は一度きりなので、プロジェクトを分ける。
 
-**テストプロジェクトを GameLogic 用とアプリ用に分ける理由**
+**アプリで共有する部品を別のプロジェクト（Presentation）にする理由**
 
-- Web 版の公開の後に、GameLogic を使う WPF 版とコンソール版を作ると決めた（CLAUDE.md の「目的」）。GameLogic のテストは、どのアプリにも依存しないようにしておく。GameLogic のテストだけを流すときに、Web アプリと bUnit のビルドが要らない。
+- 次に作る WPF 版とコンソール版で、同じ規則（表示の文言、ポインターの操作の割り当て）を使うためである。Web アプリに置いたままだと、各アプリに同じ規則を書くことになる。
+- GameLogic に入れる案も考えた。これらはゲームのルールではない（表示と入力の決まり）ので、GameLogic の「ゲームのルール」という境界を保つために、別のプロジェクトにした。Presentation は GameLogic だけに依存し、UI の技術には依存しない。
+- ベストタイムの保存の形式（`BestTimesJson`）は、表示でも入力でもないので Presentation には置かず、GameLogic の `BestTimes` のそばに置く。形式の中身は `BestTimes`・`Difficulty.Presets`・`Game.MaxElapsedSeconds` という GameLogic の型と値だけでできていて（情報を持つ者に置く）、どのアプリも GameLogic を参照する。使うのは .NET の基本ライブラリの `System.Text.Json` だけなので、GameLogic の依存の規則（5 章）も変わらない。保存先（localStorage、ファイルなど）は、各アプリが決める。
+- 共有するのは、どの UI でも形が変わらないと言えるものだけにした。盤面の置き方（`BoardPlacement`）、キーやポインターの受け方（`KeyboardMapping`、`PressGesture`。DOM の値に依存する）、マスの見た目（`CellPresentation`。CSS のクラス名を含む）は Web アプリに残し、WPF 版・コンソール版の設計で要る形が見えてから移す（CLAUDE.md の「目的」の前提）。
+
+**テストプロジェクトを、共有するプロジェクト（GameLogic、Presentation）とアプリで分ける理由**
+
+- Web 版の公開の後に、GameLogic と Presentation を使う WPF 版とコンソール版を作ると決めた（CLAUDE.md の「目的」）。共有するプロジェクトのテストは、どのアプリにも依存しないようにしておく。そのテストだけを流すときに、Web アプリと bUnit のビルドが要らない。
 - 盤面を文字の絵で書く補助（`TestGames`）は、GameLogic のテストとアプリのテストの両方で使うので、小さなクラスライブラリ（`TestSupport`）に置く。xUnit v3 のテストプロジェクトは実行ファイルになるので、テストプロジェクトどうしを参照させない。
-- すべてのテストは、ソリューションを指定した `dotnet test` の 1 回で走る。
+- すべてのテストは、リポジトリ直下の `dotnet test` の 1 回で走る（`global.json` とソリューションを見つける）。
 - 初めは、分けても得るものがほとんどないとして 1 つにしていた。WPF 版とコンソール版を作ると決めたので、工程 12（リファクタリング）で分けた（docs/reviews/code-review.md の工程 12 の R1）。
 
 **名前**
@@ -120,36 +137,43 @@ flowchart LR
 flowchart TB
     subgraph AppProject["Shos.Minesweeper（アプリ）"]
         Components["Pages・Components<br/>（Razor）"]
-        Input["Input<br/>PressGesture・InputMapping・BoardCursor"]
+        Input["Input<br/>PressGesture・KeyboardMapping・BoardCursor"]
         Display["Display<br/>BoardPlacement・CellPresentation など"]
         BrowserFolder["Browser<br/>BrowserFeatures・BestTimeStorage"]
         Js["wwwroot/js/browser.js"]
     end
+    subgraph PresentationProject["Shos.Minesweeper.Presentation"]
+        Shared["DifficultyNames・Announcements・InputMapping"]
+    end
     subgraph GameLogicProject["Shos.Minesweeper.GameLogic"]
-        Logic["Difficulty・Board・Game・BestTimes"]
+        Logic["Difficulty・Board・Game・BestTimes・BestTimesJson"]
     end
     Components --> Input
     Components --> Display
     Components --> BrowserFolder
+    Components --> Shared
     Components --> Logic
+    Input --> Shared
     Input --> Logic
     Input --> Display
     Display --> Logic
     BrowserFolder --> Logic
     BrowserFolder --> Js
+    Shared --> Logic
 ```
 
 依存の規則は次のとおりである。
 
 | 単位 | 依存してよいもの | 依存しないもの |
 |------|------------------|----------------|
-| GameLogic | .NET の基本ライブラリだけ（`TimeProvider`、`Random` など） | Blazor、JavaScript、アプリのすべて |
-| Input | GameLogic（マスの状態を見るため）、`TimeProvider`、Display（`BoardCursor` が `BoardPlacement` を使うため） | Blazor、JavaScript |
+| GameLogic | .NET の基本ライブラリだけ（`TimeProvider`、`Random`、`System.Text.Json` など） | Blazor、JavaScript、アプリのすべて |
+| Presentation | GameLogic、.NET の基本ライブラリ | Blazor、WPF、JavaScript、アプリのすべて |
+| Input | GameLogic（マスの状態を見るため）、Presentation（押し方と操作の型）、`TimeProvider`、Display（`BoardCursor` が `BoardPlacement` を使うため） | Blazor、JavaScript |
 | Display | GameLogic の値の型（盤面の座標、マスの見せ方、難易度など。表示の判断の入力として使う） | Blazor、JavaScript |
-| Browser | GameLogic（`BestTimes` を保存するため）、`IJSRuntime` | コンポーネント |
+| Browser | GameLogic（`BestTimes` とその保存の形式）、`IJSRuntime` | コンポーネント |
 | Pages・Components | 上のすべて | — |
 
-- 矢印は一方向で、逆向きの依存（GameLogic がアプリを知る、Input がコンポーネントを知る）はない。
+- 矢印は一方向で、逆向きの依存（GameLogic や Presentation がアプリを知る、Input がコンポーネントを知る）はない。
 - GameLogic は、盤面の縦と横を入れ替えて表示することを知らない。入れ替えは表示だけの話で、ルールとは独立しているからである。座標の変換は `BoardPlacement` が受け持つ。
 
 ## 6. 各単位の責務
@@ -164,23 +188,33 @@ flowchart TB
 | `Board` | 盤面。マスの状態、地雷、周囲の地雷の数を持ち、開く（0 の連鎖を含む）、旗、コードを行う | 勝敗の判断、時刻、地雷を置く場所の選び方 |
 | `Game` | 1 回のゲーム。状態の遷移、最初に開いたときの地雷の配置、勝敗、残り地雷数、経過時間を受け持つ | 難易度の選択、ベストタイム、旗モード |
 | `BestTimes` | 初級〜上級のベストタイムと、その更新の規則。更新したか、初めての記録か、を返す | 保存の方法 |
+| `BestTimesJson` | ベストタイムの保存の形式（JSON）の読み書き。どのアプリも、この形式で記録を残す | 保存先（localStorage、ファイルなど。各アプリが決める） |
 
 - 盤面の位置を表す小さな型（行と列）や、マスの状態、ゲームの状態を表す型は、クラス設計で決める。
 - `Game` は、地雷を置く場所の選び方を外から受け取る（テストのための差し替え口。12 章）。本番では乱数で選ぶ。
 - `Game` は、時刻を `TimeProvider` から得る。経過時間は「開始した時刻との差」で計算するので（仕様書 3.7）、タブが裏にあっても正しい。
 
-### 6.2 アプリの C# クラス
+### 6.2 Presentation とアプリの C# クラス
+
+**Presentation（アプリで共有する部品）**
+
+| 型 | ひとことで言うと |
+|----|------------------|
+| `DifficultyNames` | 難易度の表示名（「初級」など） |
+| `Announcements` | 新しいゲームと勝敗を知らせる文（Web 版では読み上げ用の領域で使う） |
+| `InputMapping` | 押し方（タップ・長押し・右クリック）と旗モードとマスの状態から、行う操作（開く・旗・何もしない）を決める。長押しの円を出すかどうかも、ここで決まる（UI 5.2） |
+
+**アプリの C# クラス**
 
 | 型 | フォルダー | ひとことで言うと |
 |----|------------|------------------|
 | `PressGesture` | Input | 1 回の「押して離す」を、タップ・長押し・取り消しのどれかに判定する |
-| `InputMapping` | Input | 入力の種類と旗モードとマスの状態から、行う操作（開く・旗・何もしない）を決める。長押しの円を出すかどうかも、ここで決まる（UI 5.2） |
+| `KeyboardMapping` | Input | キーボードのキー（DOM の `KeyboardEvent.key` の値）から、行う操作と矢印の方向を決める（仕様 4.5） |
 | `BoardCursor` | Input | キーボードで選択しているマスの位置。位置は盤面の座標で持つ。矢印キーの方向は、`BoardPlacement` で盤面の方向に変えてから動かす |
 | `BoardPlacement` | Display | 盤面の領域の大きさと盤面の行数・列数から、向きとマスの大きさを決める。表示の座標と盤面の座標を変換する。スクロールが要るかどうかは決めない（盤面の領域の CSS を `overflow: auto` にして任せる） |
 | `CellPresentation` | Display | マスの見た目（CSS のクラス、アイコン）と読み上げの名前を決める |
-| `DifficultyNames`、`Announcements` | Display | 難易度の表示名と、読み上げ用の領域で知らせる文 |
 | `BrowserFeatures` | Browser | `browser.js` の関数を呼ぶ窓口。JavaScript を呼ぶのはこのクラスだけである |
-| `BestTimeStorage` | Browser | `BestTimes` を localStorage に読み書きする。保存できないときは何もしない（メモリーの `BestTimes` だけが残る） |
+| `BestTimeStorage` | Browser | `BestTimes` を localStorage に読み書きする。形式は GameLogic の `BestTimesJson` に任せる。保存できないときは何もしない（メモリーの `BestTimes` だけが残る） |
 
 - `PressGesture` と `InputMapping` を分けたのは、変更理由が違うからである。長押しの判定時間や移動の許容量を変えるときは `PressGesture` だけを、旗モードでの割り当てを変えるときは `InputMapping` だけを直す。
 - `PressGesture` の長押しの待ち時間は、`TimeProvider` で計る。テストでは時刻を進めて確かめる。
@@ -207,7 +241,7 @@ flowchart TB
 | `Toolbar` | 難易度ボタン、残り地雷数、リセット ボタン（顔）、経過時間、旗モード ボタンを描き、押されたことを `GamePage` に伝える |
 | `ElapsedTime` | 経過時間を表示する。250 ミリ秒ごとに経過時間を確かめ、表示する秒が変わったときだけ自分を描き直す（7.3） |
 | `BoardArea` | 盤面の領域。大きさの変化を受け取り、`BoardPlacement` を計算し直して、子の内容（`BoardView`）に渡す。盤面が収まらないときは、この領域がスクロールする |
-| `BoardView` | マスを描き、ポインターとキーボードのイベントを受けて、`PressGesture`・`InputMapping`・`BoardCursor` を使い、「この位置を開く」「この位置の旗」という意図を `GamePage` に伝える。押下中の表示もここで持つ |
+| `BoardView` | マスを描き、ポインターとキーボードのイベントを受けて、`PressGesture`・`InputMapping`・`KeyboardMapping`・`BoardCursor` を使い、「この位置を開く」「この位置の旗」という意図を `GamePage` に伝える。押下中の表示もここで持つ |
 | `LongPressRing` | 長押しの進行の円を、押したマスの位置に重ねて描く。押下を追っている `BoardView` の子にする |
 | `DifficultyDialog` | 難易度の選択とカスタムの入力。入力の検証は `Difficulty` に任せ、誤りの文言を表示する |
 | `WinCard` | 勝利カード。タイムとベストタイムの更新の結果を表示する |
@@ -403,7 +437,7 @@ CLAUDE.md のとおり、JavaScript は必要なときに限る。使うのは�
 | 盤面での矢印キーと Space の既定の動作の抑止 | Blazor の `:preventDefault` は、キーごとに切り替えられない。盤面のキーをすべて止めると Tab キーで盤面から出られなくなる | — |
 
 - localStorage と振動の例外は、`browser.js` の中で受け止め、C# には結果（値、なし）だけを返す。C# 側で JavaScript の例外を扱う箇所を作らないためである。
-- `browser.js` は、`IJSRuntime` の `import` で読み込む。GitHub Pages のサブパス（`/Shos.Minesweeper/`）でも読み込めることを、実装のときに確かめる（16 章）。
+- `browser.js` は、`IJSRuntime` の `import` で読み込む。GitHub Pages のサブパス（`/Shos.Minesweeper/`）でも読み込めることを、実装のときに確かめた（16 章）。
 
 ### 9.2 JavaScript を使わずに済ませるもの
 
@@ -413,7 +447,7 @@ CLAUDE.md のとおり、JavaScript は必要なときに限る。使うのは�
 | 長押しの文字選択・コールアウト、ダブルタップのズームを出さない | CSS（`user-select: none`、`-webkit-touch-callout: none`、`touch-action: manipulation`） |
 | フォーカスを動かす | Blazor の `ElementReference.FocusAsync()` |
 | ダイアログの外を操作できなくし、フォーカスを閉じ込める | ダイアログの外の要素に `inert` を付ける。`inert` の要素にはフォーカスが入らず、スクリーンリーダーからも隠れるので、フォーカスを閉じ込める処理を書かずに済む |
-| 上バーと横バーの切り替え | CSS のメディアクエリー（UI 3.1 の条件） |
+| 上バーと横バーの切り替え | CSS のメディアクエリー（UI 3.1 の条件）で、ツールバーの置き場所（上か左か）を切り替える。ツールバーの中の並べ方（横に並べるか縦に並べるか）は、各部品が置き場所の縦長・横長をコンテナークエリーで見て決める。ページの CSS が部品の中のクラス名に踏み込まずに済む（docs/reviews/code-review.md の区切り 4 の指摘 1） |
 | マスの大きさの反映 | `BoardView` が CSS の変数（`--cell-size`）を設定し、CSS のグリッドで並べる |
 | 長押しの円の位置 | `LongPressRing` は、画面に固定した層（`position: fixed`）に描く。盤面の領域がスクロールするときも、領域の端で円が切れないようにするためである。円の中心は、押したときのポインターのイベントの値から求める。`ClientX − OffsetX`（`Y` も同じ）がマスの左上の画面上の位置になるので、それにマスの大きさの半分を足す。イベントの対象が必ずマスの要素になるように、マスの中の数字やアイコンには `pointer-events: none` を指定する |
 | 長押しの円が満ちるアニメーション、旗やカードのアニメーション、動きを減らす設定 | CSS のアニメーションと `prefers-reduced-motion` |
@@ -436,7 +470,7 @@ CSS の分離を使うので、`index.html` でコメントアウトされてい
 |------|------|
 | 保存するもの | 初級・中級・上級のベストタイム（整数の秒）だけ（仕様書 6.4） |
 | 保存先 | localStorage の 1 つのキー（`Shos.Minesweeper.BestTimes`） |
-| 形式 | JSON。難易度ごとの秒数。記録のない難易度は含めない |
+| 形式 | JSON。難易度ごとの秒数。記録のない難易度は含めない。形式の読み書きは GameLogic の `BestTimesJson` が受け持ち、次に作る WPF 版とコンソール版も同じ形式を使う（保存先は各アプリが決める） |
 | 読むとき | ページを開いたときに 1 回だけ読み、`BestTimes` を作る。値が読めない、形式が違う、範囲（0〜999）の外、のときは、その値を「記録なし」として扱う |
 | 書くとき | ベストタイムを更新したときに、全体を書く |
 | 保存できないとき | 何もしない。`GamePage` が持つ `BestTimes` はメモリーにあるので、ページを開いている間は記録が残る（仕様書 3.8） |
@@ -456,9 +490,10 @@ CSS の分離を使うので、`index.html` でコメントアウトされてい
 
 | 対象 | テストの種類 | 確かめ方 |
 |------|--------------|----------|
-| GameLogic | xUnit | 地雷の位置を直接与えて盤面を作り、開く・連鎖・コード・勝敗を確かめる。時刻は `TimeProvider` の偽物で進める |
+| GameLogic | xUnit | 地雷の位置を直接与えて盤面を作り、開く・連鎖・コード・勝敗を確かめる。時刻は `TimeProvider` の偽物で進める。保存の形式は、読めない値や範囲の外の値を表で確かめる |
+| Presentation | xUnit | 押し方と旗モードとマスから決まる操作と、文言を、入力と期待値の表で確かめる |
 | Input、Display | xUnit | 入力と期待する判定の表で確かめる。`PressGesture` の長押しは、時刻を進めて確かめる |
-| `BestTimeStorage` | bUnit の JavaScript interop の偽物 | 読めない値、範囲の外の値、書けない場合を確かめる |
+| `BestTimeStorage` | bUnit の JavaScript interop の偽物 | どのキーで読み書きし、読めないときは記録なしになることを確かめる（形式そのものは GameLogic のテストで確かめる） |
 | コンポーネント | bUnit | 描いた結果（マスの見た目、ARIA の名前）、クリックとキーボードの操作、ダイアログの開閉とフォーカスを確かめる |
 
 **テストのための差し替え口**
@@ -469,7 +504,7 @@ CSS の分離を使うので、`index.html` でコメントアウトされてい
 | 地雷を置く場所の選び方 | 乱数（`Random.Shared`）で選ぶ | 位置を直接与える | どの盤面になるかを、テストで決めるため。種（シード）を固定した乱数で盤面を再現する方法は、配置の方法を変えるとテストが壊れるので使わない |
 
 - 時刻の偽物には、Microsoft の `Microsoft.Extensions.TimeProvider.Testing` パッケージの `FakeTimeProvider` を使う（17 章）。
-- `dotnet test` と、1 件だけテストを実行する方法は、テストプロジェクトを作ったときに CLAUDE.md の「コマンド」に書く。
+- `dotnet test` と、1 件だけテストを実行する方法は、CLAUDE.md の「コマンド」に書いた。
 
 ## 13. 公開
 
@@ -502,9 +537,9 @@ CSS の分離を使うので、`index.html` でコメントアウトされてい
 
 | リスク・確認事項 | 確かめる工程 |
 |------------------|--------------|
-| iOS の Safari で、長押しのときに文字選択やコールアウトが出ないか。Android の Chrome で、長押しのときに `contextmenu` や `pointercancel` が起きて長押しが途切れないか | 工程 11（実装の区切りで実機を使う）、工程 13 |
+| iOS の Safari で、長押しのときに文字選択やコールアウトが出ないか。Android の Chrome で、長押しのときに `contextmenu` や `pointercancel` が起きて長押しが途切れないか | 工程 13（工程 11 では、ユーザーの判断で実機の確認を工程 13 にまとめた） |
 | 上級の盤面での操作から描き直しまでが、スマートフォンで 100 ミリ秒以内か（仕様書 6.2） | 工程 13 |
-| `browser.js` を、サブパス（`/Shos.Minesweeper/`）に置いたときにも読み込めるか。.NET 10 の静的ファイルのフィンガープリントと `import` の組み合わせで問題がないか | 工程 11（最初に JavaScript を使う区切り）、工程 14 |
+| `browser.js` を、サブパス（`/Shos.Minesweeper/`）に置いたときにも読み込めるか。.NET 10 の静的ファイルのフィンガープリントと `import` の組み合わせで問題がないか | 工程 11 で、公開用のビルドをサブパスに置いた静的サーバーで確かめた（docs/reviews/code-review.md の区切り 7）。GitHub Pages そのもので工程 16 に確かめる |
 | 初回の読み込みの大きさ。必要なら、トリミングの設定やカルチャー情報を含めない設定（`InvariantGlobalization`）を検討する | 工程 14 |
 
 ## 17. ユーザーに確認した点

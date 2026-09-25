@@ -1,7 +1,6 @@
-using Shos.Minesweeper.Display;
 using Shos.Minesweeper.GameLogic;
 
-namespace Shos.Minesweeper.Tests.Display;
+namespace Shos.Minesweeper.Presentation.Tests;
 
 public class DifficultyNamesTests
 {

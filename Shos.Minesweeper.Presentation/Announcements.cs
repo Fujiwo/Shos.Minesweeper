@@ -1,6 +1,6 @@
 using Shos.Minesweeper.GameLogic;
 
-namespace Shos.Minesweeper.Display;
+namespace Shos.Minesweeper.Presentation;
 
 /// <summary>読み上げ用の領域で知らせる文（UI デザイン 6.4）。</summary>
 public static class Announcements

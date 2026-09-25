@@ -1,3 +1,5 @@
+using Shos.Minesweeper.Presentation;
+
 namespace Shos.Minesweeper.Input;
 
 /// <summary>1 回の「押して離す」を、タップ・長押し・右クリックに判定する（仕様書 4.1、4.4）。</summary>

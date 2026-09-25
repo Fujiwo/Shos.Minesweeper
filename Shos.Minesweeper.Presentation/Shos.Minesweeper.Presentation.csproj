@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- UI の技術（Blazor、WPF、コンソール）に依存しない、アプリで共有する部品（表示の文言、入力の割り当て、記録の保存の形式） -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Shos.Minesweeper.GameLogic\Shos.Minesweeper.GameLogic.csproj" />
+  </ItemGroup>
+
+</Project>

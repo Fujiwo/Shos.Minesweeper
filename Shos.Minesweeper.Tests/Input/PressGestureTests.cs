@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Time.Testing;
 using Shos.Minesweeper.Input;
+using Shos.Minesweeper.Presentation;
 
 namespace Shos.Minesweeper.Tests.Input;
 

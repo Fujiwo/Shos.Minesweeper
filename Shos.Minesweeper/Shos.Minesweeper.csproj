@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Shos.Minesweeper.GameLogic\Shos.Minesweeper.GameLogic.csproj" />
+    <ProjectReference Include="..\Shos.Minesweeper.Presentation\Shos.Minesweeper.Presentation.csproj" />
   </ItemGroup>
 
 </Project>

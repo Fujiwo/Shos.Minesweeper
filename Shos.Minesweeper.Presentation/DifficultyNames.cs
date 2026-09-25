@@ -1,6 +1,6 @@
 using Shos.Minesweeper.GameLogic;
 
-namespace Shos.Minesweeper.Display;
+namespace Shos.Minesweeper.Presentation;
 
 /// <summary>難易度の表示名。ツールバー、難易度ダイアログ、読み上げで使う（UI デザイン 7 章）。</summary>
 public static class DifficultyNames

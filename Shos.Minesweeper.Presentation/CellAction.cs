@@ -1,4 +1,4 @@
-namespace Shos.Minesweeper.Input;
+namespace Shos.Minesweeper.Presentation;
 
 public enum CellAction
 {

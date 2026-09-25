@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Web ブラウザーで遊べるマインスイーパーを作る。
 - 難易度: 初級 / 中級 / 上級 / カスタム
 - 公開: 静的サイトとして配置（Blazor WebAssembly スタンドアロン）
-- 今後: Web 版を公開（工程 16）まで終えた後に、`Shos.Minesweeper.GameLogic` を共有する WPF 版とコンソール版を、新しい一巡（仕様書から公開まで）として作る。Web 版の工程の間は、そのための先回りの抽象を作らない
+- 前提: Web 版を公開（工程 16）まで終えたら、次に、同じゲームの WPF 版とコンソール版を、新しい一巡（仕様書から公開まで）として作る。そのため、UI の技術（Blazor、WPF、コンソール）に依存しない部品は、アプリで共有できるプロジェクトに置く。ゲームのルールとベストタイムの保存の形式は `Shos.Minesweeper.GameLogic`、表示の文言と押し方からの操作の割り当ては `Shos.Minesweeper.Presentation` である。どの UI でも形が変わらないと言えるものだけを共有し、形が UI の設計に左右されるもの（盤面の置き方、キーの受け方など）は、WPF 版・コンソール版の一巡で要るものが見えてから移す
 
 ## 動作環境
 スマートフォン、タブレット、PC の各ブラウザーで動作すること。
@@ -93,16 +93,20 @@ Web ブラウザーで遊べるマインスイーパーを作る。
 - テストフレームワークの導入はスキルではユーザー確認が必要な事項だが、このプロジェクトでは「開発環境」の xUnit と bUnit でユーザーと合意済みなので、確認なしで導入してよい。
 
 ## コードの現状
-実装（工程 11）は、クラス設計書（docs/05-class-design.md）の 8 章の区切り 1〜7 をすべて終えた。区切りごとのレビューと、実際のブラウザーで確かめたことは docs/reviews/code-review.md にある。工程 13（結合テスト）で確かめることも、そこの「まだ確かめていないこと」にまとめてある。文書の進み具合は「開発手順」の「現在の工程」を見ること。
+実装（工程 11）は、クラス設計書（docs/05-class-design.md）の 8 章の区切り 1〜7 をすべて終えた。区切りごとのレビューと、実際のブラウザーで確かめたことは docs/reviews/code-review.md にある。工程 13（結合テスト）で確かめることも、そこの「まだ確かめていないこと」にまとめてある。
+
+工程 12 の途中（2026-09-26）で、WPF 版・コンソール版と共有する部品を `Shos.Minesweeper.Presentation` に切り出すことにした（docs/reviews/code-review.md の工程 12 の R5）。これで設計が変わるので、R5 の後に、アーキテクチャー設計書レビュー、クラス設計書レビュー、コードレビュー、リファクタリングをこの順にやり直してから、工程 13 に進む（ユーザーの指示）。文書の進み具合は「開発手順」の「現在の工程」を見ること。
 
 ## コマンド
-ソリューションは新しい XML 形式の `Shos.Minesweeper.slnx` で、次の 5 つのプロジェクトがある。
+ソリューションは新しい XML 形式の `Shos.Minesweeper.slnx` で、次の 7 つのプロジェクトがある。
 
 | プロジェクト | 内容 |
 |--------------|------|
-| `Shos.Minesweeper.GameLogic` | ゲームのルール（クラスライブラリ）。UI に依存しない |
+| `Shos.Minesweeper.GameLogic` | ゲームのルールと、ベストタイムの保存の形式（クラスライブラリ）。UI に依存しない |
+| `Shos.Minesweeper.Presentation` | UI の技術に依存しない、アプリで共有する表示と入力の部品（表示の文言、押し方からの操作の割り当て）。クラスライブラリ |
 | `Shos.Minesweeper` | Blazor WebAssembly アプリ |
 | `Shos.Minesweeper.GameLogic.Tests` | GameLogic のテスト（xUnit v3）。Web アプリに依存しない |
+| `Shos.Minesweeper.Presentation.Tests` | Presentation のテスト（xUnit v3）。Web アプリに依存しない |
 | `Shos.Minesweeper.Tests` | Web アプリのテスト（xUnit v3。コンポーネントのテストには bUnit を使う） |
 | `Shos.Minesweeper.TestSupport` | テストの共通の補助（盤面を文字の絵で書く `TestGames`）。クラスライブラリ |
 
@@ -115,6 +119,7 @@ dotnet publish Shos.Minesweeper -c Release                   # 静的ファイ�
 
 dotnet test                                                                                          # 全テスト（リポジトリ直下で。global.json と slnx を見つける）
 dotnet test --project Shos.Minesweeper.GameLogic.Tests                                               # GameLogic のテストだけ（Web アプリをビルドしない）
+dotnet test --project Shos.Minesweeper.Presentation.Tests                                            # Presentation のテストだけ（Web アプリをビルドしない）
 dotnet test --project Shos.Minesweeper.GameLogic.Tests --filter-class "Shos.Minesweeper.GameLogic.Tests.BoardTests"  # 1 つのテストクラス
 dotnet test --project Shos.Minesweeper.Tests --filter-method "*ClickingACellOpensIt"                 # 1 件（ワイルドカード可）
 ```
