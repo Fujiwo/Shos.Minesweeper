@@ -6,7 +6,7 @@
 | 対象 | 1.0.0 の公開物と手順（docs/06-release.md、docs/release-notes.md、`.github/workflows/deploy.yml`、`Shos.Minesweeper/wwwroot`） |
 | レビュー日 | 2026-09-26 |
 | レビュー者 | Claude（自己レビュー） |
-| 状態 | 指摘を反映した。ユーザーの承認を待っている |
+| 状態 | 指摘を反映した。ユーザーが承認し、公開を指示した（2026-09-26） |
 
 ## 観点
 
