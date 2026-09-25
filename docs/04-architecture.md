@@ -4,7 +4,7 @@
 |------|------|
 | 工程 | 7. アーキテクチャー設計書作成 |
 | 作成日 | 2026-09-25 |
-| 状態 | 作成済み。レビュー待ち |
+| 状態 | レビュー指摘を反映済み（docs/reviews/04-architecture-review.md） |
 | 入力 | docs/02-spec.md（仕様書）、docs/03-ui-design.md（UI デザイン）、CLAUDE.md（開発環境・設計方針） |
 
 ## 1. 概要
@@ -68,7 +68,7 @@ Shos.Minesweeper.slnx
 │   ├─ Game.cs
 │   └─ BestTimes.cs                   ほかの小さな型はクラス設計で決める
 ├─ Shos.Minesweeper/                  Blazor WebAssembly アプリ（既存）
-│   ├─ Pages/Home.razor               唯一のページ。ゲームの画面
+│   ├─ Pages/GamePage.razor           唯一のページ（ルートは "/"）。ゲームの画面。テンプレートの Home.razor の名前を変える
 │   ├─ Components/                    画面の部品（6.3）
 │   ├─ Input/                         PressGesture, InputMapping, BoardCursor
 │   ├─ Display/                       BoardPlacement
@@ -167,40 +167,57 @@ flowchart TB
 |----|------------|------------------|
 | `PressGesture` | Input | 1 回の「押して離す」を、タップ・長押し・取り消しのどれかに判定する |
 | `InputMapping` | Input | 入力の種類と旗モードとマスの状態から、行う操作（開く・旗・何もしない）を決める。長押しの円を出すかどうかも、ここで決まる（UI 5.2） |
-| `BoardCursor` | Input | キーボードで選択しているマスの位置。表示の向きで動く |
+| `BoardCursor` | Input | キーボードで選択しているマスの位置。位置は盤面の座標で持つ。矢印キーの方向は、`BoardPlacement` で盤面の方向に変えてから動かす |
 | `BoardPlacement` | Display | 盤面の領域の大きさと盤面の行数・列数から、向き、マスの大きさ、スクロールの要否を決める。表示の座標と盤面の座標を変換する |
 | `BrowserFeatures` | Browser | `browser.js` の関数を呼ぶ窓口。JavaScript を呼ぶのはこのクラスだけである |
 | `BestTimeStorage` | Browser | `BestTimes` を localStorage に読み書きする。保存できないときは何もしない（メモリーの `BestTimes` だけが残る） |
 
 - `PressGesture` と `InputMapping` を分けたのは、変更理由が違うからである。長押しの判定時間や移動の許容量を変えるときは `PressGesture` だけを、旗モードでの割り当てを変えるときは `InputMapping` だけを直す。
 - `PressGesture` の長押しの待ち時間は、`TimeProvider` で計る。テストでは時刻を進めて確かめる。
+- `BoardCursor` が盤面の座標で位置を持つのは、画面の向きが変わって盤面の縦と横が入れ替わっても、同じマスを選んだままにするためである。表示の座標で持つと、入れ替わったときに別のマスを指してしまう。
 
 ### 6.3 コンポーネント
 
 ```mermaid
 flowchart TB
-    Home["Pages/Home<br/>ゲームの画面"]
-    Home --> Toolbar["Toolbar<br/>ツールバー"]
+    GamePage["Pages/GamePage<br/>ゲームの画面"]
+    GamePage --> Toolbar["Toolbar<br/>ツールバー"]
     Toolbar --> ElapsedTime["ElapsedTime<br/>経過時間"]
-    Home --> BoardArea["BoardArea<br/>盤面の領域"]
+    GamePage --> BoardArea["BoardArea<br/>盤面の領域"]
     BoardArea --> BoardView["BoardView<br/>盤面"]
     BoardArea --> LongPressRing["LongPressRing<br/>長押しの円"]
-    Home --> DifficultyDialog["DifficultyDialog<br/>難易度ダイアログ"]
-    Home --> WinCard["WinCard<br/>勝利カード"]
+    GamePage --> DifficultyDialog["DifficultyDialog<br/>難易度ダイアログ"]
+    GamePage --> WinCard["WinCard<br/>勝利カード"]
 ```
 
 | コンポーネント | 責務 |
 |----------------|------|
-| `Home` | 画面全体の状態の持ち主（7.1）。子からの操作の意図を受けて `Game` を呼び、勝ったらベストタイムを更新して保存し、勝利カードと読み上げを出す |
-| `Toolbar` | 難易度ボタン、残り地雷数、リセット ボタン（顔）、経過時間、旗モード ボタンを描き、押されたことを `Home` に伝える |
+| `GamePage` | 画面全体の状態の持ち主（7.1）。子からの操作の意図を受けて `Game` を呼び、勝ったらベストタイムを更新して保存し、勝利カードと読み上げを出す |
+| `Toolbar` | 難易度ボタン、残り地雷数、リセット ボタン（顔）、経過時間、旗モード ボタンを描き、押されたことを `GamePage` に伝える |
 | `ElapsedTime` | 経過時間を表示する。プレイ中は 1 秒ごとに自分だけを描き直す（7.3） |
 | `BoardArea` | 盤面の領域。大きさの変化を受け取り、`BoardPlacement` を計算し直す。スクロールが要るときは、この領域がスクロールする |
-| `BoardView` | マスを描き、ポインターとキーボードのイベントを受けて、`PressGesture`・`InputMapping`・`BoardCursor` を使い、「この位置を開く」「この位置の旗」という意図を `Home` に伝える。押下中の表示もここで持つ |
+| `BoardView` | マスを描き、ポインターとキーボードのイベントを受けて、`PressGesture`・`InputMapping`・`BoardCursor` を使い、「この位置を開く」「この位置の旗」という意図を `GamePage` に伝える。押下中の表示もここで持つ |
 | `LongPressRing` | 長押しの進行の円を、押したマスの位置に重ねて描く |
 | `DifficultyDialog` | 難易度の選択とカスタムの入力。入力の検証は `Difficulty` に任せ、誤りの文言を表示する |
 | `WinCard` | 勝利カード。タイムとベストタイムの更新の結果を表示する |
 
 アイコン（SVG）などの小さな部品は、クラス設計で決める。
+
+### 6.4 組み立て（`Program.cs`）
+
+依存性の注入（DI）に登録するのは、次の 3 つだけである。
+
+| 登録するもの | 有効期間 | 使う側 |
+|--------------|----------|--------|
+| `TimeProvider`（本番は `TimeProvider.System`） | シングルトン | `GamePage`（`Game` を作るときに渡す）、`BoardView`（`PressGesture` に渡す）、`ElapsedTime`（1 秒ごとのタイマー） |
+| `BrowserFeatures` | スコープ | `BoardArea`、`BoardView`、`BestTimeStorage` |
+| `BestTimeStorage` | スコープ | `GamePage` |
+
+- Blazor WebAssembly では、スコープの有効期間はアプリの実行中ずっと続く（シングルトンと同じになる）。
+- `Game`、`BestTimes`、`PressGesture`、`BoardCursor`、`BoardPlacement` は、DI に登録しない。状態を持つ持ち主のコンポーネント（7.1）が `new` で作る。持ち主が 1 つに決まっており、差し替える必要があるのは中で使う `TimeProvider` だけだからである。
+- 地雷を置く場所の本番の選び方（乱数）は、GameLogic が既定として持つ。`GamePage` は既定のまま使い、テストだけが別の選び方を渡す。
+- テンプレートが登録している `HttpClient` は削除する（2 章）。
+- bUnit のテストでは、`TimeProvider` の代わりに `FakeTimeProvider` を登録し、JavaScript の呼び出しは bUnit の偽物で受ける。
 
 ## 7. 状態と更新の流れ
 
@@ -208,11 +225,11 @@ flowchart TB
 
 | 状態 | 持ち主 | 理由 |
 |------|--------|------|
-| 現在のゲーム（`Game`） | `Home` | ツールバーと盤面の両方が表示に使う |
-| 現在の難易度 | `Home` | リセットで同じ難易度を使い、ダイアログにも渡す |
-| 旗モード | `Home` | ツールバーのボタンと盤面の両方が使う。リセットしても保つ（仕様書 4.3） |
-| ベストタイム（`BestTimes`） | `Home` | ダイアログと勝利カードが表示に使う |
-| ダイアログ・勝利カードの表示の有無 | `Home` | 表示中は、ほかの部分を `inert` にする（9.2） |
+| 現在のゲーム（`Game`） | `GamePage` | ツールバーと盤面の両方が表示に使う |
+| 現在の難易度 | `GamePage` | リセットで同じ難易度を使い、ダイアログにも渡す |
+| 旗モード | `GamePage` | ツールバーのボタンと盤面の両方が使う。リセットしても保つ（仕様書 4.3） |
+| ベストタイム（`BestTimes`） | `GamePage` | ダイアログと勝利カードが表示に使う |
+| 難易度ダイアログ・勝利カードの表示の有無 | `GamePage` | 難易度ダイアログを表示している間だけ、ほかの部分を `inert` にする（9.2）。勝利カードはモードレスなので（UI 2.4）、ほかの部分を `inert` にしない |
 | 押している間の状態（`PressGesture`）、押下中のマス | `BoardView` | 盤面の中だけで使う |
 | 選択中のマス（`BoardCursor`） | `BoardView` | 盤面の中だけで使う |
 | 盤面の置き方（`BoardPlacement`） | `BoardArea` | 領域の大きさを知るのは `BoardArea` だけである |
@@ -227,9 +244,9 @@ flowchart TB
 ```mermaid
 flowchart LR
     User(["利用者の操作"]) --> Child["子のコンポーネント<br/>（BoardView・Toolbar など）"]
-    Child -- "意図（開く・旗・リセットなど）" --> Home
-    Home -- "Game・BestTimes を呼ぶ" --> Logic["GameLogic"]
-    Home -- "描き直し（状態を引数で渡す）" --> Child
+    Child -- "意図（開く・旗・リセットなど）" --> GamePage
+    GamePage -- "Game・BestTimes を呼ぶ" --> Logic["GameLogic"]
+    GamePage -- "描き直し（状態を引数で渡す）" --> Child
 ```
 
 - `Game` から画面へ知らせる仕組み（イベントなど）は作らない。Blazor は、イベントを処理した後にコンポーネントを描き直すので、描き直しのときに `Game` の状態を読めば足りる。
@@ -238,10 +255,23 @@ flowchart LR
 
 仕様書 6.2 の性能の目標（上級で 100 ミリ秒以内）のために、次の 2 つを初めから守る。
 
-- **経過時間は、`ElapsedTime` だけを描き直す。** 1 秒ごとに `Home` を描き直すと、480 マスの盤面も毎秒描き直すことになるからである。
+- **経過時間は、`ElapsedTime` だけを描き直す。** 1 秒ごとに `GamePage` を描き直すと、480 マスの盤面も毎秒描き直すことになるからである。
 - **`BoardView` は、状態が変わらないポインターのイベントでは描き直さない。** `pointermove` は多いときに 1 秒に 100 回以上起きるが、ほとんどは 10px 未満の移動で、状態を変えない。
 
 これ以外の最適化（マスを 1 つずつのコンポーネントにして変わったマスだけを描くなど）は、工程 12 で実機で計ってから、必要なら行う。
+
+
+### 7.4 後片付け
+
+コンポーネントが破棄されるときに、次のものを止める（`IDisposable` または `IAsyncDisposable`）。止めないと、破棄された後もタイマーや監視が動き続け、.NET のオブジェクトが解放されないからである。
+
+| コンポーネント | 止めるもの |
+|----------------|------------|
+| `BoardArea` | `ResizeObserver` の監視と、JavaScript に渡した .NET の参照（`DotNetObjectReference`） |
+| `BoardView` | 長押しの待ち |
+| `ElapsedTime` | 1 秒ごとのタイマー |
+
+画面は 1 つだけなので、実際に破棄されるのはページを閉じるときくらいだが、テスト（bUnit）ではテストのたびに作って破棄するので、ここで決めておく。
 
 ## 8. 主な処理の流れ
 
@@ -256,13 +286,14 @@ stateDiagram-v2
     押下中 --> 待機: 離す。長押しの成立前なら「タップ」
     押下中 --> 長押し成立: 400 ミリ秒たつ（タッチ・ペンだけ）。「長押し」
     長押し成立 --> 待機: 離す（何もしない）
-    押下中 --> 待機: 10px 以上動く、pointercancel。「取り消し」
+    押下中 --> 待機: 10px 以上動く、盤面の外に出る、pointercancel。「取り消し」
     長押し成立 --> 待機: pointercancel
     待機 --> 待機: マウスの右ボタンで押す。「右クリック」
 ```
 
 - 押している間に別の指で触れた場合、その指は無視する。最初に押したポインター（`pointerId`）だけを追う。
 - 右クリックは、ボタンを押したとき（`pointerdown`）に判定する。
+- ポインターが盤面の外に出たら（`pointerleave`）、取り消す。マウスで押したまま盤面の外に出てボタンを離すと、`pointerup` が盤面に届かず、押下中のまま残ってしまうからである。
 - マウスの左ボタンには長押しがない（仕様書 4.1）。押し続けても「押下中」のままで、離せばタップになる。
 
 ### 8.2 タップでマスを開く
@@ -273,7 +304,7 @@ sequenceDiagram
     participant BV as BoardView
     participant PG as PressGesture
     participant IM as InputMapping
-    participant Home
+    participant GamePage
     participant Game
     User->>BV: pointerdown
     BV->>PG: 押し始め（位置、種類、時刻）
@@ -284,13 +315,13 @@ sequenceDiagram
     PG-->>BV: タップ
     BV->>IM: タップ、旗モード、マスの状態
     IM-->>BV: 開く
-    BV->>Home: 開く意図（盤面の位置）
-    Home->>Game: 開く
+    BV->>GamePage: 開く意図（盤面の位置）
+    GamePage->>Game: 開く
     Note over Game: 最初なら地雷を置き、時刻を記録する
-    Home-->>BV: 描き直し
+    GamePage-->>BV: 描き直し
 ```
 
-- `BoardView` は、表示の座標を `BoardPlacement` で盤面の座標に変えてから `Home` に伝える。`Home` と `Game` は、盤面の座標だけを扱う。
+- `BoardView` は、表示の座標を `BoardPlacement` で盤面の座標に変えてから `GamePage` に伝える。`GamePage` と `Game` は、盤面の座標だけを扱う。
 
 ### 8.3 長押しで旗を立てる
 
@@ -299,13 +330,13 @@ sequenceDiagram
     actor User as 利用者
     participant BV as BoardView
     participant PG as PressGesture
-    participant Home
+    participant GamePage
     participant BF as BrowserFeatures
     User->>BV: pointerdown（タッチ）
     BV->>PG: 押し始め
     Note over PG: 400 ミリ秒の待ちを始める
     PG-->>BV: 長押し成立
-    BV->>Home: 旗の意図（旗モードなら開く意図）
+    BV->>GamePage: 旗の意図（旗モードなら開く意図）
     BV->>BF: 振動（30 ミリ秒）
     Note over BV: 押下中の表示と円を消す（UI 5.1）
     User->>BV: pointerup
@@ -316,19 +347,19 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant Home
+    participant GamePage
     participant Game
     participant BT as BestTimes
     participant BTS as BestTimeStorage
-    Home->>Game: 開く
-    Game-->>Home: 状態が勝利になった
+    GamePage->>Game: 開く
+    Game-->>GamePage: 状態が勝利になった
     alt 初級・中級・上級
-        Home->>BT: 経過時間を記録する
-        BT-->>Home: 更新した・初めての記録・更新しなかった
-        Home->>BTS: 保存する
+        GamePage->>BT: 経過時間を記録する
+        BT-->>GamePage: 更新した・初めての記録・更新しなかった
+        GamePage->>BTS: 保存する
         Note over BTS: 失敗しても何もしない（メモリーには残っている）
     end
-    Note over Home: 勝利カードを出し、読み上げ用の領域に文を入れる
+    Note over GamePage: 勝利カードを出し、読み上げ用の領域に文を入れる
 ```
 
 ### 8.5 画面の大きさや向きが変わったとき
@@ -373,7 +404,7 @@ CLAUDE.md のとおり、JavaScript は必要なときに限る。使うのは�
 | ダイアログの外を操作できなくし、フォーカスを閉じ込める | ダイアログの外の要素に `inert` を付ける。`inert` の要素にはフォーカスが入らず、スクリーンリーダーからも隠れるので、フォーカスを閉じ込める処理を書かずに済む |
 | 上バーと横バーの切り替え | CSS のメディアクエリー（UI 3.1 の条件） |
 | マスの大きさの反映 | `BoardView` が CSS の変数（`--cell-size`）を設定し、CSS のグリッドで並べる |
-| 長押しの円の位置 | `BoardView` がマスの位置とマスの大きさから計算し、`LongPressRing` に渡す |
+| 長押しの円の位置 | `LongPressRing` は、画面に固定した層（`position: fixed`）に描く。盤面の領域がスクロールするときも、領域の端で円が切れないようにするためである。円の中心は、押したときのポインターのイベントの値から求める。`ClientX − OffsetX`（`Y` も同じ）がマスの左上の画面上の位置になるので、それにマスの大きさの半分を足す。イベントの対象が必ずマスの要素になるように、マスの中の数字やアイコンには `pointer-events: none` を指定する |
 | 長押しの円が満ちるアニメーション、旗やカードのアニメーション、動きを減らす設定 | CSS のアニメーションと `prefers-reduced-motion` |
 | ダークモード | CSS の `prefers-color-scheme` |
 
@@ -397,7 +428,7 @@ CSS の分離を使うので、`index.html` でコメントアウトされてい
 | 形式 | JSON。難易度ごとの秒数。記録のない難易度は含めない |
 | 読むとき | ページを開いたときに 1 回だけ読み、`BestTimes` を作る。値が読めない、形式が違う、範囲（0〜999）の外、のときは、その値を「記録なし」として扱う |
 | 書くとき | ベストタイムを更新したときに、全体を書く |
-| 保存できないとき | 何もしない。`Home` が持つ `BestTimes` はメモリーにあるので、ページを開いている間は記録が残る（仕様書 3.8） |
+| 保存できないとき | 何もしない。`GamePage` が持つ `BestTimes` はメモリーにあるので、ページを開いている間は記録が残る（仕様書 3.8） |
 
 形式の版（バージョン）は持たない。形式を変える必要が出たときに、読めない値を「記録なし」として扱う規則で古い形式を捨てられるからである。
 
@@ -426,7 +457,7 @@ CSS の分離を使うので、`index.html` でコメントアウトされてい
 | 時刻 | `TimeProvider.System` | 時刻を自由に進められる偽物 | 経過時間と長押しを、待たずに確かめるため |
 | 地雷を置く場所の選び方 | 乱数（`Random.Shared`）で選ぶ | 位置を直接与える | どの盤面になるかを、テストで決めるため。種（シード）を固定した乱数で盤面を再現する方法は、配置の方法を変えるとテストが壊れるので使わない |
 
-- 時刻の偽物には、Microsoft の `Microsoft.Extensions.TimeProvider.Testing` パッケージの `FakeTimeProvider` を使う案を推す（17 章でユーザーに確認する）。
+- 時刻の偽物には、Microsoft の `Microsoft.Extensions.TimeProvider.Testing` パッケージの `FakeTimeProvider` を使う（17 章）。
 - `dotnet test` と、1 件だけテストを実行する方法は、テストプロジェクトを作ったときに CLAUDE.md の「コマンド」に書く。
 
 ## 13. 公開
@@ -450,7 +481,7 @@ CSS の分離を使うので、`index.html` でコメントアウトされてい
 |--------------|------|
 | `Game`、`Board` などのインターフェイス | 実装は 1 つだけで、テストでも本物を使う。インターフェイスを作ると、読む対象が増えるだけである |
 | ベストタイムの保存のインターフェイス | `BestTimes`（規則）と `BestTimeStorage`（保存）を分けたので、規則のテストに保存の偽物は要らない。保存のテストは、JavaScript interop の偽物で行う |
-| 状態管理のライブラリ（Fluxor など）、イベントの仕組み | 画面は 1 つで、状態の持ち主は `Home` にまとまっている。引数とイベントで足りる |
+| 状態管理のライブラリ（Fluxor など）、イベントの仕組み | 画面は 1 つで、状態の持ち主は `GamePage` にまとまっている。引数とイベントで足りる |
 | マスごとのコンポーネント | まず `BoardView` の中でマスを描く。遅いと分かったときに分ける（7.3） |
 | 多言語対応の仕組み | 画面の言語は日本語だけである（仕様書 5.5） |
 | 旗モードや設定の保存 | 保存するのはベストタイムだけである（仕様書 6.4） |
@@ -465,10 +496,10 @@ CSS の分離を使うので、`index.html` でコメントアウトされてい
 | `browser.js` を、サブパス（`/Shos.Minesweeper/`）に置いたときにも読み込めるか。.NET 10 の静的ファイルのフィンガープリントと `import` の組み合わせで問題がないか | 工程 11（最初に JavaScript を使う区切り）、工程 13 |
 | 初回の読み込みの大きさ。必要なら、トリミングの設定やカルチャー情報を含めない設定（`InvariantGlobalization`）を検討する | 工程 13 |
 
-## 17. ユーザーの判断が要る点
+## 17. ユーザーに確認した点
 
-| 点 | 推す案 | ほかの案 |
-|----|--------|----------|
+| 点 | 決定 | 見送った案 |
+|----|------|------------|
 | テストで時刻を進めるための偽物 | Microsoft の `Microsoft.Extensions.TimeProvider.Testing` パッケージ（`FakeTimeProvider`）をテストプロジェクトに入れる。.NET の `TimeProvider` と同じチームが作っており、タイマーを含めて時刻を進められる | テストプロジェクトに偽物を自作する。時刻を返すだけなら短いが、長押しの待ち（タイマー）まで偽装すると、自作のコードが増える |
 
-CLAUDE.md で合意済みなのは xUnit と bUnit なので、このパッケージを入れるかどうかは、この設計書の承認と合わせて確認したい。
+設計書の提出時にこの点を確認事項として挙げ、ユーザーは個別の回答をせずに工程を承認した。仕様書レビューの前例（docs/reviews/02-spec-review.md）に従い、推した案どおりに確定した（docs/reviews/04-architecture-review.md）。
