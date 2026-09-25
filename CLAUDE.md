@@ -115,7 +115,7 @@ dotnet test --project Shos.Minesweeper.Tests --filter-class "Shos.Minesweeper.Te
 dotnet test --project Shos.Minesweeper.Tests --filter-method "*FirstOpenStartsTheGame"               # 1 件（ワイルドカード可）
 ```
 
-- Visual Studio でアプリをデバッグ実行している間や、MSBuild の常駐プロセスが残っている間は、コマンドラインのビルドが `obj/Debug/net10.0/tmp-webcil` を消せずに失敗する（MSB4018）ことがある。デバッグ実行を止め、`dotnet build-server shutdown` を実行してからビルドし直す。環境変数 `MSBUILDDISABLENODEREUSE=1` を設定しておくと、常駐プロセスが残りにくい。
+- Visual Studio でアプリをデバッグ実行している間や、MSBuild の常駐プロセスが残っている間や、VS Code の C# Dev Kit がファイルの変更を受けてビルドしている間は、コマンドラインのビルドが `obj/Debug/net10.0/tmp-webcil` を消せずに失敗する（MSB4018）ことがある。デバッグ実行を止め、`dotnet build-server shutdown` を実行してからビルドし直す。C# Dev Kit のビルドと重なったときは、30 秒ほど待ってからやり直すと通る。環境変数 `MSBUILDDISABLENODEREUSE=1` を設定しておくと、常駐プロセスが残りにくい。
 - テストは Microsoft.Testing.Platform で動かす。リポジトリ直下の `global.json` でこのモードを選んでいる（.NET 10 の SDK では、xUnit v3 のテストを従来の VSTest のモードで `dotnet test` できないため）。そのため、テストの絞り込みは `--filter` ではなく、`--filter-class`・`--filter-method` などの xUnit のオプションで行う。
 
 ## 構成とポイント

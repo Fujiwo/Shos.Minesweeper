@@ -78,6 +78,24 @@
 .n7 { color: var(--number-7); }
 .n8 { color: var(--number-8); }
 
+/* 旗が立ったことに目を向けやすくするため、旗のアイコンを 150 ミリ秒かけて 60% から 100% に広げる（UI デザイン 5.2） */
+.flagged ::deep .icon {
+    animation: flag-planted 150ms ease-out;
+}
+
+@keyframes flag-planted {
+    from {
+        transform: scale(0.6);
+    }
+}
+
+/* 動きを減らす設定では、すぐに 100% で表示する（UI デザイン 5.7） */
+@media (prefers-reduced-motion: reduce) {
+    .flagged ::deep .icon {
+        animation: none;
+    }
+}
+
 /* タッチ端末では、指を離した後に指した状態が残らないように、指し示せる入力のときだけ出す（UI デザイン 5.6） */
 @media (hover: hover) {
     .closed:not(.pressed):hover,
