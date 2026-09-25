@@ -42,6 +42,31 @@ public class InputMappingTests
     public void ActionFollowsThePressTheModeAndTheCell(PressKind press, bool isFlagMode, CellKind cellKind, CellAction action)
         => Assert.Equal(action, InputMapping.ActionFor(press, isFlagMode, CellOf(cellKind)));
 
+    // キーボードの割り当て（仕様書 4.5）。キーの名前は DOM の KeyboardEvent.key の値
+    [Theory]
+    [InlineData(" ",     CellAction.Open)]
+    [InlineData("Enter", CellAction.Open)]
+    [InlineData("f",     CellAction.ToggleFlag)]
+    [InlineData("F",     CellAction.ToggleFlag)]
+    [InlineData("a",     CellAction.None)]
+    [InlineData("Tab",   CellAction.None)]
+    public void KeysMapToActions(string key, CellAction action)
+        => Assert.Equal(action, InputMapping.ActionForKey(key));
+
+    [Theory]
+    [InlineData("ArrowUp",    Direction.Up)]
+    [InlineData("ArrowDown",  Direction.Down)]
+    [InlineData("ArrowLeft",  Direction.Left)]
+    [InlineData("ArrowRight", Direction.Right)]
+    public void ArrowKeysMapToDirections(string key, Direction direction)
+        => Assert.Equal(direction, InputMapping.DirectionForKey(key));
+
+    [Theory]
+    [InlineData("Enter")]
+    [InlineData("f")]
+    public void OtherKeysHaveNoDirection(string key)
+        => Assert.Null(InputMapping.DirectionForKey(key));
+
     static Cell CellOf(CellKind kind)
         => kind switch {
             CellKind.Closed       => new(CellState.Closed, 0),

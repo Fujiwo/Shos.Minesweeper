@@ -17,3 +17,13 @@ export function vibrate(milliseconds) {
     } catch {
     }
 }
+
+// 要素の上で、矢印キーと Space の既定の動作（ページのスクロール）を止める。Tab などほかのキーは止めない
+const scrollingKeys = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "]);
+
+export function suppressKeyScrolling(element) {
+    element.addEventListener("keydown", event => {
+        if (scrollingKeys.has(event.key))
+            event.preventDefault();
+    });
+}

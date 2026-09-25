@@ -4,6 +4,7 @@
 
 <div class="board @(IsFlagMode ? "flag-mode" : "")" role="grid" aria-label="盤面、@Placement.RowCount 行 @Placement.ColumnCount 列"
      style="--cell-size: @(Placement.CellSize)px; --frame-width: @(BoardPlacement.FrameWidth)px; --column-count: @Placement.ColumnCount"
+     tabindex="0" aria-activedescendant="@CellIdOf(cursor.Position)" @ref="board" @onkeydown="HandleKeyDownAsync"
      @onpointermove="HandlePointerMoveAsync" @onpointerup="HandlePointerUpAsync"
      @onpointercancel="HandlePointerCancelAsync" @onpointerleave="HandlePointerCancelAsync"
      @oncontextmenu:preventDefault="true">
@@ -19,8 +20,8 @@
                 var position = Placement.ToBoard(displayPosition);
                 var appearance = Game.AppearanceOf(position);
                 var adjacentMineCount = Game.Board.CellAt(position).AdjacentMineCount;
-                <div id="cell-@position.Row-@position.Column" role="gridcell"
-                     class="@CellClassOf(appearance, adjacentMineCount, isPressed: pressedCells.Contains(position))"
+                <div id="@CellIdOf(position)" role="gridcell"
+                     class="@CellClassOf(appearance, adjacentMineCount, isPressed: pressedCells.Contains(position), isSelected: position == cursor.Position)"
                      aria-label="@CellPresentation.AccessibleNameOf(displayPosition, appearance, adjacentMineCount)"
                      @onpointerdown="pointer => HandlePointerDownAsync(position, pointer)">
                     @if (CellPresentation.IconOf(appearance) is IconKind icon)
@@ -56,6 +57,8 @@
     readonly record struct Ring(double CenterX, double CenterY, CellAction Action);
 
     PressGesture gesture = default!;
+    BoardCursor cursor = new();
+    ElementReference board;
     CellPosition? pressedPosition;
     Ring? ring;
     bool isPressing;
@@ -75,7 +78,26 @@
     // pointermove のように表示を変えないイベントでは描き直さない（アーキテクチャー設計書 7.3）
     protected override bool ShouldRender() => shouldRender;
 
-    protected override void OnAfterRender(bool firstRender) => shouldRender = false;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        shouldRender = false;
+        if (firstRender)
+            await Browser.SuppressKeyScrollingAsync(board);
+    }
+
+    // キーボードの操作（仕様書 4.5）。旗モードはキーボードの操作に影響しない
+    async Task HandleKeyDownAsync(KeyboardEventArgs key)
+    {
+        if (InputMapping.DirectionForKey(key.Key) is { } direction) {
+            // 勝敗が決まった後も動かせる。敗北した盤面をスクリーンリーダーで確かめられるようにするため
+            cursor.Move(direction, Placement);
+            shouldRender = true;
+            return;
+        }
+        if (Game.IsOver)
+            return;
+        await RequestAsync(InputMapping.ActionForKey(key.Key), cursor.Position);
+    }
 
     async Task HandlePointerDownAsync(CellPosition position, PointerEventArgs pointer)
     {
@@ -191,14 +213,17 @@
     void StartShowing(Game game)
     {
         shownGame = game;
+        cursor = new BoardCursor();
         gesture.Reset();
         pressedPosition = null;
         ring = null;
         isPressing = false;
     }
 
-    static string CellClassOf(CellAppearance appearance, int adjacentMineCount, bool isPressed)
-        => $"cell {CellPresentation.CssClassOf(appearance, adjacentMineCount)}{(isPressed ? " pressed" : "")}";
+    static string CellClassOf(CellAppearance appearance, int adjacentMineCount, bool isPressed, bool isSelected)
+        => $"cell {CellPresentation.CssClassOf(appearance, adjacentMineCount)}{(isPressed ? " pressed" : "")}{(isSelected ? " selected" : "")}";
+
+    static string CellIdOf(CellPosition position) => $"cell-{position.Row}-{position.Column}";
 
     static PointerInput InputOf(PointerEventArgs pointer)
         => new(pointer.PointerId, pointer.PointerType, pointer.Button, pointer.ClientX, pointer.ClientY);

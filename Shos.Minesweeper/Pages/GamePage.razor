@@ -16,10 +16,17 @@
     </BoardArea>
 </div>
 
+<div class="visually-hidden" aria-live="polite">@announcement</div>
+
 @code {
+    // 同じ文を続けて知らせるときに、中身を変えるための見えない文字（中身が変わらないと、スクリーンリーダーは読み上げない）
+    const string ZeroWidthSpace = "\u200B";
+
     Game game = default!;
+    BestTimes bestTimes = new();
     bool isFlagMode;
     bool isPressing;
+    string announcement = "";
 
     protected override void OnInitialized() => StartNewGame(Difficulty.Beginner);
 
@@ -30,14 +37,29 @@
         isPressing = false;
     }
 
-    void ResetGame() => StartNewGame(game.Difficulty);
+    // ページを開いたときは読み上げず、利用者が新しいゲームを始めたときだけ知らせる（クラス設計書 9.1 の決定 7）
+    void ResetGame()
+    {
+        StartNewGame(game.Difficulty);
+        Announce(Announcements.NewGame(game.Difficulty));
+    }
 
     // 旗モードは、新しいゲームを始めても保つ（仕様書 4.3）
     void ToggleFlagMode() => isFlagMode = !isFlagMode;
 
     void SetPressing(bool pressing) => isPressing = pressing;
 
-    void OpenCell(CellPosition position) => game.Open(position);
+    void OpenCell(CellPosition position)
+    {
+        game.Open(position);
+        // Game.Open は勝敗が決まった後には呼ばれないので、ここで勝敗が決まっていれば、いま決まったことになる
+        if (game.Status == GameStatus.Won)
+            Announce(Announcements.Won(game.ElapsedSeconds, bestTimes.Record(game.Difficulty.Kind, game.ElapsedSeconds)));
+        else if (game.Status == GameStatus.Lost)
+            Announce(Announcements.Lost);
+    }
 
     void ToggleFlag(CellPosition position) => game.ToggleFlag(position);
+
+    void Announce(string text) => announcement = announcement == text ? text + ZeroWidthSpace : text;
 }

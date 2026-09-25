@@ -480,8 +480,12 @@ public enum CellAction { None, Open, ToggleFlag }
 public static class InputMapping
 {
     public static CellAction ActionFor(PressKind press, bool isFlagMode, Cell cell);
+    public static CellAction ActionForKey(string key);        // Space・Enter は Open、F は ToggleFlag、ほかは None（仕様書 4.5）
+    public static Direction? DirectionForKey(string key);     // 矢印キーの方向。ほかは null
 }
 ```
+
+- キーボードの割り当て（仕様書 4.5）も、マウスとタッチの割り当て（仕様書 4.1）と同じく `InputMapping` に置き、表でテストする（docs/reviews/code-review.md の区切り 5 の指摘 1）。キーの名前は DOM の `KeyboardEvent.key` の値のまま受け取る。
 
 仕様書 4.1 の表と、仕様書 3.4 の表の 2 段で決める。
 
@@ -711,7 +715,8 @@ async Task ShowWinAsync()
 | 旗モード ボタン | `isFlagMode` を反転する（新しいゲームでも保つ。仕様書 4.3） |
 
 - 新しいゲームを始めるときは、`new Game(difficulty, timeProvider)` を作り直し、`isPressing` を偽にし、勝利カードを閉じ、`Announcements.NewGame` を読み上げる。`isPressing` を戻すのは、盤面を押している間に別の指でリセット ボタンを押した場合に、顔が「驚き」のまま残らないようにするためである（`BoardView` は新しいゲームで押下を捨てる）。
-- 同じ文を続けて読み上げる場合（同じ難易度で 2 回続けてリセットしたときなど）に読み上げが起きるように、文を一度空にしてから入れる。方法は工程 11 で決める。
+- 同じ文を続けて読み上げる場合（同じ難易度で 2 回続けてリセットしたときなど）に読み上げが起きるように、前と同じ文なら末尾に見えない文字（U+200B）を足して、読み上げ用の領域の中身を変える。
+- `BestTimes` は区切り 5 からメモリーの中で持ち、勝ったときの読み上げの文に使う。ブラウザーへの保存（`BestTimeStorage`）は区切り 6 で加える。
 
 盤面の部分は次のように書く。
 

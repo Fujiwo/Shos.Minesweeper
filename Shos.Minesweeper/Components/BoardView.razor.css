@@ -12,6 +12,11 @@
     touch-action: manipulation;
 }
 
+/* 盤面のフォーカスは、選択中のマスの枠で示す（UI デザイン 6.3） */
+.board:focus-visible {
+    outline: none;
+}
+
 /* 旗モードは、枠の縞模様でも示す。枠の太さは変えない（UI デザイン 5.3） */
 .board.flag-mode {
     border-image: repeating-linear-gradient(45deg, var(--accent) 0 6px, var(--on-accent) 6px 12px) 1;
@@ -79,4 +84,16 @@
     .flagged:hover {
         background: var(--cell-closed-hover);
     }
+}
+
+/*
+ * 選択中のマス（UI デザイン 4.2 の I、6.3）。盤面にキーボードのフォーカスがあるときだけ出す。
+ * 内側は focus-inner の 2px をマスの縁の内側に、外側は focus の 3px をマスの縁の外側に描き、どんな背景でも見えるようにする。
+ * 外側の枠は隣のマスに重なるので、選択中のマスを手前に描く。
+ */
+.board:focus-visible .selected {
+    position: relative;
+    z-index: 1;
+    outline: 3px solid var(--focus);
+    box-shadow: inset 0 0 0 2px var(--focus-inner);
 }
