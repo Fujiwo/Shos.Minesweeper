@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "deny": [
+      "Edit(/.claude/skills/sustainable-code)",
+      "Edit(/.claude/skills/sustainable-code-jp)"
+    ]
+  }
+}
