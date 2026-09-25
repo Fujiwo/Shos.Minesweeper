@@ -6,7 +6,7 @@
 | 対象 | docs/05-class-design.md |
 | レビュー日 | 2026-09-25 |
 | レビュー者 | Claude（自己レビュー） |
-| 状態 | 指摘をすべて反映済み。ユーザーが承認した（2026-09-25） |
+| 状態 | 指摘をすべて反映済み。ユーザーが承認した（2026-09-25）。工程 12 の後の再レビューは、指摘を反映し、ユーザーの承認を待っている |
 
 ## 観点
 
@@ -87,3 +87,46 @@ CLAUDE.md のとおり、sustainable-code-jp スキルの七箇条と Think Simp
 - タッチでは、押したマスの要素にポインターが暗黙に捕捉される。このとき `pointermove`・`pointerup` が盤面の要素に届くこと、`pointerleave` が押している途中で届かないことを、工程 11 の区切り 3（マウスとタッチの操作）で、実機で確かめる。
 - マスごとに `pointerdown` の処理を登録するので、上級では 480 個になる。描き直しの時間が仕様書 6.2 の目標を満たすかは、工程 13（結合テスト）で計る（アーキテクチャー設計書 7.3、16 章）。
 - 設計書の Mermaid の図は、書式を確かめただけで、描画しての確認はしていない。
+
+## 再レビュー（2026-09-26）
+
+| 項目 | 内容 |
+|------|------|
+| 対象 | docs/05-class-design.md（工程 11 の実装と、工程 12 のリファクタリング R1〜R5 を反映した版） |
+| きっかけ | 工程 12 の R5 で、WPF 版・コンソール版と共有する部品のプロジェクトを加えたので、設計が変わった。ユーザーの指示で、アーキテクチャー設計書レビュー、クラス設計書レビュー、コードレビュー、リファクタリングをこの順にやり直す。この再レビューは、アーキテクチャー設計書の再レビューの承認（2026-09-26）を受けて行う |
+| 観点 | 初回と同じ（七箇条、Think Simple、前の成果物との整合）。加えて、アーキテクチャー設計書の再レビューの決定と、設計書の記述が実装の結果と合っているか（公開メンバー、テストプロジェクトの参照、コンポーネントの処理を、コードと突き合わせた） |
+
+### 指摘
+
+| # | 重大度 | 観点 | 場所 | 指摘 | 対応 |
+|---|--------|------|------|------|------|
+| 1 | 中 | 整合、的確な名前 | 1.1、2 章、4.4、7.1、7.3 | アーキテクチャー設計書の再レビューで、ベストタイムの保存の形式（`BestTimesJson`）を GameLogic に置くと決めた（docs/reviews/04-architecture-review.md の再レビューの指摘 1）が、クラス設計書では Presentation の型として 4.4 で説明し、テストも Presentation.Tests に置いている | `BestTimesJson` を GameLogic の型として 3.7 に移し、3.1 のクラス図に足した。4.4 は `BestTimeStorage` だけにし、形式は 3.7 に任せると書いた。1.1 の方針、2 章の一覧と説明、7.1 のテストの置き場所（`BestTimesJsonTests` を GameLogic.Tests へ）を直した。コードとテストの移動は、リファクタリングのやり直しで行う |
+| 2 | 軽微 | 整合 | 4 章の見出し、4.1 のクラス図、5.2 の `BoardView` | 4 章の見出しが「アプリの C# クラス」のままで、Presentation の `InputMapping` を含むことと合わない。クラス図に `KeyboardMapping` がなく、`BoardView` のキーボードの表も、キーの判定を `KeyboardMapping` に任せていることを書いていない | 見出しをアーキテクチャー設計書 6.2 にそろえて「Presentation とアプリの C# クラス」にし、クラス図に `KeyboardMapping` を足して、どの型が Presentation かを書いた。`BoardView` のキーボードの表の後に、`KeyboardMapping` を使うことを書いた |
+| 3 | 軽微 | 正確さ | 6 章 | 「例外を投げない。読めない値は捨てる」を `BestTimeStorage.LoadAsync` の約束として書いているが、R5 でこの規則を受け持つのは `BestTimesJson.Parse` になった | `BestTimesJson.Parse` と `BestTimeStorage.LoadAsync` の両方を挙げた |
+| 4 | 軽微 | 正確さ | 7.1 | 「3 つのプロジェクトに分ける」と書き、表には補助の `TestSupport` を含めて 4 つ並んでいる。`TestSupport` が xUnit の `Assert` を使うことも書いていない | 「3 つのテストプロジェクトと、その共通の補助のプロジェクト」にし、`TestSupport` が `Assert` だけを使うことを書いた |
+| 5 | 軽微 | 正確さ | 3.2、5.3、9.2 | 3.2 の `DisplayPosition` の参照先が 4.2（正しくは 4.3）。5.3 の `_Imports.razor` の `@using` に `.Presentation` がない（コードにはある）。9.2 の A6 は、`DifficultyNames` と `Announcements` を Display に置くと書いたままで、R5 で移したことが分からない | 参照先を 4.3 に直し、`@using` に `.Presentation` を足し、A6 に R5 で移したことを書き添えた |
+| 6 | 軽微 | 正確さ | 状態 | 状態が「レビューのやり直しを待っている」のまま | 再レビューの指摘を反映したことと、`BestTimesJson` のコードの移動はリファクタリングのやり直しで行うことを書いた |
+
+### コードとの突き合わせ
+
+- GameLogic、Presentation、Input、Display、Browser の公開メンバー（名前、引数、戻り値、`internal` の範囲）は、設計書の宣言とすべて一致した。`BestTimesJson` の置き場所（指摘 1）だけが、決定とコードで違う。
+- `GamePage` の主な処理（`OpenCellAsync`、`ShowWinAsync`、読み上げの U+200B、描き直しの後のフォーカス）と、`BoardView` の押し方とキーボードの処理は、5.2 の記述どおりである。
+- テストプロジェクトの参照は、7.1 の表どおりである（GameLogic.Tests → GameLogic・TestSupport、Presentation.Tests → Presentation、Tests → Web アプリ・TestSupport、TestSupport → GameLogic）。
+
+### 引き算の点検
+
+| 単位・仕組み | 解いている問題 | 判定 |
+|--------------|----------------|------|
+| `KeyboardMapping`（Web アプリ） | DOM のキー名から操作と方向を決める規則を、表でテストできる形で 1 か所に置く | 残す。WPF 版・コンソール版はキーの受け方が違う（`Key`・`ConsoleKey`）ので、共有しない |
+| `BestTimesJson` を GameLogic に置くこと | 保存の形式を、どのアプリも同じにする | 残す。そのためだけのプロジェクトは作らない（アーキテクチャー設計書の再レビューの引き算の点検） |
+| `BestTimeStorage` | localStorage のキーと、`BrowserFeatures` への橋渡し | 残す。形式を持たなくなったので薄いが、保存先の知識（キーの名前、JavaScript を通ること）を 1 か所に置いている。`GamePage` が `BrowserFeatures` と `BestTimesJson` を直接つなぐと、ページが保存先を知ることになる |
+| 3.7 と 4.4 に分けた説明 | 形式（GameLogic）と保存先（Web アプリ）は、置き場所も変わる理由も違う | 残す |
+
+### 良い点
+
+- R5 の変更（`InputMapping` の Presentation への移動、`KeyboardMapping` の切り出し、`BestTimesJson` の切り出し）は、2 章の一覧、4.2、4.4、7 章にまとめて反映されていて、食い違いは置き場所の決定の変更（指摘 1）と、その周りの書き漏れにとどまっていた。
+- 公開メンバーの宣言が実装とすべて一致していて、設計書をそのまま型の索引として読める。
+
+### 残る課題
+
+- 指摘 1 のコードの移動（`BestTimesJson` を GameLogic へ、`BestTimesJsonTests` を GameLogic.Tests へ、`BestTimeStorage` と `BestTimeStorageTests` のコメントの参照先）は、この後のリファクタリングのやり直しで行う。

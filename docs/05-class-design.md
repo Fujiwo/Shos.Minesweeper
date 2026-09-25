@@ -4,7 +4,7 @@
 |------|------|
 | 工程 | 9. クラス設計書作成 |
 | 作成日 | 2026-09-25 |
-| 状態 | レビュー指摘を反映済み（docs/reviews/05-class-design-review.md）。工程 12 で、WPF 版・コンソール版と共有する部品を Presentation に移した（docs/reviews/code-review.md の工程 12 の R5）。この変更のレビューのやり直しを待っている |
+| 状態 | レビュー指摘を反映済み（docs/reviews/05-class-design-review.md）。工程 12 で、WPF 版・コンソール版と共有する部品を Presentation に移した（docs/reviews/code-review.md の工程 12 の R5）。この変更を含めてレビューをやり直し、指摘を反映した（docs/reviews/05-class-design-review.md の「再レビュー」）。`BestTimesJson` を GameLogic に移すコードの変更は、リファクタリングのやり直しで行う |
 | 入力 | docs/04-architecture.md（アーキテクチャー設計書）、docs/02-spec.md（仕様書）、docs/03-ui-design.md（UI デザイン） |
 
 ## 1. 概要
@@ -22,7 +22,7 @@
 | 値の組に名前を付ける | 行と列、下限と上限のように、いつも組で現れる値には型を作る。盤面の座標（`CellPosition`）と表示の座標（`DisplayPosition`）は別の型にして、取り違えるとコンパイルが通らないようにする |
 | 規則は情報を持つ者に置く | 「このマスに『開く』が効くか」はマス（`Cell`）が、「このマスをどう見せるか」はゲームの状態を知る `Game` が答える |
 | 継承はしない | クラスは `sealed` にする。インターフェイスは作らない（アーキテクチャー設計書 15 章） |
-| 共有できる部品は Presentation に置く | 次に作る WPF 版とコンソール版でも形が変わらない部品（表示の文言、押し方からの操作の割り当て、ベストタイムの保存の形式）は、UI の技術に依存しない `Shos.Minesweeper.Presentation` に置く（アーキテクチャー設計書 4 章） |
+| 共有できる部品は Presentation か GameLogic に置く | 次に作る WPF 版とコンソール版でも形が変わらない表示と入力の部品（表示の文言、押し方からの操作の割り当て）は、UI の技術に依存しない `Shos.Minesweeper.Presentation` に置く。ベストタイムの保存の形式（`BestTimesJson`）は、表示でも入力でもないので、GameLogic の `BestTimes` のそばに置く（アーキテクチャー設計書 4 章） |
 
 ### 1.2 用語と名前の対応
 
@@ -71,12 +71,12 @@
 | | `BestTimeOutcome` | enum | ベストタイムを記録した結果の種類 |
 | | `BestTimeResult` | record struct | ベストタイムを記録した結果と、それまでの記録 |
 | | `BestTimes` | class | 初級〜上級のベストタイムと、その更新の規則 |
+| | `BestTimesJson` | static class | ベストタイムの保存の形式（JSON）の読み書き |
 | Presentation | `DifficultyNames` | static class | 難易度の表示名（「初級」など） |
 | | `Announcements` | static class | 新しいゲームと勝敗を知らせる文 |
 | | `PressKind` | enum | 判定した押し方 |
 | | `CellAction` | enum | マスに行う操作（何もしない・開く・旗） |
 | | `InputMapping` | static class | 押し方と旗モードとマスから、行う操作を決める |
-| | `BestTimesJson` | static class | ベストタイムの保存の形式（JSON）の読み書き |
 | Input | `PointerInput` | record struct | ポインターのイベントのうち、押し方の判定に要る値 |
 | | `PressGesture` | class | 1 回の「押して離す」を、タップ・長押し・右クリックに判定する |
 | | `KeyboardMapping` | static class | キーボードのキー（DOM のキー名）から、行う操作と矢印の方向を決める |
@@ -90,9 +90,9 @@
 | | `BestTimeStorage` | class | `BestTimes` を localStorage に読み書きする |
 | Components・Pages | `GamePage` ほか 9 個 | Razor | 5 章 |
 
-アーキテクチャー設計書で名前を挙げていない型（`Cell`、`CellAppearance`、`PointerInput`、`DisplayPosition`、`CellPresentation`、`DifficultyNames`、`Announcements` など）は、この設計で足した。足した理由は各節に書く。`KeyboardMapping` と `BestTimesJson` は、工程 12 で共有する部品を分けたときに足した（4.2、4.4）。
+アーキテクチャー設計書で名前を挙げていない型（`Cell`、`CellAppearance`、`PointerInput`、`DisplayPosition`、`CellPresentation`、`DifficultyNames`、`Announcements` など）は、この設計で足した。足した理由は各節に書く。`KeyboardMapping` と `BestTimesJson` は、工程 12 で共有する部品を分けたときに足した（4.2、3.7）。
 
-Presentation の型は、節を分けずに、使われ方の近い 4.2（`PressKind`・`CellAction`・`InputMapping`）、4.3（`DifficultyNames`・`Announcements`）、4.4（`BestTimesJson`）で説明する。見出しに「Presentation」と書く。
+Presentation の型は、節を分けずに、使われ方の近い 4.2（`PressKind`・`CellAction`・`InputMapping`）と 4.3（`DifficultyNames`・`Announcements`）で説明する。見出しに「Presentation」と書く。
 
 ## 3. GameLogic
 
@@ -139,11 +139,17 @@ classDiagram
         +SecondsOf(DifficultyKind) int?
         +Record(DifficultyKind, int) BestTimeResult
     }
+    class BestTimesJson {
+        <<static>>
+        +Parse(string?)$ BestTimes
+        +Serialize(BestTimes)$ string
+    }
     Game *-- Board
     Game --> Difficulty
     Game ..> MineChooser
     Board ..> Cell
     BestTimes ..> BestTimeResult
+    BestTimesJson ..> BestTimes
 ```
 
 `Game` と `BestTimes` は互いを知らない。勝ったときに経過時間を `BestTimes` に渡すのは `GamePage` である（アーキテクチャー設計書 8.4）。
@@ -154,7 +160,7 @@ classDiagram
 public readonly record struct CellPosition(int Row, int Column);
 ```
 
-- 盤面の座標だけを表す。表示の座標は `DisplayPosition`（4.2）で、別の型にする。
+- 盤面の座標だけを表す。表示の座標は `DisplayPosition`（4.3）で、別の型にする。
 - 範囲（盤面の中か）は持たない。範囲を知るのは `Board` で、盤面の外の位置を渡されたら `Board` と `Game` のガード節が `ArgumentOutOfRangeException` を投げる（アーキテクチャー設計書 11 章）。
 
 ### 3.3 `Difficulty` と関連する型
@@ -381,7 +387,24 @@ public sealed class BestTimes
 - 「カスタムは記録しない」（仕様書 3.8）の判断は、`BestTimes.Record` が行う。アーキテクチャー設計書 8.4 の図では `GamePage` が難易度で分けているが、ベストタイムの規則を 1 か所に集めるために、ここに移した（9 章の決定 A4）。
 - `GamePage` は `IsNewBest` のときだけ保存する。
 
-## 4. アプリの C# クラス
+### 3.7 `BestTimesJson`
+
+```csharp
+public static class BestTimesJson
+{
+    public static BestTimes Parse(string? json);        // 読めない値は「記録なし」として捨てる。例外は投げない
+    public static string Serialize(BestTimes bestTimes);
+}
+```
+
+- 形式は、難易度の種類の名前をキーにした JSON である（例: `{"Beginner":23,"Intermediate":98}`）。記録のない難易度は書かない（アーキテクチャー設計書 10 章）。
+- 保存の形式（`BestTimesJson`）と保存先（Web アプリでは `BestTimeStorage`。4.4）を分けたのは、WPF 版とコンソール版が、保存先（ファイルなど）は違っても同じ形式を使うためである（工程 12 の R5）。
+- 形式の中身は `BestTimes`・`Difficulty.Presets`・`Game.MaxElapsedSeconds` という GameLogic の型と値だけでできているので、GameLogic に置く（アーキテクチャー設計書 4 章）。使うのは .NET の基本ライブラリの `System.Text.Json` だけなので、GameLogic は UI の技術に依存しないままである。工程 12 の R5 では Presentation に作ったが、アーキテクチャー設計書の再レビューで GameLogic に移すと決めた（docs/reviews/04-architecture-review.md の再レビューの指摘 1）。コードは、リファクタリングのやり直しで移す。
+- `Parse` は、`null`（読めない・値がない）、JSON でない、キーが初級〜上級の名前でない、値が整数でない、0〜`Game.MaxElapsedSeconds` の外、のどれかに当たる値を捨て、残りから `BestTimes` を作る。何も残らなければ、記録のない `BestTimes` になる。
+- `Serialize` は、`Difficulty.Presets` の順に `SecondsOf` を読み、記録のあるものだけを書く。公開するときのトリミングで壊れないように、リフレクションを使わず `Utf8JsonWriter` で書く。
+- 上限の 999 は `Game.MaxElapsedSeconds` を使い、値を二重に書かない。
+
+## 4. Presentation とアプリの C# クラス
 
 ### 4.1 クラス図
 
@@ -400,6 +423,11 @@ classDiagram
     class InputMapping {
         <<static>>
         +ActionFor(PressKind, bool, Cell)$ CellAction
+    }
+    class KeyboardMapping {
+        <<static>>
+        +ActionFor(string)$ CellAction
+        +DirectionFor(string)$ Direction?
     }
     class BoardCursor {
         +CellPosition Position
@@ -425,6 +453,8 @@ classDiagram
     BoardCursor ..> BoardPlacement
     BestTimeStorage --> BrowserFeatures
 ```
+
+`InputMapping` は Presentation、ほかは Web アプリの型である。
 
 依存の向きは、アーキテクチャー設計書 5 章の表から次の 2 点を改める（9 章の決定 A1）。
 
@@ -645,17 +675,9 @@ public sealed class BrowserFeatures(IJSRuntime jsRuntime) : IAsyncDisposable
 - 監視は `SizeObservation`（`public sealed class`。コンストラクターは `internal`）で表す。JavaScript から呼ばれる `NotifyResized` を持つ。bUnit のテストでは、この `NotifyResized` を呼んで、大きさの変化をブラウザーの代わりに知らせる。
 - `ObserveSizeAsync` が `IAsyncDisposable` を返すのは、監視を止める手順（JavaScript の監視の停止と .NET の参照の解放）を利用者に見せないためである。`BoardArea` は受け取ったものを破棄するだけで済む（アーキテクチャー設計書 7.4）。
 
-#### `BestTimesJson`（Presentation）、`BestTimeStorage`
+#### `BestTimeStorage`
 
 ```csharp
-// Presentation（どのアプリでも同じ形式）
-public static class BestTimesJson
-{
-    public static BestTimes Parse(string? json);        // 読めない値は「記録なし」として捨てる。例外は投げない
-    public static string Serialize(BestTimes bestTimes);
-}
-
-// Web アプリの Browser（保存先は localStorage）
 public sealed class BestTimeStorage(BrowserFeatures browser)
 {
     public const string StorageKey = "Shos.Minesweeper.BestTimes";
@@ -664,12 +686,8 @@ public sealed class BestTimeStorage(BrowserFeatures browser)
 }
 ```
 
-- 形式は、難易度の種類の名前をキーにした JSON である（例: `{"Beginner":23,"Intermediate":98}`）。記録のない難易度は書かない（アーキテクチャー設計書 10 章）。
-- 保存の形式（`BestTimesJson`）と保存先（`BestTimeStorage`）を分けたのは、WPF 版とコンソール版が、保存先（ファイルなど）は違っても同じ形式を使うためである（工程 12 の R5）。
-- `Parse` は、`null`（読めない・値がない）、JSON でない、キーが初級〜上級の名前でない、値が整数でない、0〜`Game.MaxElapsedSeconds` の外、のどれかに当たる値を捨て、残りから `BestTimes` を作る。何も残らなければ、記録のない `BestTimes` になる。
-- `Serialize` は、`Difficulty.Presets` の順に `SecondsOf` を読み、記録のあるものだけを書く。公開するときのトリミングで壊れないように、リフレクションを使わず `Utf8JsonWriter` で書く。
+- 保存先（localStorage のキー）との読み書きだけを受け持ち、形式は GameLogic の `BestTimesJson`（3.7）に任せる。
 - `SaveAsync` は、書けなくても何もしない（`BrowserFeatures` が例外を受け止める）。
-- 上限の 999 は `Game.MaxElapsedSeconds` を使い、値を二重に書かない。
 
 ## 5. コンポーネント
 
@@ -844,6 +862,8 @@ async Task ShowWinAsync()
 | Space、Enter | 勝敗が決まっていなければ、選択中のマスで `OnOpen` |
 | F | 勝敗が決まっていなければ、選択中のマスで `OnToggleFlag` |
 
+キーから方向と操作を決めるのは `KeyboardMapping`（`DirectionFor`・`ActionFor`）で、`BoardView` はその結果で上の処理を行う。
+
 - 矢印キーと Space でページがスクロールしないように、最初の描画の後に `SuppressKeyScrollingAsync` を呼ぶ（アーキテクチャー設計書 9.1）。
 - 押下中かどうか（`PressGesture.IsPressing`）が変わったときだけ、`OnPressingChanged` を呼んで描き直す。`pointermove` のように状態を変えないイベントでは、`ShouldRender` で描き直しを止める（アーキテクチャー設計書 7.3）。
 - `Game` の引数が別のゲームに変わったら、`PressGesture.Reset()` を呼び、押したマスと円を消し、`BoardCursor` を作り直す。
@@ -900,7 +920,7 @@ SVG の `<symbol>` を 1 か所に定義して `<use href="#…">` で参照す�
 |----------|------|
 | `Pages/Home.razor` | `Pages/GamePage.razor` に名前を変える（アーキテクチャー設計書 4 章） |
 | `Program.cs` | `HttpClient` の登録を消し、次の 3 つを登録する |
-| `_Imports.razor` | `Shos.Minesweeper.Components`、`.GameLogic`、`.Input`、`.Display`、`.Browser` の `@using` を足す。使わなくなる `System.Net.Http` などは消す |
+| `_Imports.razor` | `Shos.Minesweeper.Components`、`.GameLogic`、`.Presentation`、`.Input`、`.Display`、`.Browser` の `@using` を足す。使わなくなる `System.Net.Http` などは消す |
 | `App.razor`、`Layout/MainLayout.razor`、`Pages/NotFound.razor` | 変えない |
 
 ```csharp
@@ -920,28 +940,28 @@ builder.Services.AddScoped<BestTimeStorage>();
 | `Game` の地雷の配置 | 選ばれた位置が候補の外、数が違う、重複がある、なら `InvalidOperationException` |
 | `Difficulty.Custom`、`Difficulty.MineCountRange` | 範囲の外の値なら `ArgumentOutOfRangeException` |
 | `BestTimes` のコンストラクター、`BestTimes.Record` | カスタムを含む辞書、0〜999 の外の秒なら `ArgumentOutOfRangeException`（`Record` のカスタムは誤りではなく `NotEligible`） |
-| `BestTimeStorage.LoadAsync` | 例外を投げない。読めない値は捨てる |
+| `BestTimesJson.Parse`、`BestTimeStorage.LoadAsync` | 例外を投げない。読めない値は捨てる（何も読めなければ記録なし） |
 
 ## 7. テストの設計
 
 ### 7.1 テストプロジェクト
 
-テストは次の 3 つのプロジェクト（すべて `net10.0`）に分ける。使うパッケージは、xUnit、bUnit、`Microsoft.Extensions.TimeProvider.Testing`（`FakeTimeProvider`）である。版は工程 11 で、その時点の最新の安定版にする。
+テストは次の 3 つのテストプロジェクトと、その共通の補助のプロジェクト（すべて `net10.0`）に分ける。使うパッケージは、xUnit、bUnit、`Microsoft.Extensions.TimeProvider.Testing`（`FakeTimeProvider`）である。版は工程 11 で、その時点の最新の安定版にする。
 
 | プロジェクト | 中身 | 参照 |
 |--------------|------|------|
 | `Shos.Minesweeper.GameLogic.Tests` | GameLogic のテスト（xUnit） | GameLogic、TestSupport |
 | `Shos.Minesweeper.Presentation.Tests` | Presentation のテスト（xUnit） | Presentation |
 | `Shos.Minesweeper.Tests` | Web アプリの C# クラスとコンポーネントのテスト（xUnit ＋ bUnit） | Web アプリ、TestSupport |
-| `Shos.Minesweeper.TestSupport` | テストの共通の補助（`TestGames`。クラスライブラリ） | GameLogic |
+| `Shos.Minesweeper.TestSupport` | テストの共通の補助（`TestGames`。クラスライブラリ。比べるために xUnit の `Assert` だけを使う） | GameLogic |
 
 - 初めは 1 つのプロジェクトにしていた。Web 版の公開の後に WPF 版とコンソール版を作ると決めたので、GameLogic のテストがどのアプリにも依存しないように、工程 12（リファクタリング）で分けた（アーキテクチャー設計書 4 章、docs/reviews/code-review.md の工程 12 の R1）。
 
 - 工程 11 の時点の最新の安定版は xUnit v3（`xunit.v3` 4.0.1）で、.NET 10 の SDK では Microsoft.Testing.Platform で動かす必要がある。そこで、リポジトリ直下に `global.json` を置いてこのモードを選び、VSTest 用のパッケージ（`Microsoft.NET.Test.Sdk`、`xunit.runner.visualstudio`）は入れない（docs/reviews/code-review.md の区切り 1）。
 
 ```text
-Shos.Minesweeper.GameLogic.Tests/      DifficultyTests, BoardTests, GameTests, BestTimesTests
-Shos.Minesweeper.Presentation.Tests/   DifficultyNamesTests, AnnouncementsTests, InputMappingTests, BestTimesJsonTests
+Shos.Minesweeper.GameLogic.Tests/      DifficultyTests, BoardTests, GameTests, BestTimesTests, BestTimesJsonTests
+Shos.Minesweeper.Presentation.Tests/   DifficultyNamesTests, AnnouncementsTests, InputMappingTests
 Shos.Minesweeper.TestSupport/          TestGames（補助）
 Shos.Minesweeper.Tests/
 ├─ AppTestContext.cs  Web アプリのテストの共通の準備（DI、時刻の偽物、JavaScript の偽物、ポインターのイベントを作る補助など）
@@ -1041,7 +1061,7 @@ Assert.Equal("""
 | A3 | `LongPressRing` は `BoardView` の子にする | 6.3 の図 | 5.1 |
 | A4 | 「カスタムは記録しない」は `BestTimes.Record` が判断する | 8.4 の図 | 3.6 |
 | A5 | 経過時間は 250 ミリ秒ごとに確かめ、秒が変わったときだけ描き直す | 6.3、7.3、7.4 | 5.2 の `ElapsedTime` |
-| A6 | Display に `CellPresentation`、`DifficultyNames`、`Announcements`、`IconKind` を加える | 4 章、6.2 | 4.3 |
+| A6 | Display に `CellPresentation`、`DifficultyNames`、`Announcements`、`IconKind` を加える（`DifficultyNames` と `Announcements` は、工程 12 の R5 で Presentation に移した） | 4 章、6.2 | 4.3 |
 
 ## 10. 作らないもの
 
