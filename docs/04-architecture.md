@@ -4,7 +4,7 @@
 |------|------|
 | 工程 | 7. アーキテクチャー設計書作成 |
 | 作成日 | 2026-09-25 |
-| 状態 | レビュー指摘を反映済み（docs/reviews/04-architecture-review.md） |
+| 状態 | レビュー指摘を反映済み（docs/reviews/04-architecture-review.md）。クラス設計で改めた点を反映済み（docs/reviews/05-class-design-review.md） |
 | 入力 | docs/02-spec.md（仕様書）、docs/03-ui-design.md（UI デザイン）、CLAUDE.md（開発環境・設計方針） |
 
 ## 1. 概要
@@ -51,7 +51,7 @@ flowchart LR
 | 6 | 押す操作の判定 | タップ・長押し・取り消しの判定（400 ミリ秒、10px）、マウスとタッチの違い | 仕様 4.1、4.4 | アプリ: `PressGesture` |
 | 7 | 操作の割り当て | 入力（タップ・長押し・右クリック）と旗モードとマスの状態から、「開く」「旗」「何もしない」を決める | 仕様 4.1、4.3、UI 5.2 | アプリ: `InputMapping` |
 | 8 | キーボードの選択中のマス | 矢印キーでの移動、盤面に入ったときの位置 | 仕様 4.5 | アプリ: `BoardCursor` |
-| 9 | 盤面の置き方 | 盤面の向き（入れ替えるか）、マスの大きさ、スクロールの要否、表示の座標と盤面の座標の変換 | 仕様 5.2、UI 3.2 | アプリ: `BoardPlacement` |
+| 9 | 盤面の置き方 | 盤面の向き（入れ替えるか）、マスの大きさ、表示の座標と盤面の座標の変換 | 仕様 5.2、UI 3.2 | アプリ: `BoardPlacement`（スクロールは CSS） |
 | 10 | ブラウザーの機能 | 領域の大きさの監視、振動、localStorage、キーでのスクロールの抑止 | 仕様 4.4、4.5、5.3 | アプリ: `BrowserFeatures` と `browser.js` |
 | 11 | 画面の描画と画面の部品 | ツールバー、盤面、ダイアログ、勝利カード、読み上げ | UI 2 章、4〜6 章 | アプリ: Razor コンポーネント |
 | 12 | 見た目 | 配色、レイアウトの切り替え（上バー・横バー）、アニメーション | UI 3、4、5 章 | アプリ: CSS |
@@ -71,7 +71,7 @@ Shos.Minesweeper.slnx
 │   ├─ Pages/GamePage.razor           唯一のページ（ルートは "/"）。ゲームの画面。テンプレートの Home.razor の名前を変える
 │   ├─ Components/                    画面の部品（6.3）
 │   ├─ Input/                         PressGesture, InputMapping, BoardCursor
-│   ├─ Display/                       BoardPlacement
+│   ├─ Display/                       BoardPlacement, CellPresentation, DifficultyNames, Announcements
 │   ├─ Browser/                       BrowserFeatures, BestTimeStorage
 │   ├─ Layout/MainLayout.razor        既存。@Body だけを描く
 │   └─ wwwroot/
@@ -115,7 +115,7 @@ flowchart TB
     subgraph AppProject["Shos.Minesweeper（アプリ）"]
         Components["Pages・Components<br/>（Razor）"]
         Input["Input<br/>PressGesture・InputMapping・BoardCursor"]
-        Display["Display<br/>BoardPlacement"]
+        Display["Display<br/>BoardPlacement・CellPresentation など"]
         BrowserFolder["Browser<br/>BrowserFeatures・BestTimeStorage"]
         Js["wwwroot/js/browser.js"]
     end
@@ -127,6 +127,8 @@ flowchart TB
     Components --> BrowserFolder
     Components --> Logic
     Input --> Logic
+    Input --> Display
+    Display --> Logic
     BrowserFolder --> Logic
     BrowserFolder --> Js
 ```
@@ -136,8 +138,8 @@ flowchart TB
 | 単位 | 依存してよいもの | 依存しないもの |
 |------|------------------|----------------|
 | GameLogic | .NET の基本ライブラリだけ（`TimeProvider`、`Random` など） | Blazor、JavaScript、アプリのすべて |
-| Input | GameLogic（マスの状態を見るため）、`TimeProvider` | Blazor、JavaScript |
-| Display | なし（数の計算だけ） | GameLogic を含むすべて |
+| Input | GameLogic（マスの状態を見るため）、`TimeProvider`、Display（`BoardCursor` が `BoardPlacement` を使うため） | Blazor、JavaScript |
+| Display | GameLogic の値の型（盤面の座標、マスの見せ方、難易度など。表示の判断の入力として使う） | Blazor、JavaScript |
 | Browser | GameLogic（`BestTimes` を保存するため）、`IJSRuntime` | コンポーネント |
 | Pages・Components | 上のすべて | — |
 
@@ -168,13 +170,16 @@ flowchart TB
 | `PressGesture` | Input | 1 回の「押して離す」を、タップ・長押し・取り消しのどれかに判定する |
 | `InputMapping` | Input | 入力の種類と旗モードとマスの状態から、行う操作（開く・旗・何もしない）を決める。長押しの円を出すかどうかも、ここで決まる（UI 5.2） |
 | `BoardCursor` | Input | キーボードで選択しているマスの位置。位置は盤面の座標で持つ。矢印キーの方向は、`BoardPlacement` で盤面の方向に変えてから動かす |
-| `BoardPlacement` | Display | 盤面の領域の大きさと盤面の行数・列数から、向き、マスの大きさ、スクロールの要否を決める。表示の座標と盤面の座標を変換する |
+| `BoardPlacement` | Display | 盤面の領域の大きさと盤面の行数・列数から、向きとマスの大きさを決める。表示の座標と盤面の座標を変換する。スクロールが要るかどうかは決めない（盤面の領域の CSS を `overflow: auto` にして任せる） |
+| `CellPresentation` | Display | マスの見た目（CSS のクラス、アイコン）と読み上げの名前を決める |
+| `DifficultyNames`、`Announcements` | Display | 難易度の表示名と、読み上げ用の領域で知らせる文 |
 | `BrowserFeatures` | Browser | `browser.js` の関数を呼ぶ窓口。JavaScript を呼ぶのはこのクラスだけである |
 | `BestTimeStorage` | Browser | `BestTimes` を localStorage に読み書きする。保存できないときは何もしない（メモリーの `BestTimes` だけが残る） |
 
 - `PressGesture` と `InputMapping` を分けたのは、変更理由が違うからである。長押しの判定時間や移動の許容量を変えるときは `PressGesture` だけを、旗モードでの割り当てを変えるときは `InputMapping` だけを直す。
 - `PressGesture` の長押しの待ち時間は、`TimeProvider` で計る。テストでは時刻を進めて確かめる。
 - `BoardCursor` が盤面の座標で位置を持つのは、画面の向きが変わって盤面の縦と横が入れ替わっても、同じマスを選んだままにするためである。表示の座標で持つと、入れ替わったときに別のマスを指してしまう。
+- `CellPresentation`、`DifficultyNames`、`Announcements` はクラス設計で加えた。公開メンバーと、ほかの小さな型はクラス設計書（docs/05-class-design.md）にある。
 
 ### 6.3 コンポーネント
 
@@ -185,7 +190,7 @@ flowchart TB
     Toolbar --> ElapsedTime["ElapsedTime<br/>経過時間"]
     GamePage --> BoardArea["BoardArea<br/>盤面の領域"]
     BoardArea --> BoardView["BoardView<br/>盤面"]
-    BoardArea --> LongPressRing["LongPressRing<br/>長押しの円"]
+    BoardView --> LongPressRing["LongPressRing<br/>長押しの円"]
     GamePage --> DifficultyDialog["DifficultyDialog<br/>難易度ダイアログ"]
     GamePage --> WinCard["WinCard<br/>勝利カード"]
 ```
@@ -194,10 +199,10 @@ flowchart TB
 |----------------|------|
 | `GamePage` | 画面全体の状態の持ち主（7.1）。子からの操作の意図を受けて `Game` を呼び、勝ったらベストタイムを更新して保存し、勝利カードと読み上げを出す |
 | `Toolbar` | 難易度ボタン、残り地雷数、リセット ボタン（顔）、経過時間、旗モード ボタンを描き、押されたことを `GamePage` に伝える |
-| `ElapsedTime` | 経過時間を表示する。プレイ中は 1 秒ごとに自分だけを描き直す（7.3） |
-| `BoardArea` | 盤面の領域。大きさの変化を受け取り、`BoardPlacement` を計算し直す。スクロールが要るときは、この領域がスクロールする |
+| `ElapsedTime` | 経過時間を表示する。250 ミリ秒ごとに経過時間を確かめ、表示する秒が変わったときだけ自分を描き直す（7.3） |
+| `BoardArea` | 盤面の領域。大きさの変化を受け取り、`BoardPlacement` を計算し直して、子の内容（`BoardView`）に渡す。盤面が収まらないときは、この領域がスクロールする |
 | `BoardView` | マスを描き、ポインターとキーボードのイベントを受けて、`PressGesture`・`InputMapping`・`BoardCursor` を使い、「この位置を開く」「この位置の旗」という意図を `GamePage` に伝える。押下中の表示もここで持つ |
-| `LongPressRing` | 長押しの進行の円を、押したマスの位置に重ねて描く |
+| `LongPressRing` | 長押しの進行の円を、押したマスの位置に重ねて描く。押下を追っている `BoardView` の子にする |
 | `DifficultyDialog` | 難易度の選択とカスタムの入力。入力の検証は `Difficulty` に任せ、誤りの文言を表示する |
 | `WinCard` | 勝利カード。タイムとベストタイムの更新の結果を表示する |
 
@@ -209,7 +214,7 @@ flowchart TB
 
 | 登録するもの | 有効期間 | 使う側 |
 |--------------|----------|--------|
-| `TimeProvider`（本番は `TimeProvider.System`） | シングルトン | `GamePage`（`Game` を作るときに渡す）、`BoardView`（`PressGesture` に渡す）、`ElapsedTime`（1 秒ごとのタイマー） |
+| `TimeProvider`（本番は `TimeProvider.System`） | シングルトン | `GamePage`（`Game` を作るときに渡す）、`BoardView`（`PressGesture` に渡す）、`ElapsedTime`（経過時間を確かめるタイマー） |
 | `BrowserFeatures` | スコープ | `BoardArea`、`BoardView`、`BestTimeStorage` |
 | `BestTimeStorage` | スコープ | `GamePage` |
 
@@ -269,7 +274,7 @@ flowchart LR
 |----------------|------------|
 | `BoardArea` | `ResizeObserver` の監視と、JavaScript に渡した .NET の参照（`DotNetObjectReference`） |
 | `BoardView` | 長押しの待ち |
-| `ElapsedTime` | 1 秒ごとのタイマー |
+| `ElapsedTime` | 経過時間を確かめるタイマー |
 
 画面は 1 つだけなので、実際に破棄されるのはページを閉じるときくらいだが、テスト（bUnit）ではテストのたびに作って破棄するので、ここで決めておく。
 
@@ -353,9 +358,9 @@ sequenceDiagram
     participant BTS as BestTimeStorage
     GamePage->>Game: 開く
     Game-->>GamePage: 状態が勝利になった
-    alt 初級・中級・上級
-        GamePage->>BT: 経過時間を記録する
-        BT-->>GamePage: 更新した・初めての記録・更新しなかった
+    GamePage->>BT: 経過時間を記録する
+    BT-->>GamePage: 更新した・初めての記録・更新しなかった・対象外（カスタム）
+    opt 更新した・初めての記録
         GamePage->>BTS: 保存する
         Note over BTS: 失敗しても何もしない（メモリーには残っている）
     end
@@ -371,7 +376,7 @@ sequenceDiagram
     participant BP as BoardPlacement
     JS->>BA: 領域の大きさが変わった（幅、高さ）
     BA->>BP: 置き方を計算する（大きさ、盤面の行数・列数）
-    BP-->>BA: 向き、マスの大きさ、スクロールの要否
+    BP-->>BA: 向き、マスの大きさ
     Note over BA: 描き直す。Game には触れない（仕様書 5.3）
 ```
 

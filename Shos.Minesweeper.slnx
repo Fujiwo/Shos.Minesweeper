@@ -14,6 +14,7 @@
     <File Path="docs/reviews/02-spec-review.md" />
     <File Path="docs/reviews/03-ui-design-review.md" />
     <File Path="docs/reviews/04-architecture-review.md" />
+    <File Path="docs/reviews/05-class-design-review.md" />
   </Folder>
   <Project Path="Shos.Minesweeper/Shos.Minesweeper.csproj" />
 </Solution>

@@ -4,7 +4,7 @@
 |------|------|
 | 工程 | 9. クラス設計書作成 |
 | 作成日 | 2026-09-25 |
-| 状態 | 作成済み（レビュー前） |
+| 状態 | レビュー指摘を反映済み（docs/reviews/05-class-design-review.md） |
 | 入力 | docs/04-architecture.md（アーキテクチャー設計書）、docs/02-spec.md（仕様書）、docs/03-ui-design.md（UI デザイン） |
 
 ## 1. 概要
@@ -246,7 +246,7 @@ public sealed class Board
 
 - マスの状態と数字は、いつも組で使う（「開いた数字のマスか」の判断に両方が要る）。組に名前を付け、仕様書 3.4 の表（どの操作がどのマスで効くか）を `CanOpen`・`CanToggleFlag` として `Cell` に置いた。この表を知るのは `Cell` だけになる。
 - `Cell` は値のスナップショットで、`Board` の中の持ち方とは関係がない。テストでは `new Cell(CellState.Opened, 2)` のように直接作れるので、`InputMapping` のテストに盤面が要らない。
-- `AdjacentMineCount` は、開いたマスでだけ意味を持つ。
+- `CellAt` は、開いていないマスの `AdjacentMineCount` を 0 として返す。開いていないマスの数字を渡すと、UI から地雷の位置を割り出せてしまい、「地雷の位置は UI に公開しない」（3.5 の `AppearanceOf`）が守られないからである。
 
 **`Board` の操作の中身**
 
@@ -308,6 +308,7 @@ public void Open(CellPosition position)
 }
 ```
 
+- `Game` は 1 回のゲームで、未開始に戻ることはない。リセットと難易度の変更（仕様書 3.2 の図で未開始に戻る矢印）は、`GamePage` が新しい `Game` を作ることで表す。
 - 未開始のうちに旗のマスを「開く」と、何も起きない。地雷も置かない。
 - `Start` は、盤面のすべての位置から「開いたマスとその周囲」を除いたものを候補にして、`MineChooser` に地雷の位置を選ばせる。「最初に開いたマスの周りには地雷を置かない」という規則は `Game` が持ち、差し替えられるのは「候補の中からどれを選ぶか」だけである。テストで偽の選び方を渡しても、規則は本物のまま確かめられる。
 - 選ばれた位置が候補に含まれない、数が地雷数と違う、重複がある場合は、ガード節で `InvalidOperationException` を投げる。テストで盤面を与えるときの書き誤りも、ここで見つかる。
@@ -596,7 +597,7 @@ public static class Announcements
 
 - 難易度の表示名は、ツールバー、難易度ダイアログ、読み上げの 3 か所で使うので、1 か所に置く。
 - `Won` の後半は、`BestTimeResult` で出し分ける: `Updated` は「ベストタイムを更新しました。」、`FirstRecord` は「ベストタイムを記録しました。」、`NotUpdated` は「ベスト {n} 秒。」、`NotEligible` は何も付けない（UI デザイン 6.4）。
-- 新しいゲームの文は、UI デザイン 6.4 の「9 行 9 列」を「9×9」に改める（9 章の決定 6。ユーザーに確認したい点）。
+- 新しいゲームの文は、UI デザイン 6.4 の「9 行 9 列」を「9×9」に改めた（9 章の決定 6。11 章）。
 
 ### 4.4 Browser
 
@@ -661,6 +662,7 @@ flowchart TB
 ```
 
 - `Icon` は、ツールバー、マス、ダイアログ、カードのどこでも使う。図には描かない。
+- `BoardView` は、`BoardArea` の子の内容（`RenderFragment<BoardPlacement>`）として `GamePage` が書く。`BoardArea` は置き方を求めて子に渡すだけで、`BoardView` の引数とイベントは `GamePage` と `BoardView` の間で直接やり取りする（docs/reviews/05-class-design-review.md の指摘 2）。
 - `LongPressRing` を `BoardView` の子にしたのは、円を出すかどうか、どこに出すかを決めるのが、押下を追っている `BoardView` だからである。`BoardArea` の子にすると、押下の状態を `BoardArea` に上げるイベントが要る。円は画面に固定した層（`position: fixed`）に描くので、DOM の上でどこに置いても、盤面の領域の端で切れない。
 
 ### 5.2 各コンポーネント
@@ -695,9 +697,9 @@ async Task ShowWinAsync()
 
 | 受け取る意図 | 処理 |
 |--------------|------|
-| 開く（`BoardArea` から） | `OpenCellAsync` |
-| 旗（`BoardArea` から） | `game.ToggleFlag` |
-| 押下中が変わった（`BoardArea` から） | `isPressing` を変える（顔の表示） |
+| 開く（`BoardView` から） | `OpenCellAsync` |
+| 旗（`BoardView` から） | `game.ToggleFlag` |
+| 押下中が変わった（`BoardView` から） | `isPressing` を変える（顔の表示） |
 | 難易度ボタン | 難易度ダイアログを開く。ツールバーと盤面の領域に `inert` を付ける |
 | 難易度を選んだ（ダイアログから） | その難易度で新しいゲームを始め、ダイアログを閉じ、難易度ボタンにフォーカスを戻す |
 | ダイアログを閉じた | ダイアログを閉じ、難易度ボタンにフォーカスを戻す |
@@ -705,8 +707,17 @@ async Task ShowWinAsync()
 | 勝利カードを閉じた | カードを閉じ、リセット ボタンにフォーカスを移す |
 | 旗モード ボタン | `isFlagMode` を反転する（新しいゲームでも保つ。仕様書 4.3） |
 
-- 新しいゲームを始めるときは、`new Game(difficulty, timeProvider)` を作り直し、勝利カードを閉じ、`Announcements.NewGame` を読み上げる。
+- 新しいゲームを始めるときは、`new Game(difficulty, timeProvider)` を作り直し、`isPressing` を偽にし、勝利カードを閉じ、`Announcements.NewGame` を読み上げる。`isPressing` を戻すのは、盤面を押している間に別の指でリセット ボタンを押した場合に、顔が「驚き」のまま残らないようにするためである（`BoardView` は新しいゲームで押下を捨てる）。
 - 同じ文を続けて読み上げる場合（同じ難易度で 2 回続けてリセットしたときなど）に読み上げが起きるように、文を一度空にしてから入れる。方法は工程 11 で決める。
+
+盤面の部分は次のように書く。
+
+```razor
+<BoardArea Difficulty="game.Difficulty" Context="placement">
+    <BoardView Game="game" Placement="placement" IsFlagMode="isFlagMode"
+               OnOpen="OpenCellAsync" OnToggleFlag="ToggleFlag" OnPressingChanged="SetPressing" />
+</BoardArea>
+```
 
 #### `Toolbar`
 
@@ -743,22 +754,22 @@ async Task ShowWinAsync()
 
 | 項目 | 内容 |
 |------|------|
-| 引数 | `Game Game`、`bool IsFlagMode` |
-| イベント | `OnOpen`、`OnToggleFlag`（`EventCallback<CellPosition>`）、`OnPressingChanged`（`EventCallback<bool>`）。`BoardView` からそのまま渡す |
+| 引数 | `Difficulty Difficulty`、`RenderFragment<BoardPlacement> ChildContent`（盤面。置き方を受け取って描く） |
 | 注入 | `BrowserFeatures` |
 | 持つ状態 | 領域の要素の参照、最後に受け取った大きさ、`BoardPlacement?`、大きさの監視（`IAsyncDisposable`） |
 | 後片付け | 大きさの監視を破棄する（`IAsyncDisposable`） |
 
 - 最初の描画の後（`OnAfterRenderAsync`）に、`ObserveSizeAsync` で自分の要素を監視する。大きさを受け取ったら `BoardPlacement.Calculate` で置き方を求め、描き直す。
 - 引数が変わったとき（難易度が変わったとき）は、最後に受け取った大きさで置き方を求め直す。
-- 置き方が決まるまで（最初の大きさを受け取るまで）は、盤面を描かない。
+- 置き方が決まるまで（最初の大きさを受け取るまで）は、子の内容を描かない。
+- `BoardArea` は `Game` も旗モードも知らない。仕事は「盤面の領域の大きさを測り、置き方を求めて、子に渡す」だけである。
 
 #### `BoardView`
 
 | 項目 | 内容 |
 |------|------|
 | 引数 | `Game Game`、`BoardPlacement Placement`、`bool IsFlagMode` |
-| イベント | `OnOpen`、`OnToggleFlag`、`OnPressingChanged` |
+| イベント | `OnOpen`、`OnToggleFlag`（`EventCallback<CellPosition>`）、`OnPressingChanged`（`EventCallback<bool>`） |
 | 注入 | `TimeProvider`、`BrowserFeatures` |
 | 持つ状態 | `PressGesture`、押したマスの位置（`CellPosition?`）、長押しの円（中心と操作。出さないときは `null`）、`BoardCursor`、前回の `Game`（新しいゲームになったかを知るため）、盤面の要素の参照 |
 | 定数 | 長押しの成立時の振動 30 ミリ秒（UI デザイン 5.2） |
@@ -921,7 +932,7 @@ Assert.Equal("""
 |--------------|----------|
 | `DifficultyTests` | 初級〜上級の値。`ValidateCustom` の境界（幅 4・5・30・31、高さ 4・5・24・25、地雷数 0・1・上限・上限＋1）、`null`、幅が誤りのときの地雷数。`Custom` のガード節 |
 | `BoardTests` | 開く、0 の連鎖（旗で止まる）、コード（旗の数が等しい・等しくない・誤った旗で地雷を開く）、旗の切り替え、`ChordTargetsOf`、盤面の外の位置 |
-| `GameTests` | 状態の遷移（仕様書 3.2 の図のすべての矢印）、最初に開いたマスが 0 になる（端・角・中央。`ChooseMinesRandomly` の本物で繰り返す）、未開始の旗、残り地雷数（マイナスを含む）、勝利の自動の旗、最初の一手で勝つ場合、`AppearanceOf` の表、経過時間（切り捨て、999 で止まる、勝敗で止まる）、勝敗の後の操作のガード節 |
+| `GameTests` | 状態の遷移（仕様書 3.2 の図のうち、未開始・プレイ中・勝利・敗北の間の矢印。未開始に戻る矢印は `GamePageTests` で確かめる）、最初に開いたマスが 0 になる（端・角・中央。`ChooseMinesRandomly` の本物で繰り返す）、未開始の旗、残り地雷数（マイナスを含む）、勝利の自動の旗、最初の一手で勝つ場合、`AppearanceOf` の表、経過時間（切り捨て、999 で止まる、勝敗で止まる）、勝敗の後の操作のガード節 |
 | `BestTimesTests` | 3.6 の表のすべての行。同じ値では更新しない |
 | `PressGestureTests` | 4.2 の状態の表のすべての行。399 ミリ秒と 400 ミリ秒、9.9px と 10px の境界 |
 | `InputMappingTests` | 押し方 3 × モード 2 × マス（未開放・旗・数字・0）のすべての組み合わせ |
@@ -967,7 +978,7 @@ Assert.Equal("""
 
 ### 9.2 アーキテクチャー設計書を改める点
 
-工程 10 のレビューで確かめてから、アーキテクチャー設計書に反映する。
+工程 10 のレビューで確かめ、アーキテクチャー設計書に反映した（docs/reviews/05-class-design-review.md）。
 
 | # | 改める点 | アーキテクチャー設計書の場所 | 理由 |
 |---|----------|------------------------------|------|
@@ -991,8 +1002,10 @@ Assert.Equal("""
 | 全角数字の入力の受け付け（カスタム） | 仕様書にない。スマートフォンでは `inputmode="numeric"` で半角の数字のキーボードが出る。全角で入力した場合は、範囲の外と同じ誤りの文が出る |
 | 文言をまとめたリソース | 画面の言語は日本語だけである（仕様書 5.5）。複数の場所で使う文言（難易度の表示名）だけを 1 か所に置いた |
 
-## 11. ユーザーに確認したい点
+## 11. ユーザーに確認した点
 
-| 点 | 推す案 | ほかの案 |
-|----|--------|----------|
+| 点 | 決定 | 見送った案 |
+|----|------|------------|
 | 新しいゲームの読み上げの文言（9.1 の決定 6） | 「新しいゲーム、初級、9×9、地雷 10。」に改め、UI デザイン 6.4 もそのように直す | UI デザインのとおり「9 行 9 列」とし、盤面を入れ替えて表示しているときは盤面の名前と行と列が逆になることを受け入れる |
+
+設計書の提出時にこの点を確認事項として挙げ、ユーザーは個別の回答をせずに工程を承認した。仕様書レビューの前例（docs/reviews/02-spec-review.md）に従い、推した案どおりに確定した（docs/reviews/05-class-design-review.md）。
