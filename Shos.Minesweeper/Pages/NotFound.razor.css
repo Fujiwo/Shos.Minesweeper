@@ -1,0 +1,18 @@
+.not-found {
+    padding: 16px;
+}
+
+h1 {
+    margin: 0 0 12px;
+    font-size: 22px;
+}
+
+/* 既定のリンクの色は、ダークの配色では見えにくいので、文字の色にそろえて下線で示す */
+a {
+    color: inherit;
+}
+
+a:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+}
