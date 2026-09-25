@@ -8,8 +8,8 @@
 
 | 区切り | 内容 | 状態 |
 |--------|------|------|
-| 1 | テストの土台とゲームのルール | 指摘をすべて反映済み。ユーザーの承認待ち |
-| 2 | 盤面の表示 | 未着手 |
+| 1 | テストの土台とゲームのルール | 指摘をすべて反映済み。ユーザーが承認した（2026-09-25） |
+| 2 | 盤面の表示 | 指摘をすべて反映済み。ユーザーの承認待ち |
 | 3 | マウスとタッチの操作 | 未着手 |
 | 4 | ツールバー | 未着手 |
 | 5 | キーボードと読み上げ | 未着手 |
@@ -71,3 +71,60 @@
 
 - `dotnet build Shos.Minesweeper.slnx`: 警告 0、エラー 0
 - `dotnet test --project Shos.Minesweeper.Tests`: 92 件すべて成功
+
+## 区切り 2: 盤面の表示
+
+| 項目 | 内容 |
+|------|------|
+| レビュー日 | 2026-09-25 |
+| 対象 | `Display/`（`DisplayPosition`、`BoardPlacement`、`IconKind`、`CellPresentation`）、`Browser/`（`BrowserFeatures`、`SizeObservation`）、`wwwroot/js/browser.js`、`Components/`（`BoardArea`、`BoardView`、`Icon`、`FlagShape`、`MineShape`）、`Pages/GamePage`、`Program.cs`、`_Imports.razor`、`wwwroot/css/app.css`、`wwwroot/index.html`、対応するテスト |
+| 意図（ひとことで） | 盤面の領域の大きさを測り、UI デザイン 3.2 の規則で向きとマスの大きさを決めて、ゲームの状態どおりに盤面を描く |
+
+### 作ったもの
+
+| 種類 | 内容 |
+|------|------|
+| 表示の判断（xUnit） | `BoardPlacement`（UI デザイン 3.3 の表の 48 通りをテストにした）、`CellPresentation`（クラス、アイコン、数字、読み上げの名前） |
+| ブラウザーとの境界 | `BrowserFeatures.ObserveSizeAsync` と `browser.js` の `observeSize`（`ResizeObserver`）。監視は `SizeObservation` で表し、破棄すると監視を止める |
+| コンポーネント（bUnit） | `BoardArea`（大きさを測って置き方を子に渡す）、`BoardView`（描画だけ。操作は区切り 3 以降）、`Icon`（旗、誤った旗、地雷、踏んだ地雷）、`GamePage`（初級の盤面を出す骨組み） |
+| 組み立て | `Program.cs` から `HttpClient` を消し、`TimeProvider` と `BrowserFeatures` を登録した。`Pages/Home.razor` を `GamePage.razor` に名前を変えた（`git mv`） |
+| 見た目 | `app.css` に配色のトークン（ライトとダーク）とページの背景・書体・見えない見出しを置いた。`index.html` で CSS の分離を有効にした |
+
+### 指摘
+
+| # | 箇条 | 指摘 | 対応 |
+|---|------|------|------|
+| 1 | 意図を表現、単一責務 | `BoardView` のマスの中身: 数字を出すかどうかを `adjacentMineCount > 0` だけで決めていた（「開いていないマスの数字は 0」という `Board` の別の規則に頼っていて、「開いた数字のマスだけに数字を出す」という意図がコードにない。また、見た目の判断が `CellPresentation` と `BoardView` に分かれていた）→ `CellPresentation.NumberTextOf` に移し、表でテストした | 踏んだ地雷（開いたマスで数字を持つ）には数字を出さないことも、テストで確かめた → 188 件 Green |
+
+### 設計書との違い
+
+| 違い | 理由 | 反映 |
+|------|------|------|
+| 監視を表す `SizeObservation` を `public` のクラスにした（コンストラクターは `internal`） | bUnit のテストで、JavaScript の代わりに `NotifyResized` を呼ぶため。JavaScript から呼ばれるメソッドは、もともと公開される | クラス設計書 4.4 |
+| `CellPresentation.NumberTextOf` を足した | 上の指摘 1 | クラス設計書 4.3 |
+| `IconKind` は、この区切りで使う 4 つだけを定義した | 絵のない値を先に作らない。ほかのアイコンは、使う区切りで絵と一緒に足す | クラス設計書 4.3 |
+| 旗と地雷の形を `FlagShape`・`MineShape` に分けた | 旗と誤った旗、地雷と踏んだ地雷で同じ形を使うため（Once And Only Once） | クラス設計書 5.2 の `Icon` |
+| 配色のトークンを、区切り 7 ではなくこの区切りで `app.css` に置いた | マスの見た目に要るため。`index.html` の言語や文言などは、区切り 7 で行う | — |
+
+### 引き算の点検
+
+- `BrowserFeatures` には、この区切りで使う `ObserveSizeAsync` だけを作った。振動、localStorage、キーのスクロールの抑止は、使う区切りで足す。
+- `BoardView` には、描画に要る引数（`Game`、`Placement`）だけを持たせた。旗モードとイベントは、使う区切りで足す。
+- `GamePage` のレイアウトは、盤面の領域だけにした。ツールバーの場所は、区切り 4 で足す。
+
+### 良い点
+
+- `BoardPlacement` のテストが UI デザイン 3.3 の表そのもので、48 通りがすべて設計どおりの値になった。
+- 盤面の大きさの判断は C#、スクロールの要否は CSS（`overflow: auto`）、立体の縁の太さは CSS（`round()`）と、判断の置き場所が 1 か所ずつになっている。
+- 枠の太さは C# の定数（`BoardPlacement.FrameWidth`）を CSS の変数で渡し、計算と見た目で値が食い違わない。
+
+### 検証結果
+
+- `dotnet build Shos.Minesweeper.slnx`: 警告 0、エラー 0
+- `dotnet test --project Shos.Minesweeper.Tests`: 188 件すべて成功
+- 実際の表示: アプリを起動し、ヘッドレスの Chrome で画面の大きさを指定して写真を撮った（DevTools Protocol で大きさを指定。作業用のスクリプトで、リポジトリには置いていない）。初級のマスの大きさは、390×700 で 41px、844×350 で 37px、1280×650 で 48px になった。まだツールバーがないので上級などの値は UI デザインの表と比べられないが、ライトとダークの配色、立体の縁、盤面の枠が UI デザインの見本（docs/images/cell-states.svg）のとおりに描けていることを確かめた。
+- 数字、旗、地雷のマスの実際の見た目は、盤面を操作できるようになる区切り 3 で写真を撮って確かめる。
+
+### 作業環境で起きたこと
+
+- Visual Studio でアプリをデバッグ実行していた間と、MSBuild の常駐プロセスが残っていた間に、コマンドラインのビルドが `obj/Debug/net10.0/tmp-webcil` を消せずに失敗した（MSB4018）。デバッグ実行を止め、常駐プロセスを止めて解消した。対処を CLAUDE.md の「コマンド」に書いた。

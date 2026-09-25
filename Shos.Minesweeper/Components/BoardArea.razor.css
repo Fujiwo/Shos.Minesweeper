@@ -1,0 +1,7 @@
+/* 盤面が収まらないときは、この領域だけがスクロールする（仕様書 5.2）。スクロールの要否は CSS に任せる */
+.board-area {
+    display: grid;
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+}

@@ -9,12 +9,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="bunit" Version="2.11.3" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.10.0" />
     <PackageReference Include="xunit.v3" Version="4.0.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Shos.Minesweeper.GameLogic\Shos.Minesweeper.GameLogic.csproj" />
+    <ProjectReference Include="..\Shos.Minesweeper\Shos.Minesweeper.csproj" />
   </ItemGroup>
 
   <ItemGroup>

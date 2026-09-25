@@ -1,13 +1,88 @@
-.valid.modified:not([type=checkbox]) {
-    outline: 1px solid #26b050;
+/* 配色のトークン（UI デザイン 4.1、4.3）。値を変えたら、UI デザインのコントラスト比の表を計算し直すこと */
+:root {
+    color-scheme: light dark;
+    --page: #eef1f5;
+    --surface: #ffffff;
+    --border: #7b8794;
+    --text: #1f2937;
+    --text-sub: #4b5563;
+    --cell-closed: #7d8fa3;
+    --cell-closed-hover: #8a9bb0;
+    --cell-pressed: #6c7d90;
+    --cell-open: #ffffff;
+    --grid: #c3cbd4;
+    --flag: #e0321f;
+    --flag-pole: #1f2937;
+    --mine: #1f2937;
+    --danger: #e5484d;
+    --danger-text: #c62828;
+    --accent: #e8590c;
+    --on-accent: #111111;
+    --focus: #0b57d0;
+    --focus-inner: #ffffff;
+    --number-1: #1d4ed8;
+    --number-2: #15803d;
+    --number-3: #c62828;
+    --number-4: #1e3a8a;
+    --number-5: #8b1a1a;
+    --number-6: #0f766e;
+    --number-7: #1f2937;
+    --number-8: #57606a;
 }
 
-.invalid {
-    outline: 1px solid red;
+@media (prefers-color-scheme: dark) {
+    :root {
+        --page: #101216;
+        --surface: #1f242b;
+        --border: #6b7682;
+        --text: #e6e9ed;
+        --text-sub: #aab3bd;
+        --cell-closed: #6b7a8c;
+        --cell-closed-hover: #78879a;
+        --cell-pressed: #5d6b7c;
+        --cell-open: #1b1f24;
+        --grid: #2c323a;
+        --flag: #ff6b5a;
+        --flag-pole: #e6e9ed;
+        --mine: #e6e9ed;
+        --danger: #e5484d;
+        --danger-text: #ff8787;
+        --accent: #ff922b;
+        --on-accent: #111111;
+        --focus: #ffd43b;
+        --focus-inner: #101216;
+        --number-1: #6ea8ff;
+        --number-2: #5fd07a;
+        --number-3: #ff7070;
+        --number-4: #b4a7ff;
+        --number-5: #f59ab0;
+        --number-6: #3dd6c6;
+        --number-7: #f1f3f5;
+        --number-8: #aab3bd;
+    }
 }
 
-.validation-message {
-    color: red;
+html,
+body {
+    margin: 0;
+    background: var(--page);
+    color: var(--text);
+    /* Web フォントは読み込まない（UI デザイン 4.5） */
+    font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", Meiryo, sans-serif;
+    font-size: 16px;
+}
+
+/* 画面には出さず、スクリーンリーダーには読ませる */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
 }
 
 #blazor-error-ui {
@@ -74,16 +149,3 @@
     .loading-progress-text:after {
         content: var(--blazor-load-percentage-text, "Loading");
     }
-
-code {
-    color: #c02d76;
-}
-
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-    color: var(--bs-secondary-color);
-    text-align: end;
-}
-
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-    text-align: start;
-}

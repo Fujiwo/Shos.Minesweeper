@@ -1,0 +1,48 @@
+@implements IAsyncDisposable
+@inject BrowserFeatures Browser
+
+<div class="board-area" @ref="area">
+    @if (placement is not null)
+    {
+        @ChildContent(placement)
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Difficulty Difficulty { get; set; } = default!;
+
+    /// <summary>盤面。置き方を受け取って描く。</summary>
+    [Parameter, EditorRequired] public RenderFragment<BoardPlacement> ChildContent { get; set; } = default!;
+
+    ElementReference area;
+    (double Width, double Height)? size;
+    BoardPlacement? placement;
+    IAsyncDisposable? sizeObservation;
+
+    protected override void OnParametersSet() => UpdatePlacement();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            sizeObservation = await Browser.ObserveSizeAsync(area, OnResizedAsync);
+    }
+
+    Task OnResizedAsync(double width, double height)
+        => InvokeAsync(() => {
+            size = (width, height);
+            UpdatePlacement();
+            StateHasChanged();
+        });
+
+    void UpdatePlacement()
+    {
+        if (size is { } areaSize)
+            placement = BoardPlacement.Calculate(areaSize.Width, areaSize.Height, Difficulty);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (sizeObservation is not null)
+            await sizeObservation.DisposeAsync();
+    }
+}

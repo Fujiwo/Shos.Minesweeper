@@ -561,6 +561,7 @@ public static class CellPresentation
 {
     public static string CssClassOf(CellAppearance appearance, int adjacentMineCount);
     public static IconKind? IconOf(CellAppearance appearance);
+    public static string NumberTextOf(CellAppearance appearance, int adjacentMineCount);   // 開いた数字のマスだけ "3" など。ほかは空
     public static string AccessibleNameOf(DisplayPosition position, CellAppearance appearance, int adjacentMineCount);
 }
 ```
@@ -575,6 +576,7 @@ public static class CellPresentation
 | `ExplodedMine` | `exploded` | `ExplodedMine` | 3 行 5 列、踏んだ地雷 |
 | `WrongFlag` | `wrong-flag` | `WrongFlag` | 3 行 5 列、誤った旗 |
 
+- `IconKind` の値は、そのアイコンを使う区切り（8 章）で、絵と一緒に足す。
 - 押下中（`pressed`）と選択中（`selected`）のクラスは、マスの見せ方とは別に `BoardView` が足す。
 - **このクラスを作った理由**: アーキテクチャー設計書レビューの「残る課題」で、`BoardView` がマスの見た目まで受け持つかを判断することになっていた。見た目と読み上げの名前は、UI デザイン（4.2、6.4）が変わったときに変わり、入力の流れとは変更理由が違う。そこで `BoardView` から出して、表で xUnit のテストをできるようにした。
 - 踏んだ地雷（爆発の形の上に地雷）と誤った旗（旗の上に ×）は、2 つのアイコンを重ねずに 1 つのアイコンとして描く。マスの中身を 1 つの要素にしておくと、マスの描き方が単純になる。
@@ -624,6 +626,7 @@ public sealed class BrowserFeatures(IJSRuntime jsRuntime) : IAsyncDisposable
 | `SuppressKeyScrollingAsync` | `suppressKeyScrolling(element)` | 要素の `keydown` で、矢印キーと Space の既定の動作（スクロール）を止める。Tab は止めない |
 
 - `browser.js` は、最初に使うときに `import("./js/browser.js")` で読み込み、モジュールの参照を持ち続ける。相対パスなので、`<base href>` がサブパスでも読み込める（アーキテクチャー設計書 16 章のリスクは、工程 11 で確かめる）。
+- 監視は `SizeObservation`（`public sealed class`。コンストラクターは `internal`）で表す。JavaScript から呼ばれる `NotifyResized` を持つ。bUnit のテストでは、この `NotifyResized` を呼んで、大きさの変化をブラウザーの代わりに知らせる。
 - `ObserveSizeAsync` が `IAsyncDisposable` を返すのは、監視を止める手順（JavaScript の監視の停止と .NET の参照の解放）を利用者に見せないためである。`BoardArea` は受け取ったものを破棄するだけで済む（アーキテクチャー設計書 7.4）。
 
 #### `BestTimeStorage`
@@ -854,6 +857,8 @@ async Task ShowWinAsync()
 |------|------|
 | 引数 | `IconKind Kind` |
 | 描くもの | 24×24 の座標で描いた SVG を、その場に書き出す。`aria-hidden="true"`、`focusable="false"`。大きさと色は、置く場所の CSS で決める |
+
+旗の形と地雷の形は、それぞれ 2 つのアイコン（旗と誤った旗、地雷と踏んだ地雷）で使うので、`FlagShape`・`MineShape` という引数のない小さな部品に分け、同じ形を 1 か所に置く。
 
 SVG の `<symbol>` を 1 か所に定義して `<use href="#…">` で参照する方法は使わない。ページの `<base href>` をサブパスにすると、`#…` だけの参照がページとは別の URL として解釈され、アイコンが出ないおそれがあるからである。
 

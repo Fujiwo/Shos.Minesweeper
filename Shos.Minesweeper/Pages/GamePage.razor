@@ -1,7 +1,18 @@
-﻿@page "/"
+@page "/"
+@inject TimeProvider TimeProvider
 
-<PageTitle>Home</PageTitle>
+<PageTitle>マインスイーパー</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1 class="visually-hidden">マインスイーパー</h1>
 
-Welcome to your new app.
+<div class="game">
+    <BoardArea Difficulty="game.Difficulty" Context="placement">
+        <BoardView Game="game" Placement="placement" />
+    </BoardArea>
+</div>
+
+@code {
+    Game game = default!;
+
+    protected override void OnInitialized() => game = new Game(Difficulty.Beginner, TimeProvider);
+}

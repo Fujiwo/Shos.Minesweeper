@@ -115,12 +115,14 @@ dotnet test --project Shos.Minesweeper.Tests --filter-class "Shos.Minesweeper.Te
 dotnet test --project Shos.Minesweeper.Tests --filter-method "*FirstOpenStartsTheGame"               # 1 件（ワイルドカード可）
 ```
 
+- Visual Studio でアプリをデバッグ実行している間や、MSBuild の常駐プロセスが残っている間は、コマンドラインのビルドが `obj/Debug/net10.0/tmp-webcil` を消せずに失敗する（MSB4018）ことがある。デバッグ実行を止め、`dotnet build-server shutdown` を実行してからビルドし直す。環境変数 `MSBUILDDISABLENODEREUSE=1` を設定しておくと、常駐プロセスが残りにくい。
 - テストは Microsoft.Testing.Platform で動かす。リポジトリ直下の `global.json` でこのモードを選んでいる（.NET 10 の SDK では、xUnit v3 のテストを従来の VSTest のモードで `dotnet test` できないため）。そのため、テストの絞り込みは `--filter` ではなく、`--filter-class`・`--filter-method` などの xUnit のオプションで行う。
 
 ## 構成とポイント
 - `Program.cs` で `App` を `#app` に、`HeadOutlet` を `head::after` にマウントする。サーバー側はなく、すべてブラウザー内で動く。
 - `App.razor` は Router である。既定のレイアウトは `Layout/MainLayout.razor`（`@Body` だけを描画）で、未一致のルートは `Pages/NotFound.razor` に回される。
 - `wwwroot/index.html` はホストページである。csproj で `OverrideHtmlAssetPlaceholders` が有効なので、`<script type="importmap">`、`<link rel="preload" id="webassembly">`、`blazor.webassembly#[.{fingerprint}].js` は .NET 10 のビルド時に書き換えられるプレースホルダーである。削除や変更はしないこと。
-- CSS 分離 (`*.razor.css`) を使う場合は、`index.html` 内でコメントアウトされている `<link href="Shos.Minesweeper.styles.css" rel="stylesheet" />` を有効にすること。グローバルスタイルは `wwwroot/css/app.css` にある。
-- 名前空間は `_Imports.razor` で `Shos.Minesweeper` / `Shos.Minesweeper.Layout` を取り込んでいる。フォルダーを追加したときは、必要に応じてここに `@using` を追記すること。
+- コンポーネントの見た目は CSS 分離（`*.razor.css`）で書き、`index.html` で `Shos.Minesweeper.styles.css` を読み込んでいる。配色のトークン（UI デザイン 4.1）とページ全体のスタイルは `wwwroot/css/app.css` にある。
+- アプリの C# は、フォルダーごとの名前空間（`Components`、`Display`、`Browser` など）に置き、`_Imports.razor` で取り込んでいる。フォルダーを追加したときは、ここに `@using` を追記すること。
+- JavaScript は `wwwroot/js/browser.js` だけで、C# から呼ぶのは `Browser/BrowserFeatures.cs` だけである（アーキテクチャー設計書 9 章）。
 - `Nullable` と `ImplicitUsings` が有効である。

@@ -1,0 +1,32 @@
+<div class="board" role="grid" aria-label="盤面、@Placement.RowCount 行 @Placement.ColumnCount 列"
+     style="--cell-size: @(Placement.CellSize)px; --frame-width: @(BoardPlacement.FrameWidth)px; --column-count: @Placement.ColumnCount">
+    @for (var row = 0; row < Placement.RowCount; row++)
+    {
+        <div class="board-row" role="row">
+            @for (var column = 0; column < Placement.ColumnCount; column++)
+            {
+                var displayPosition = new DisplayPosition(row, column);
+                var position = Placement.ToBoard(displayPosition);
+                var appearance = Game.AppearanceOf(position);
+                var adjacentMineCount = Game.Board.CellAt(position).AdjacentMineCount;
+                <div id="cell-@position.Row-@position.Column" role="gridcell"
+                     class="cell @CellPresentation.CssClassOf(appearance, adjacentMineCount)"
+                     aria-label="@CellPresentation.AccessibleNameOf(displayPosition, appearance, adjacentMineCount)">
+                    @if (CellPresentation.IconOf(appearance) is IconKind icon)
+                    {
+                        <Icon Kind="icon" />
+                    }
+                    else
+                    {
+                        @CellPresentation.NumberTextOf(appearance, adjacentMineCount)
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Game Game { get; set; } = default!;
+    [Parameter, EditorRequired] public BoardPlacement Placement { get; set; } = default!;
+}

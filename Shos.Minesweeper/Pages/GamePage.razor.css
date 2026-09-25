@@ -1,0 +1,7 @@
+.game {
+    box-sizing: border-box;
+    height: 100dvh;
+    padding: 4px;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+}

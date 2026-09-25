@@ -1,0 +1,71 @@
+.board {
+    display: grid;
+    grid-template-columns: repeat(var(--column-count), var(--cell-size));
+    grid-auto-rows: var(--cell-size);
+    width: max-content;
+    margin: auto;   /* 盤面の領域の中央に置く。はみ出すときは、領域をスクロールして端まで見られる */
+    border: var(--frame-width) solid var(--border);
+    /* 長押しの文字選択・コールアウトと、ダブルタップのズームを出さない（仕様書 4.4） */
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
+}
+
+.board-row {
+    display: contents;
+}
+
+.cell {
+    /* 立体の縁の太さは、マスの大きさの 1/16 を四捨五入した値（最小 1px）（UI デザイン 4.2） */
+    --edge: max(1px, round(calc(var(--cell-size) / 16), 1px));
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    font-size: calc(var(--cell-size) * 0.6);
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.closed,
+.flagged {
+    background: var(--cell-closed);
+    border: var(--edge) solid;
+    border-color: rgba(255, 255, 255, 0.35) rgba(0, 0, 0, 0.3) rgba(0, 0, 0, 0.3) rgba(255, 255, 255, 0.35);
+}
+
+.opened,
+.mine,
+.exploded,
+.wrong-flag {
+    background: var(--cell-open);
+    border-right: 1px solid var(--grid);
+    border-bottom: 1px solid var(--grid);
+}
+
+.exploded {
+    background: var(--danger);
+}
+
+.mine {
+    color: var(--mine);
+}
+
+.n1 { color: var(--number-1); }
+.n2 { color: var(--number-2); }
+.n3 { color: var(--number-3); }
+.n4 { color: var(--number-4); }
+.n5 { color: var(--number-5); }
+.n6 { color: var(--number-6); }
+.n7 { color: var(--number-7); }
+.n8 { color: var(--number-8); }
+
+/* タッチ端末では、指を離した後に指した状態が残らないように、指し示せる入力のときだけ出す（UI デザイン 5.6） */
+@media (hover: hover) {
+    .closed:hover,
+    .flagged:hover {
+        background: var(--cell-closed-hover);
+    }
+}

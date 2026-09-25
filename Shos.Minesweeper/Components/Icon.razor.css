@@ -1,0 +1,54 @@
+.icon {
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.icon ::deep .flag-pole {
+    stroke: var(--flag-pole);
+    stroke-width: 1.8;
+}
+
+.icon ::deep .flag-base {
+    fill: var(--flag-pole);
+}
+
+/* 旗の布と未開放のマスの色の比は 3:1 に届かないので、白で縁取って形を見せる（UI デザイン 4.1） */
+.icon ::deep .flag-cloth {
+    fill: var(--flag);
+    stroke: #ffffff;
+    stroke-width: 1.1;
+    stroke-linejoin: round;
+}
+
+.icon ::deep .mine-spikes line {
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+}
+
+.icon ::deep .mine-body {
+    fill: currentColor;
+}
+
+.icon ::deep .mine-shine {
+    fill: #ffffff;
+    opacity: 0.85;
+}
+
+.explosion {
+    fill: #fff3bf;
+}
+
+/* 踏んだ地雷は、配色によらず爆発の形の上に黒で描く（UI デザイン 4.2 の G） */
+.exploded-mine {
+    color: #111111;
+}
+
+.cross {
+    fill: none;
+    stroke: var(--text);
+    stroke-width: 2.6;
+    stroke-linecap: round;
+}
