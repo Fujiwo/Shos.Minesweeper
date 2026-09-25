@@ -1,0 +1,4 @@
+# 改行コードを統一する（Windows と WSL の git で差分が出ないように、リポジトリには LF で格納する）
+* text=auto
+
+*.png binary
