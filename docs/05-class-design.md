@@ -891,6 +891,8 @@ builder.Services.AddScoped<BestTimeStorage>();
 
 `Shos.Minesweeper.Tests`（`net10.0`）を作り、`Shos.Minesweeper` と `Shos.Minesweeper.GameLogic` を参照する。使うパッケージは、xUnit、bUnit、`Microsoft.Extensions.TimeProvider.Testing`（`FakeTimeProvider`）である。版は工程 11 で、その時点の最新の安定版にする。
 
+- 工程 11 の時点の最新の安定版は xUnit v3（`xunit.v3` 4.0.1）で、.NET 10 の SDK では Microsoft.Testing.Platform で動かす必要がある。そこで、リポジトリ直下に `global.json` を置いてこのモードを選び、VSTest 用のパッケージ（`Microsoft.NET.Test.Sdk`、`xunit.runner.visualstudio`）は入れない（docs/reviews/code-review.md の区切り 1）。
+
 ```text
 Shos.Minesweeper.Tests/
 ├─ GameLogic/    DifficultyTests, BoardTests, GameTests, BestTimesTests, TestGames（補助）

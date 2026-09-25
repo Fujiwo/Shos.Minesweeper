@@ -12,4 +12,8 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.12" PrivateAssets="all" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Shos.Minesweeper.GameLogic\Shos.Minesweeper.GameLogic.csproj" />
+  </ItemGroup>
+
 </Project>

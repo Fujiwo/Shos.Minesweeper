@@ -15,6 +15,9 @@
     <File Path="docs/reviews/03-ui-design-review.md" />
     <File Path="docs/reviews/04-architecture-review.md" />
     <File Path="docs/reviews/05-class-design-review.md" />
+    <File Path="docs/reviews/code-review.md" />
   </Folder>
+  <Project Path="Shos.Minesweeper.GameLogic/Shos.Minesweeper.GameLogic.csproj" />
+  <Project Path="Shos.Minesweeper.Tests/Shos.Minesweeper.Tests.csproj" />
   <Project Path="Shos.Minesweeper/Shos.Minesweeper.csproj" />
 </Solution>

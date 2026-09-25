@@ -92,10 +92,16 @@ Web ブラウザーで遊べるマインスイーパーを作る。
 - テストフレームワークの導入はスキルではユーザー確認が必要な事項だが、このプロジェクトでは「開発環境」の xUnit と bUnit でユーザーと合意済みなので、確認なしで導入してよい。
 
 ## コードの現状
-コードは空の `blazorwasm` テンプレート（`Pages/Home.razor` は "Hello, world!"）のままで、ゲームロジックもテストプロジェクトもまだない。文書の進み具合は「開発手順」の「現在の工程」を見ること。
+実装（工程 11）の途中である。クラス設計書（docs/05-class-design.md）の 8 章の区切りの順に進めていて、どこまで終わったかは docs/reviews/code-review.md に記録している。文書の進み具合は「開発手順」の「現在の工程」を見ること。
 
 ## コマンド
-ソリューションは新しい XML 形式の `Shos.Minesweeper.slnx` で、プロジェクトは `Shos.Minesweeper/Shos.Minesweeper.csproj` の 1 つだけである。
+ソリューションは新しい XML 形式の `Shos.Minesweeper.slnx` で、次の 3 つのプロジェクトがある。
+
+| プロジェクト | 内容 |
+|--------------|------|
+| `Shos.Minesweeper.GameLogic` | ゲームのルール（クラスライブラリ）。UI に依存しない |
+| `Shos.Minesweeper` | Blazor WebAssembly アプリ |
+| `Shos.Minesweeper.Tests` | テスト（xUnit v3。コンポーネントのテストには bUnit を使う） |
 
 ```bash
 dotnet build Shos.Minesweeper.slnx
@@ -103,9 +109,13 @@ dotnet run --project Shos.Minesweeper                        # http://localhost:
 dotnet run --project Shos.Minesweeper --launch-profile https  # https://localhost:7163
 dotnet watch --project Shos.Minesweeper                      # ホットリロード
 dotnet publish Shos.Minesweeper -c Release                   # 静的ファイルとして bin/Release/net10.0/publish/wwwroot に出力
+
+dotnet test --project Shos.Minesweeper.Tests                                                        # 全テスト
+dotnet test --project Shos.Minesweeper.Tests --filter-class "Shos.Minesweeper.Tests.GameLogic.BoardTests"  # 1 つのテストクラス
+dotnet test --project Shos.Minesweeper.Tests --filter-method "*FirstOpenStartsTheGame"               # 1 件（ワイルドカード可）
 ```
 
-テストプロジェクトを作ったら、`dotnet test` と、1 件だけテストを実行する方法（`dotnet test --filter`）をここに追記すること。
+- テストは Microsoft.Testing.Platform で動かす。リポジトリ直下の `global.json` でこのモードを選んでいる（.NET 10 の SDK では、xUnit v3 のテストを従来の VSTest のモードで `dotnet test` できないため）。そのため、テストの絞り込みは `--filter` ではなく、`--filter-class`・`--filter-method` などの xUnit のオプションで行う。
 
 ## 構成とポイント
 - `Program.cs` で `App` を `#app` に、`HeadOutlet` を `head::after` にマウントする。サーバー側はなく、すべてブラウザー内で動く。
