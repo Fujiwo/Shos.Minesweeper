@@ -465,7 +465,7 @@ CSS の分離を使うので、`index.html` でコメントアウトされてい
 - `dotnet publish -c Release` で出力した `wwwroot` を、GitHub Pages に置く（仕様書 7）。
 - サブパス（`/Shos.Minesweeper/`）に合わせるため、公開するときに `index.html` の `<base href>` を書き換える。ソースの `<base href="/" />` は変えない。ローカルで `dotnet run` したときに動くようにするためである。
 - GitHub Pages が `_framework` フォルダーを配るように、`.nojekyll` を置く（調査書 8.5）。
-- 具体的な手順（手作業か GitHub Actions か）は、リリース準備（工程 13）で決める。
+- 具体的な手順（手作業か GitHub Actions か）は、リリース準備（工程 14）で決める。
 
 ## 14. 仕様書・UI デザインを補う決定
 
@@ -493,8 +493,8 @@ CSS の分離を使うので、`index.html` でコメントアウトされてい
 |------------------|--------------|
 | iOS の Safari で、長押しのときに文字選択やコールアウトが出ないか。Android の Chrome で、長押しのときに `contextmenu` や `pointercancel` が起きて長押しが途切れないか | 工程 11（実装の区切りで実機を使う）、工程 12 |
 | 上級の盤面での操作から描き直しまでが、スマートフォンで 100 ミリ秒以内か（仕様書 6.2） | 工程 12 |
-| `browser.js` を、サブパス（`/Shos.Minesweeper/`）に置いたときにも読み込めるか。.NET 10 の静的ファイルのフィンガープリントと `import` の組み合わせで問題がないか | 工程 11（最初に JavaScript を使う区切り）、工程 13 |
-| 初回の読み込みの大きさ。必要なら、トリミングの設定やカルチャー情報を含めない設定（`InvariantGlobalization`）を検討する | 工程 13 |
+| `browser.js` を、サブパス（`/Shos.Minesweeper/`）に置いたときにも読み込めるか。.NET 10 の静的ファイルのフィンガープリントと `import` の組み合わせで問題がないか | 工程 11（最初に JavaScript を使う区切り）、工程 14 |
+| 初回の読み込みの大きさ。必要なら、トリミングの設定やカルチャー情報を含めない設定（`InvariantGlobalization`）を検討する | 工程 14 |
 
 ## 17. ユーザーに確認した点
 
