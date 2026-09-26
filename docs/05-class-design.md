@@ -4,7 +4,7 @@
 |------|------|
 | 工程 | 9. クラス設計書作成 |
 | 作成日 | 2026-09-25 |
-| 状態 | レビュー指摘を反映済み（docs/reviews/05-class-design-review.md）。工程 12 で、WPF 版・コンソール版と共有する部品を Presentation に移した（docs/reviews/code-review.md の工程 12 の R5）。この変更を含めてレビューをやり直し、指摘を反映した（docs/reviews/05-class-design-review.md の「再レビュー」）。リファクタリングのやり直し（docs/reviews/code-review.md の RR1〜RR4）で、`BestTimesJson` を GameLogic に移し、`InputMapping` の名前を `PressMapping` に改めた。1.1.0 の改訂（操作の結果、効果音、`GameSession`、演出、置き方）を 12 章に書いた（2026-09-26）。1.1.0 のレビューを待っている |
+| 状態 | レビュー指摘を反映済み（docs/reviews/05-class-design-review.md）。工程 12 で、WPF 版・コンソール版と共有する部品を Presentation に移した（docs/reviews/code-review.md の工程 12 の R5）。この変更を含めてレビューをやり直し、指摘を反映した（docs/reviews/05-class-design-review.md の「再レビュー」）。リファクタリングのやり直し（docs/reviews/code-review.md の RR1〜RR4）で、`BestTimesJson` を GameLogic に移し、`InputMapping` の名前を `PressMapping` に改めた。1.1.0 の改訂（操作の結果、効果音、`GameSession`、演出、置き方）を 12 章に書き（2026-09-26）、1.1.0 のレビューの指摘を反映した（docs/reviews/05-class-design-review.md の「1.1.0 のレビュー」） |
 | 入力 | docs/04-architecture.md（アーキテクチャー設計書）、docs/02-spec.md（仕様書）、docs/03-ui-design.md（UI デザイン）。1.1.0 では、アーキテクチャー設計書の 1.1.0 の改訂と、UI デザイン 10 章 |
 
 ## 1. 概要
@@ -1289,6 +1289,7 @@ public sealed class GameSession
 - `chooseMines` は、新しいゲームを始めるたびに `Game` に渡す。本番では省略し（乱数）、テストでは盤面の絵から作った選び方を渡す（12.9）。
 - 勝敗が決まった後に `Open` や `ToggleFlag` を呼ぶと、`Game` が `InvalidOperationException` を投げる（3.5）。`GameSession` は、それをそのまま伝える。
 - 持たないもの（ベストタイム、読み上げの文、効果音のオンとオフ、旗モード、盤面の置き方）は、アーキテクチャー設計書 6.2 のとおりである。
+- **UI は、`Game` の `Open` と `ToggleFlag` を直接呼ばない。** 直接呼ぶと、効果音と直前の操作が抜ける。`Game` の操作は公開のままなので、コンパイラーでは守れない。`Game` を読み取り専用の型で包めば守れるが、表示に使う `Game` のメンバー（状態、残り地雷数、経過時間、マスの見せ方、盤面）をすべて写すことになり、同じものが 2 か所に並ぶ。盤面の操作を呼ぶのは `GamePage` の 2 か所だけなので、包まずに、`GamePageTests`（盤面の操作で効果音が鳴ること）で確かめる。
 - 名前の Session は「難易度を選んでから、何回も新しいゲームを始めながら遊び続ける、ひと続きの遊び」を表す。1 回の `Game` より長く、ページを開いている間ずっと 1 つである。
 
 ### 12.5 Display
@@ -1303,7 +1304,7 @@ public sealed record BoardPlacement
 
 public enum CellAnimationKind { Reveal, Explode, MineAppear, WrongFlagAppear, FlagBounce }
 
-public readonly record struct CellAnimation(CellAnimationKind Kind, double Wave);   // Wave: 開始の遅れの比（0〜1）
+public readonly record struct CellAnimation(CellAnimationKind Kind, double DelayRatio);   // 開始の遅れの比（0〜1）
 
 public static class BoardAnimation
 {
@@ -1360,7 +1361,7 @@ public sealed class BrowserFeatures(IJSRuntime jsRuntime) : IAsyncDisposable
 public sealed class SoundEffectPlayer(BrowserFeatures browser)
 {
     public bool IsEnabled { get; set; } = true;   // 効果音のオンとオフ
-    public Task PrepareAsync();                   // 6 つの効果音を合成して JavaScript に渡す。2 回目からは何もしない
+    public Task PrepareAsync();                   // 6 つの効果音を合成して JavaScript に渡す。2 回目からは何もしない（12.6）
     public void Play(SoundEffect effect);         // SoundEffectOutput の形。IsEnabled が偽なら何もしない
 }
 
@@ -1379,7 +1380,10 @@ public sealed class SoundSettingStorage(BrowserFeatures browser)
 | （C# からは呼ばない） | 利用者の操作のイベントの受け口 | `keydown`、マウスの `pointerdown`、タッチとペンの `pointerup`、`touchend` を捕捉の段階で受ける。`AudioContext` がなければ作り、覚えている波形から `AudioBuffer` を作る。動いていなければ `resume()` する（アーキテクチャー設計書 9.4）。`AudioContext` がないブラウザーでは何もしない |
 
 - `SoundEffectPlayer.PrepareAsync` は、`SoundEffect` のすべての値について、`SoundEffectSynthesizer.Synthesize` の波形をバイト列にし（`MemoryMarshal.AsBytes`。WebAssembly もブラウザーも、並びはリトルエンディアンで同じ）、効果音の名前（`"Open"` など）と `SampleRate` とともに `LoadSoundAsync` で渡す（9.1 の決定 15）。
-- `SoundEffectPlayer.Play` は、`PlaySoundAsync` の完了を待たない（音の出口の約束。12.4）。Blazor WebAssembly では、JavaScript の関数はこの呼び出しの中で動き始めるので、音は描き直しの前に鳴り始める。失敗は JavaScript の側で受け止めるので、待たなくても例外が .NET に残らない。
+- `SoundEffectPlayer.Play` は、`PlaySoundAsync` の完了を待たない（音の出口の約束。12.4）。Blazor WebAssembly では、JavaScript の関数はこの呼び出しの中で動き始めるので、音は描き直しの前に鳴り始める。
+  - 戻り値の `ValueTask` は、`AsTask()` で `Task` にしてから捨てる。`ValueTask` を待たずに捨てることを、書き手の意図として明示し、その理由（待たない約束）をコメントに書く。
+  - 鳴らすときの失敗（Web Audio がない、再生に失敗した）は、JavaScript の側で受け止める（アーキテクチャー設計書 11 章）。それでも .NET に届く例外は、関数の名前の誤りのようなプログラムの誤りだけで、`SoundEffectPlayerTests` と `GamePageTests` で呼び出しを確かめて防ぐ。
+- `PrepareAsync` の 2 回目を何もしないのは、`GamePage` が作り直されることがあるからである。見つからないページ（`NotFound`）からゲームに戻ると `GamePage` が新しく作られ、最初の描画の後にまた `PrepareAsync` を呼ぶ。`SoundEffectPlayer` はスコープの有効期間（アプリの実行中ずっと 1 つ）なので、合成と受け渡しを 2 回しないようにする。
 - `SoundEffectPlayer.IsEnabled` の初期値は真（仕様書 5.6 の既定）で、`GamePage` がページを開いたときに `SoundSettingStorage.LoadAsync` の値を入れる。
 - `SoundSettingStorage` は、`BestTimeStorage`（4.4）と同じ形にした。値を `"on"`・`"off"` の文字にしたのは、localStorage を開いて読んだときに意味が分かるからである（9.1 の決定 14）。
 
@@ -1413,6 +1417,9 @@ async Task ToggleSoundAsync()
     SoundEffectPlayer.IsEnabled = !SoundEffectPlayer.IsEnabled;
     await SoundSettingStorage.SaveAsync(SoundEffectPlayer.IsEnabled);
 }
+
+// BoardArea から、盤面の領域の大きさを受け取る。EventCallback なので、この後に GamePage が描き直される
+void SetAreaSize(BoardAreaSize size) => areaSize = size;
 ```
 
 - 新しいゲームを始めるときは、`new Game(...)` の代わりに `session.StartNewGame(difficulty)` を呼ぶ。直前の操作も消える。
@@ -1456,7 +1463,7 @@ async Task ToggleSoundAsync()
 
 - 引数に `MoveResult? LastMove` を加える。
 - 持つ状態に、演出を計算した操作（`MoveResult?`）と、その結果の辞書を加える。`OnParametersSet` で `LastMove` が前と違うとき（値で比べる）だけ `BoardAnimation.Of` を呼び直す（アーキテクチャー設計書 7.3）。`LastMove` が `null` なら空の辞書にする。
-- マスが辞書にあれば、`CellPresentation.CssClassOf(kind)` のクラスを足し、`style="--wave: {比}"`（インバリアント カルチャー）を付ける。
+- マスが辞書にあれば、`CellPresentation.CssClassOf(kind)` のクラスを足し、`style="--delay-ratio: {比}"`（インバリアント カルチャー）を付ける。
 
 **`WinCard`**
 
@@ -1505,7 +1512,7 @@ builder.Services.AddScoped<SoundSettingStorage>();
 | `SoundSettingStorageTests` | 読み書きのキー。`"off"` で偽、値がない・ほかの値で真。書く値 |
 | `GamePageTests`（足す） | 盤面の操作で `playSound` が呼ばれる。効果音 ボタンで切り替わり、保存される。保存した設定がボタンに出る。大きさが分かると CSS の変数が付く |
 | `ToolbarTests`（足す） | 効果音 ボタンの `aria-pressed`、`title`、アイコン。押すと `OnSoundClick` |
-| `BoardViewTests`（足す） | 直前の操作に応じた演出のクラスと `--wave`。押下中の描き直しでは変わらない。新しいゲームで消える |
+| `BoardViewTests`（足す） | 直前の操作に応じた演出のクラスと `--delay-ratio`。押下中の描き直しでは変わらない。新しいゲームで消える |
 | `BoardAreaTests`（改める） | 大きさの変化を `OnResized` で知らせる |
 | `WinCardTests`（足す） | 置き場と詰め物の構造 |
 
@@ -1538,7 +1545,7 @@ builder.Services.AddScoped<SoundSettingStorage>();
 | 14 | 効果音の設定は、キー `Shos.Minesweeper.SoundEffects` に `"on"` か `"off"` で保存する。`"off"` 以外（値がない、読めない）はオンとして扱う | 仕様書 5.6 の既定はオン。読めない値を既定に戻す扱いは、ベストタイムと同じである |
 | 15 | JavaScript には、効果音を `SoundEffect` の名前（`"Open"` など）で渡す | JavaScript の側に番号との対応を持たずに済み、調べるときにも読める |
 
-アーキテクチャー設計書を改める点（9.2 の続き。工程 10 のレビューで確かめて反映する）:
+アーキテクチャー設計書を改める点（9.2 の続き。工程 10 のレビューで確かめ、アーキテクチャー設計書に反映した）:
 
 | # | 改める点 | アーキテクチャー設計書の場所 | 理由 |
 |---|----------|------------------------------|------|

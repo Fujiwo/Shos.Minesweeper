@@ -112,7 +112,7 @@ Shos.Minesweeper.slnx
 │       └─ index.html
 ├─ Shos.Minesweeper.GameLogic.Tests/  GameLogic のテスト（xUnit）
 ├─ Shos.Minesweeper.Presentation.Tests/  Presentation のテスト（xUnit）
-├─ Shos.Minesweeper.TestSupport/      テストの共通の補助（クラスライブラリ）。盤面を文字の絵で書く TestGames
+├─ Shos.Minesweeper.TestSupport/      テストの共通の補助（クラスライブラリ）。盤面を文字の絵で書く TestGames。1.1.0 からは Presentation のテストも使う
 └─ Shos.Minesweeper.Tests/            アプリのテスト（xUnit ＋ bUnit）
     ├─ Input/、Display/、Browser/     アプリの C# クラスのテスト
     └─ Components/                   コンポーネントのテスト（bUnit）
@@ -128,6 +128,7 @@ flowchart LR
     GameLogicTests --> TestSupport
     TestSupport --> GameLogic
     PresentationTests["Shos.Minesweeper.Presentation.Tests"] --> Presentation["Shos.Minesweeper.Presentation"]
+    PresentationTests --> TestSupport
     AppProject --> Presentation
     Presentation --> GameLogic
     AppProject --> GameLogic
@@ -160,7 +161,7 @@ flowchart LR
 **テストプロジェクトを、共有するプロジェクト（GameLogic、Presentation）とアプリで分ける理由**
 
 - Web 版の公開の後に、GameLogic と Presentation を使う WPF 版とコンソール版を作ると決めた（CLAUDE.md の「目的」）。共有するプロジェクトのテストは、どのアプリにも依存しないようにしておく。そのテストだけを流すときに、Web アプリと bUnit のビルドが要らない。
-- 盤面を文字の絵で書く補助（`TestGames`）は、GameLogic のテストとアプリのテストの両方で使うので、小さなクラスライブラリ（`TestSupport`）に置く。xUnit v3 のテストプロジェクトは実行ファイルになるので、テストプロジェクトどうしを参照させない。
+- 盤面を文字の絵で書く補助（`TestGames`）は、GameLogic のテストとアプリのテストの両方で使う（1.1.0 からは、`GameSession` のテストのために Presentation のテストも使う。クラス設計書 12.9）ので、小さなクラスライブラリ（`TestSupport`）に置く。xUnit v3 のテストプロジェクトは実行ファイルになるので、テストプロジェクトどうしを参照させない。
 - すべてのテストは、リポジトリ直下の `dotnet test` の 1 回で走る（`global.json` とソリューションを見つける）。
 - 初めは、分けても得るものがほとんどないとして 1 つにしていた。WPF 版とコンソール版を作ると決めたので、工程 12（リファクタリング）で分けた（docs/reviews/code-review.md の工程 12 の R1）。
 
@@ -306,7 +307,7 @@ flowchart TB
 | `GamePage` | 画面全体の状態の持ち主（7.1）。子からの操作の意図を受けて `GameSession` を呼び（1.1.0 までは `Game` を直接呼んでいた）、勝ったらベストタイムを更新して保存し、勝利カードと読み上げを出す。1.1.0 で次を加えた: `GameSession` を、`SoundEffectPlayer` を音の出口にして作る。`Game` と直前の操作を盤面に渡す。盤面の領域の大きさから盤面の置き方を計算し、ツールバーと勝利カードの置き場所のための大きさを CSS の変数で渡す（8.5、9.2）。効果音のオンとオフを `SoundEffectPlayer` で切り替えて保存する |
 | `Toolbar` | 難易度ボタン、残り地雷数、リセット ボタン（顔）、経過時間、旗モード ボタン、効果音 ボタン（1.1.0）を描き、押されたことを `GamePage` に伝える |
 | `ElapsedTime` | 経過時間を表示する。250 ミリ秒ごとに経過時間を確かめ、表示する秒が変わったときだけ自分を描き直す（7.3） |
-| `BoardArea` | 盤面の領域。大きさの変化を監視して、`GamePage` に伝える（1.1.0 で、置き方の計算を `GamePage` に移した。7.1）。盤面が収まらないときは、この領域がスクロールする |
+| `BoardArea` | 盤面の領域。大きさの変化を監視して、幅と高さの組（`BoardAreaSize`）で `GamePage` に伝える（1.1.0 で、置き方の計算を `GamePage` に移した。7.1）。盤面が収まらないときは、この領域がスクロールする |
 | `BoardView` | マスを描き、ポインターとキーボードのイベントを受けて、`PressGesture`・`PressMapping`・`KeyboardMapping`・`BoardCursor` を使い、「この位置を開く」「この位置の旗」という意図を `GamePage` に伝える。押下中の表示もここで持つ。直前の操作の演出を、`BoardAnimation` の結果からマスの CSS のクラスと変数にして描く（1.1.0） |
 | `LongPressRing` | 長押しの進行の円を、押したマスの位置に重ねて描く。押下を追っている `BoardView` の子にする |
 | `DifficultyDialog` | 難易度の選択とカスタムの入力。入力の検証は `Difficulty` に任せ、誤りの文言を表示する |
@@ -499,7 +500,7 @@ sequenceDiagram
     participant GamePage
     participant BP as BoardPlacement
     JS->>BA: 領域の大きさが変わった（幅、高さ）
-    BA->>GamePage: 領域の大きさ
+    BA->>GamePage: 領域の大きさ（BoardAreaSize）
     GamePage->>BP: 置き方を計算する（大きさ、盤面の行数・列数）
     BP-->>GamePage: 向き、マスの大きさ
     Note over GamePage: 描き直す。盤面には置き方を渡し、ツールバーと勝利カードのために、<br/>領域の高さと盤面の高さを CSS の変数で渡す。Game には触れない（仕様書 5.3）
