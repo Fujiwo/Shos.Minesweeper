@@ -4,7 +4,7 @@
 |------|------|
 | 工程 | 1. 調査書作成 |
 | 作成日 | 2026-09-25 |
-| 状態 | レビュー指摘を反映済み（docs/reviews/01-research-review.md） |
+| 状態 | レビュー指摘を反映済み（docs/reviews/01-research-review.md）。1.1.0 の追補（効果音）を足した（2026-09-26）。1.1.0 のレビューを待っている |
 
 ## 1. 目的と範囲
 
@@ -15,6 +15,8 @@ Web ブラウザー（スマートフォン、タブレット、PC）で動く�
 - Blazor WebAssembly で実装するときに考慮すべき技術的な点
 
 この調査書では決定は行わない。仕様書で決めるべき論点と選択肢を「9. 仕様書で決めるべき論点」にまとめる。
+
+**改訂（1.1.0）**: Web 版 1.0.0 の公開の後に、UI の洗練と効果音を 1.1.0 で入れると決めた（CLAUDE.md の「目的」）。効果音は、次に作る WPF 版でも使い、コンソール版では使わない。そこで、効果音の定番の扱い（5.5）、ブラウザーで音を鳴らすときの技術的な制約（8.7）、WPF 版・コンソール版と音を共有するときの制約（8.8）を足し、9 章に論点を加えた。UI の洗練は、新しい技術を使わず、今の CSS のアニメーション（8.2 の描画の性能の範囲）で行えるので、調査はしない。
 
 ## 2. 背景
 
@@ -88,6 +90,11 @@ Web ブラウザー（スマートフォン、タブレット、PC）で動く�
 - 「推理だけで必ず解ける盤面」を生成するモード（No Guessing モード。6.3 を参照）
 - ヒント、やり直し（Undo）
 - 盤面の難しさの指標（3BV。盤面を開き切るのに必要な最小クリック数）の表示。主に競技向けの機能
+
+### 5.5 効果音（1.1.0 で追加）
+
+- Windows 7 版のマインスイーパーには、オプションに効果音を鳴らすかどうかの項目があり、利用者が消せる（Microsoft Q&A）。効果音は「消せること」が前提の機能である。
+- 効果音はゲームの規則には関わらない。表示の結果（開いた、旗、勝敗）を耳でも知らせる、手応えのための機能である。
 
 ## 6. アルゴリズム
 
@@ -230,6 +237,45 @@ Web ブラウザー（スマートフォン、タブレット、PC）で動く�
 - CLAUDE.md の方針どおり、ゲームのルール（盤面、地雷の配置、開放、勝敗の判定）は UI に依存しない C# のクラスにする。こうすると、xUnit で単体テストができる。
 - 乱数（6.1）と時刻（8.3）を外から差し替えられるようにしておけば、テストで盤面や経過時間を固定できる。
 
+### 8.7 ブラウザーで効果音を鳴らす（1.1.0 で追加）
+
+**自動再生の制限**
+
+- ブラウザーは、利用者がページを操作する前に音を鳴らすことを制限している。Chrome では、利用者の操作の前に作った `AudioContext` は「停止中（suspended）」になり、利用者が操作した後に `resume()` を呼ぶか、音源の `start()` を呼ぶと動き出す。Firefox も、Web Audio の再生を、利用者の操作（sticky activation）の後に限っている（MDN）。
+- このゲームでは、最初の音は利用者がマスを押した結果として鳴るので、この制限には当たりにくい。ただし、Blazor のイベントの処理は .NET を通ってから JavaScript を呼ぶので、ブラウザーによっては「利用者の操作の最中」と見なされないおそれがある。確実にするには、JavaScript の側でページの最初の `pointerdown`・`keydown` を受けて、その場で `AudioContext` を作るか `resume()` しておく。
+
+**iOS の消音スイッチ**
+
+- iOS の Safari では、Web Audio だけを使うページの音は「ambient」の扱いになり、本体の消音スイッチ（着信/サイレント）で消える。ヘッドホンでは消えない。
+- Safari 16.4 以降の `navigator.audioSession.type` を `"playback"` にすると、消音スイッチがあっても鳴らせる（音楽のアプリと同じ扱い）。
+- ゲームの効果音は、利用者が本体を消音にしていれば鳴らないほうが自然なので、既定の扱い（消音スイッチに従う）のままでよいかを、仕様書で決める（9 章の論点 24）。
+
+**音を鳴らす方法**
+
+- Web Audio では、音のデータ（`AudioBuffer`）を一度作っておき、鳴らすたびに `AudioBufferSourceNode` を作って `start()` する。このノードは 1 回しか鳴らせないが、作るのは軽く、同じ `AudioBuffer` を複数のノードで同時に鳴らせる（MDN）。連続して開いたときに音が重なっても、前の音は途切れない。
+- 音のデータの作り方は 2 通りある。
+  - 音の波形（サンプルの並び）を `AudioContext.createBuffer` で作った `AudioBuffer` に直接書き込む。形式の解釈（デコード）が要らない。
+  - 音のファイル（WAV など）のデータを `decodeAudioData` で読み込む。`decodeAudioData` は、完全なファイルのデータを受け取る。
+- .NET 6 以降の Blazor は、`byte[]` を Base64 に変換せず、JavaScript に `Uint8Array` として渡す（Microsoft Learn）。C# で作った音のデータを JavaScript に渡すことができる。
+- 音の再生は JavaScript の側で行うので、Blazor の描画（8.2）とは別に進み、盤面の応答（仕様書 6.2 の 100 ミリ秒）を遅らせにくい。
+
+**利用者の設定とアクセシビリティ**
+
+- WCAG 2.2 の 1.4.2（Audio Control）は、自動で 3 秒を超えて流れる音に、止める手段を求める。効果音は短いので直接は当たらないが、定番（5.5）どおり、消す手段を用意する。
+- 消す設定をページを開き直しても保つには、ベストタイムと同じく localStorage に保存する（8.4）。仕様書 6 章の「ブラウザーに保存するのはベストタイムだけ」を改めることになる。
+- スクリーンリーダーの読み上げと効果音は、同じスピーカーから出る。音を読み上げの代わりにはせず、読み上げを妨げない音量と長さにする。
+
+### 8.8 WPF 版・コンソール版と効果音を共有する（1.1.0 で追加）
+
+- 効果音は WPF 版でも使い、コンソール版では使わない（CLAUDE.md の「目的」）。
+- WPF で使える、.NET に付いている再生の方法には、次の制約がある。
+  - `System.Media.SoundPlayer`: WAV を、ファイル、URL、WAV を含む `Stream`、埋め込みリソースから読める（Microsoft Learn）。ただし、同時に鳴らせるのは 1 つだけで、別の音を鳴らすと前の音が止まる。
+  - `System.Windows.Media.MediaPlayer`: 複数を同時に鳴らせるが、開けるのは `Uri` だけで、プロジェクトのリソースは使えない（ファイルとして出力に置く必要がある。Microsoft Learn）。再生までに時間がかかることがあり、ゲームの効果音には前もって開いておく必要がある。
+  - このほか、ライブラリ（NAudio など）を使えば、複数の音を混ぜて低い遅延で鳴らせる。どれを使うかは、WPF 版の一巡で決める。
+- どの方法でも受け取れるのは「音のデータ」（PCM の波形か、それを包んだ WAV）である。音のデータを UI の技術に依存しない C# で作る（または持つ）ようにしておけば、Web 版（8.7 の 2 通りのどちらでも）と WPF 版で同じ音を使える。
+- 「どの出来事で、どの音を鳴らすか」（開いた、連鎖した、旗、負け、勝ちなど）も、UI の技術に依存しない規則である。コンソール版はこの規則を使わないので、コンソール版が音の部品に依存しない置き方にする（アーキテクチャー設計で決める）。
+- 「連鎖して開いた」「コードで開いた」を区別して鳴らすには、1 回の操作で何が起きたか（開いたマスの数など）を UI が知る必要がある。今の `Game.Open` は結果を返さない（アーキテクチャー設計書 7.2）ので、知る方法を設計で決める。
+
 ## 9. 仕様書で決めるべき論点
 
 調査の結果、仕様書で決める必要がある論点を次にまとめる。CLAUDE.md に挙げられている論点（タッチでの旗の立て方、盤面が画面に入らない場合の扱い、誤操作対策、マス目の最小サイズ）もここに含めた。
@@ -256,6 +302,20 @@ Web ブラウザー（スマートフォン、タブレット、PC）で動く�
 | 18 | 画面の言語 | 日本語 / 英語 / 両方 | — |
 | 19 | 画面の向きが変わったときの扱い | レイアウトを組み直す / 盤面の回転も切り替える | 7.4 |
 
+1.1.0 で加えた論点（UI の洗練と効果音）:
+
+| # | 論点 | 選択肢 | 関連する節 |
+|---|------|--------|------------|
+| 20 | 効果音の有無と既定 | 既定で鳴らす / 既定では鳴らさない（利用者がオンにする） | 5.5、8.7 |
+| 21 | 効果音を鳴らす場面 | 開く（1 マス）、連鎖、コード、旗を立てる・外す、長押しの成立、負け、勝ち、ベストタイムの更新、新しいゲーム、など。どれを鳴らし、どれを分けるか | 5.5、8.8 |
+| 22 | 効果音を消す操作と、その設定の保存 | 操作の置き場所（ツールバー / 別の画面）。保存する / しない（仕様書 6 章の保存するものが増える） | 8.7 |
+| 23 | 音の作り方 | 波形を合成する / 音のファイルを使う（ライセンスと読み込みの量）。WPF 版と共有できること | 8.7、8.8 |
+| 24 | iOS の消音スイッチの扱い | 従う（既定のまま） / 従わない（`playback` にする） | 8.7 |
+| 25 | 音量と音の長さ | 読み上げを妨げない範囲。音量を利用者が変えられるか | 8.7 |
+| 26 | 見た目と演出の方針 | UI デザイン 1 章の「飾りを足さない」をどう改めるか。連鎖の広がり、負けと勝ちの演出を入れるか | — |
+| 27 | 演出の間の操作 | 演出の間も操作を受け付ける / 演出が終わるまで待つ。演出の途中でリセットしたときの扱い | 8.2 |
+| 28 | 効果音と振動の関係 | 長押しの成立で、振動と音の両方を出すか | 8.7 |
+
 ## 10. 参考資料
 
 - [Minesweeper (video game) - Wikipedia](https://en.wikipedia.org/wiki/Minesweeper_(video_game))
@@ -267,3 +327,18 @@ Web ブラウザー（スマートフォン、タブレット、PC）で動く�
 - [touch-action - MDN Web Docs](https://developer.mozilla.org/docs/Web/CSS/touch-action)
 - [Element: pointercancel event - MDN Web Docs](https://developer.mozilla.org/docs/Web/API/Element/pointercancel_event)
 - Richard Kaye, "Minesweeper is NP-complete", *The Mathematical Intelligencer*, 22(2), 2000.
+
+1.1.0 で加えた参考資料:
+
+- [Autoplay policy in Chrome - Chrome for Developers](https://developer.chrome.com/blog/autoplay)
+- [Autoplay guide for media and Web Audio APIs - MDN Web Docs](https://developer.mozilla.org/docs/Web/Media/Guides/Autoplay)
+- [AudioBufferSourceNode - MDN Web Docs](https://developer.mozilla.org/docs/Web/API/AudioBufferSourceNode)
+- [BaseAudioContext: decodeAudioData() method - MDN Web Docs](https://developer.mozilla.org/docs/Web/API/BaseAudioContext/decodeAudioData)
+- [Breaking change: Blazor: Byte Array Interop - Microsoft Learn](https://learn.microsoft.com/dotnet/core/compatibility/aspnet-core/6.0/byte-array-interop)
+- [SoundPlayer Class - Microsoft Learn](https://learn.microsoft.com/dotnet/api/system.media.soundplayer)
+- [MediaPlayer Class (System.Windows.Media) - Microsoft Learn](https://learn.microsoft.com/dotnet/api/system.windows.media.mediaplayer)
+- [Playing Multiple Simultaneous Sounds in WPF - Ian Griffiths](https://www.interact-sw.co.uk/iangblog/2008/01/25/wpf-concurrent-audio)
+- [NAudio - GitHub](https://github.com/naudio/NAudio)
+- [unmute-ios-audio - GitHub](https://github.com/feross/unmute-ios-audio)（iOS の消音スイッチと Web Audio）
+- [How to disable sound for Minesweeper - Microsoft Q&A](https://learn.microsoft.com/answers/questions/2508939/how-to-disable-sound-for-minesweeper)
+- [Understanding Success Criterion 1.4.2: Audio Control - W3C](https://www.w3.org/WAI/WCAG22/Understanding/audio-control.html)
