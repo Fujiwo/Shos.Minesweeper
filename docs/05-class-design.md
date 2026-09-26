@@ -4,14 +4,16 @@
 |------|------|
 | 工程 | 9. クラス設計書作成 |
 | 作成日 | 2026-09-25 |
-| 状態 | レビュー指摘を反映済み（docs/reviews/05-class-design-review.md）。工程 12 で、WPF 版・コンソール版と共有する部品を Presentation に移した（docs/reviews/code-review.md の工程 12 の R5）。この変更を含めてレビューをやり直し、指摘を反映した（docs/reviews/05-class-design-review.md の「再レビュー」）。リファクタリングのやり直し（docs/reviews/code-review.md の RR1〜RR4）で、`BestTimesJson` を GameLogic に移し、`InputMapping` の名前を `PressMapping` に改めた |
-| 入力 | docs/04-architecture.md（アーキテクチャー設計書）、docs/02-spec.md（仕様書）、docs/03-ui-design.md（UI デザイン） |
+| 状態 | レビュー指摘を反映済み（docs/reviews/05-class-design-review.md）。工程 12 で、WPF 版・コンソール版と共有する部品を Presentation に移した（docs/reviews/code-review.md の工程 12 の R5）。この変更を含めてレビューをやり直し、指摘を反映した（docs/reviews/05-class-design-review.md の「再レビュー」）。リファクタリングのやり直し（docs/reviews/code-review.md の RR1〜RR4）で、`BestTimesJson` を GameLogic に移し、`InputMapping` の名前を `PressMapping` に改めた。1.1.0 の改訂（操作の結果、効果音、`GameSession`、演出、置き方）を 12 章に書いた（2026-09-26）。1.1.0 のレビューを待っている |
+| 入力 | docs/04-architecture.md（アーキテクチャー設計書）、docs/02-spec.md（仕様書）、docs/03-ui-design.md（UI デザイン）。1.1.0 では、アーキテクチャー設計書の 1.1.0 の改訂と、UI デザイン 10 章 |
 
 ## 1. 概要
 
 アーキテクチャー設計書で決めた単位ごとに、型の公開メンバー、小さな型（列挙型・値の型）、コンポーネントの引数とイベントを定める。あわせて、テストの組み立て方と、実装（工程 11）の区切りの案を示す。
 
 各メンバーの実装（アルゴリズム）は、判断が要るものだけを書く。メンバーの細かい実装は工程 11 でテストファーストで決める。
+
+**改訂（1.1.0）**: アーキテクチャー設計書の 1.1.0 の改訂を、型とメンバーに落とした。加える型と変えるメンバーは 12 章にまとめ、1〜11 章の該当する箇所には「（1.1.0。12.x）」と書いて 12 章を指した。
 
 ### 1.1 設計の方針
 
@@ -46,6 +48,10 @@
 | 旗モード | `IsFlagMode` |
 | 盤面の置き方、縦と横の入れ替え、マスの大きさ | `BoardPlacement`、`IsTransposed`、`CellSize` |
 | 選択中のマス | `BoardCursor.Position` |
+| 1 回の盤面の操作（手）とその結果、起きたこと（1.1.0） | `MoveResult`、`MoveOutcome`（`NoChange`・`Opened`・`FlagPlaced`・`FlagRemoved`） |
+| 効果音（開く、連鎖、旗を立てる・外す、負け、勝ち。1.1.0） | `SoundEffect`（`Open`・`Chain`・`FlagPlaced`・`FlagRemoved`・`Lost`・`Won`） |
+| 音の出口、1 回のゲームの進め方、直前の操作（1.1.0） | `SoundEffectOutput`、`GameSession`、`GameSession.LastMove` |
+| 演出（1.1.0） | `CellAnimation`、`BoardAnimation` |
 
 - 位置は 0 から数える。画面や読み上げに出す「3 行 5 列」は 1 から数えるので、読み上げの名前を作るところ（`CellPresentation`）で 1 を足す。
 - 盤面の大きさは、仕様書 3.1 に合わせて「幅（`Width`）＝列の数」「高さ（`Height`）＝行の数」と呼ぶ。表示している向きの行数と列数は `BoardPlacement` の `RowCount`・`ColumnCount` と呼び、盤面の幅・高さと区別する。
@@ -94,6 +100,8 @@
 
 Presentation の型は、節を分けずに、使われ方の近い 4.2（`PressKind`・`CellAction`・`PressMapping`）と 4.3（`DifficultyNames`・`Announcements`）で説明する。見出しに「Presentation」と書く。
 
+1.1.0 で加える型と変える型は、12.1 の一覧にある。
+
 ## 3. GameLogic
 
 ### 3.1 クラス図
@@ -109,8 +117,8 @@ classDiagram
         +int RemainingMineCount
         +int ElapsedSeconds
         +AppearanceOf(CellPosition) CellAppearance
-        +Open(CellPosition)
-        +ToggleFlag(CellPosition)
+        +Open(CellPosition) MoveResult
+        +ToggleFlag(CellPosition) MoveResult
     }
     class Board {
         +int Width
@@ -248,7 +256,7 @@ public sealed class Board
     internal bool HasMineAt(CellPosition position);
     internal IEnumerable<CellPosition> NeighborsOf(CellPosition position);
     internal void PlaceMines(IReadOnlyCollection<CellPosition> positions);
-    internal void Open(CellPosition position);
+    internal void Open(CellPosition position);           // 1.1.0 で、新たに開いたマスを返す形に変える（12.2）
     internal void ToggleFlag(CellPosition position);
     internal void FlagAllMines();
 }
@@ -301,8 +309,8 @@ public sealed class Game
     public int ElapsedSeconds { get; }        // 0〜999
 
     public CellAppearance AppearanceOf(CellPosition position);
-    public void Open(CellPosition position);
-    public void ToggleFlag(CellPosition position);
+    public MoveResult Open(CellPosition position);         // 1.1.0 で戻り値を加えた（12.2）
+    public MoveResult ToggleFlag(CellPosition position);   // 1.1.0 で戻り値を加えた（12.2）
 }
 ```
 
@@ -320,7 +328,7 @@ public void Open(CellPosition position)
 }
 ```
 
-- `Game` は 1 回のゲームで、未開始に戻ることはない。リセットと難易度の変更（仕様書 3.2 の図で未開始に戻る矢印）は、`GamePage` が新しい `Game` を作ることで表す。
+- `Game` は 1 回のゲームで、未開始に戻ることはない。リセットと難易度の変更（仕様書 3.2 の図で未開始に戻る矢印）は、`GamePage` が新しい `Game` を作ることで表す（1.1.0 からは `GameSession` が作る。12.4）。
 - 未開始のうちに旗のマスを「開く」と、何も起きない。地雷も置かない。
 - `Start` は、盤面のすべての位置から「開いたマスとその周囲」を除いたものを候補にして、`MineChooser` に地雷の位置を選ばせる。「最初に開いたマスの周りには地雷を置かない」という規則は `Game` が持ち、差し替えられるのは「候補の中からどれを選ぶか」だけである。テストで偽の選び方を渡しても、規則は本物のまま確かめられる。
 - 選ばれた位置が候補に含まれない、数が地雷数と違う、重複がある場合は、ガード節で `InvalidOperationException` を投げる。テストで盤面を与えるときの書き誤りも、ここで見つかる。
@@ -580,6 +588,7 @@ public sealed record BoardPlacement
     public bool IsTransposed { get; }
     public int RowCount { get; }        // 表示している向きの行数
     public int ColumnCount { get; }     // 表示している向きの列数
+    public int BoardHeight { get; }     // 1.1.0。盤面の表示の高さ（枠を含む。12.5）
 
     public DisplayPosition ToDisplay(CellPosition position);
     public CellPosition ToBoard(DisplayPosition position);
@@ -600,7 +609,8 @@ public enum IconKind
 {
     Mine, ExplodedMine, Flag, WrongFlag, Shovel,
     FaceNormal, FaceSurprised, FaceWon, FaceLost,
-    Clock, Star, Check, Warning, Chevron, Close
+    Clock, Star, Check, Warning, Chevron, Close,
+    SoundOn, SoundOff    // 1.1.0（12.5）
 }
 
 public static class CellPresentation
@@ -709,12 +719,14 @@ flowchart TB
 ```
 
 - `Icon` は、ツールバー、マス、ダイアログ、カードのどこでも使う。図には描かない。
-- `BoardView` は、`BoardArea` の子の内容（`RenderFragment<BoardPlacement>`）として `GamePage` が書く。`BoardArea` は置き方を求めて子に渡すだけで、`BoardView` の引数とイベントは `GamePage` と `BoardView` の間で直接やり取りする（docs/reviews/05-class-design-review.md の指摘 2）。
+- `BoardView` は、`BoardArea` の子の内容（`RenderFragment<BoardPlacement>`）として `GamePage` が書く（1.1.0 で、置き方を `GamePage` が求めて渡す形に改めた。12.7）。`BoardArea` は置き方を求めて子に渡すだけで、`BoardView` の引数とイベントは `GamePage` と `BoardView` の間で直接やり取りする（docs/reviews/05-class-design-review.md の指摘 2）。
 - `LongPressRing` を `BoardView` の子にしたのは、円を出すかどうか、どこに出すかを決めるのが、押下を追っている `BoardView` だからである。`BoardArea` の子にすると、押下の状態を `BoardArea` に上げるイベントが要る。円は画面に固定した層（`position: fixed`）に描くので、DOM の上でどこに置いても、盤面の領域の端で切れない。
 
 ### 5.2 各コンポーネント
 
 #### `GamePage`（`Pages/GamePage.razor`、ルート `/`）
+
+1.1.0 で、`Game` の代わりに `GameSession` を持ち、置き方、効果音、演出の受け渡しを加えた（12.7）。
 
 | 項目 | 内容 |
 |------|------|
@@ -771,6 +783,8 @@ async Task ShowWinAsync()
 
 #### `Toolbar`
 
+1.1.0 で、効果音 ボタンを加えた（12.7）。
+
 | 項目 | 内容 |
 |------|------|
 | 引数 | `Game Game`、`bool IsPressing`、`bool IsFlagMode` |
@@ -804,6 +818,8 @@ async Task ShowWinAsync()
 
 #### `BoardArea`
 
+1.1.0 で、置き方を求めるのをやめ、領域の大きさを `GamePage` に知らせる形に改めた（12.7）。
+
 | 項目 | 内容 |
 |------|------|
 | 引数 | `Difficulty Difficulty`、`RenderFragment<BoardPlacement> ChildContent`（盤面。置き方を受け取って描く） |
@@ -817,6 +833,8 @@ async Task ShowWinAsync()
 - `BoardArea` は `Game` も旗モードも知らない。仕事は「盤面の領域の大きさを測り、置き方を求めて、子に渡す」だけである。
 
 #### `BoardView`
+
+1.1.0 で、直前の操作の演出を加えた（12.7）。
 
 | 項目 | 内容 |
 |------|------|
@@ -894,6 +912,8 @@ async Task ShowWinAsync()
 
 #### `WinCard`
 
+1.1.0 で、大きさと置き場所を改めた（12.7）。
+
 | 項目 | 内容 |
 |------|------|
 | 引数 | `int Seconds`、`BestTimeResult BestTime` |
@@ -919,7 +939,7 @@ SVG の `<symbol>` を 1 か所に定義して `<use href="#…">` で参照す�
 | ファイル | 変更 |
 |----------|------|
 | `Pages/Home.razor` | `Pages/GamePage.razor` に名前を変える（アーキテクチャー設計書 4 章） |
-| `Program.cs` | `HttpClient` の登録を消し、次の 3 つを登録する |
+| `Program.cs` | `HttpClient` の登録を消し、次の 3 つを登録する（1.1.0 で 2 つ加える。12.8） |
 | `_Imports.razor` | `Shos.Minesweeper.Components`、`.GameLogic`、`.Presentation`、`.Input`、`.Display`、`.Browser` の `@using` を足す。使わなくなる `System.Net.Http` などは消す |
 | `App.razor`、`Layout/MainLayout.razor`、`Pages/NotFound.razor` | 変えない |
 
@@ -1022,7 +1042,7 @@ Assert.Equal("""
 
 ## 8. 実装の区切り（案）
 
-工程 11 は、次の区切りで進め、区切りごとにコードレビューを行う（CLAUDE.md）。前の区切りの上に積むので、各区切りの終わりには、アプリが動き、全テストが Green である。
+工程 11 は、次の区切りで進め、区切りごとにコードレビューを行う（CLAUDE.md）。1.1.0 の区切りは 12.10 にある。前の区切りの上に積むので、各区切りの終わりには、アプリが動き、全テストが Green である。
 
 | # | 区切り | 主な型 | 終わったときにできること |
 |---|--------|--------|--------------------------|
@@ -1083,3 +1103,459 @@ Assert.Equal("""
 | 新しいゲームの読み上げの文言（9.1 の決定 6） | 「新しいゲーム、初級、9×9、地雷 10。」に改め、UI デザイン 6.4 もそのように直す | UI デザインのとおり「9 行 9 列」とし、盤面を入れ替えて表示しているときは盤面の名前と行と列が逆になることを受け入れる |
 
 設計書の提出時にこの点を確認事項として挙げ、ユーザーは個別の回答をせずに工程を承認した。仕様書レビューの前例（docs/reviews/02-spec-review.md）に従い、推した案どおりに確定した（docs/reviews/05-class-design-review.md）。
+
+## 12. 改訂（1.1.0）
+
+アーキテクチャー設計書の 1.1.0 の改訂（1 章の 5 つの変更と、レビューで決めた `GameSession` と音の出口）を、型とメンバーに落とす。
+
+### 12.1 加える型と変える型
+
+| 置き場所 | 型 | 種類 | 加える・変える | ひとことで言うと |
+|----------|----|------|----------------|------------------|
+| GameLogic | `MoveOutcome` | enum | 加える | 1 回の盤面の操作で起きたことの種類 |
+| | `MoveResult` | record struct | 加える | 1 回の盤面の操作の結果（操作したマス、起きたこと、新たに開いたマス、操作の後のゲームの状態） |
+| | `Board`、`Game` | class | 変える | 盤面の操作が結果を返す |
+| Presentation | `SoundEffect` | enum | 加える | 効果音の種類 |
+| | `SoundEffectMapping` | static class | 加える | 操作の結果から、鳴らす効果音を決める |
+| | `SoundEffectSynthesizer` | static class | 加える | 効果音の波形を合成する |
+| | `SoundEffectOutput` | delegate | 加える | 音の出口。効果音を 1 つ受け取って鳴らす |
+| | `GameSession` | class | 加える | 1 回のゲームの進め方 |
+| Display | `BoardAreaSize` | record struct | 加える | 盤面の領域の大きさ（幅と高さ） |
+| | `BoardPlacement` | record | 変える | 盤面の表示の高さ（`BoardHeight`）を加える |
+| | `CellAnimationKind` | enum | 加える | マスの演出の種類 |
+| | `CellAnimation` | record struct | 加える | 1 つのマスの演出（種類と開始の遅れの比） |
+| | `BoardAnimation` | static class | 加える | 直前の操作から、マスごとの演出を決める |
+| | `IconKind` | enum | 変える | `SoundOn`・`SoundOff` を加える |
+| | `CellPresentation` | static class | 変える | 演出の CSS のクラスを加える |
+| Browser | `BrowserFeatures` | class | 変える | 効果音を渡す・鳴らすメソッドを加える |
+| | `SoundEffectPlayer` | class | 加える | Web 版の音の出口。オンとオフを持つ |
+| | `SoundSettingStorage` | class | 加える | 効果音のオンとオフを localStorage に読み書きする |
+| Components・Pages | `GamePage`、`Toolbar`、`BoardArea`、`BoardView`、`WinCard`、`Icon` | Razor | 変える | 12.7 |
+
+```mermaid
+classDiagram
+    direction LR
+    class GameSession {
+        +Game Game
+        +MoveResult? LastMove
+        +StartNewGame(Difficulty)
+        +Open(CellPosition) MoveResult
+        +ToggleFlag(CellPosition) MoveResult
+    }
+    class SoundEffectOutput {
+        <<delegate>>
+    }
+    class SoundEffectMapping {
+        <<static>>
+        +EffectFor(MoveResult)$ SoundEffect?
+    }
+    class SoundEffectSynthesizer {
+        <<static>>
+        +Synthesize(SoundEffect)$ float[]
+    }
+    class SoundEffectPlayer {
+        +bool IsEnabled
+        +PrepareAsync()
+        +Play(SoundEffect)
+    }
+    class BoardAnimation {
+        <<static>>
+        +Of(MoveResult, Game)$ IReadOnlyDictionary
+    }
+    class Game {
+        +Open(CellPosition) MoveResult
+        +ToggleFlag(CellPosition) MoveResult
+    }
+    GameSession *-- Game
+    GameSession ..> SoundEffectMapping
+    GameSession ..> SoundEffectOutput
+    SoundEffectPlayer ..> SoundEffectSynthesizer
+    SoundEffectPlayer ..> SoundEffectOutput : Play が出口の形に合う
+    BoardAnimation ..> Game
+```
+
+`GameSession`、`SoundEffectOutput`、`SoundEffectMapping`、`SoundEffectSynthesizer` は Presentation、`SoundEffectPlayer` と `BoardAnimation` は Web アプリ、`Game` は GameLogic の型である。
+
+### 12.2 GameLogic: 操作の結果
+
+```csharp
+public enum MoveOutcome { NoChange, Opened, FlagPlaced, FlagRemoved }
+
+public readonly record struct MoveResult(
+    CellPosition Position,                        // 操作したマス
+    MoveOutcome Outcome,                          // 起きたこと
+    IReadOnlyList<CellPosition> OpenedPositions,  // 新たに開いたマス。Opened のときだけ 1 つ以上
+    GameStatus Status);                           // 操作の後のゲームの状態
+
+public sealed class Game
+{
+    public MoveResult Open(CellPosition position);
+    public MoveResult ToggleFlag(CellPosition position);
+}
+
+public sealed class Board
+{
+    internal IReadOnlyList<CellPosition> Open(CellPosition position);   // 新たに開いたマスを返す
+}
+```
+
+| 操作 | 起きたこと | `Outcome` | `OpenedPositions` |
+|------|------------|-----------|-------------------|
+| `Open` | 1 つ以上のマスが開いた（1 マス、0 の連鎖、コード。最初の一手、勝ち、負けを含む） | `Opened` | 新たに開いたマス |
+| `Open` | 何も開かなかった（`Cell.CanOpen` が偽、旗の数が合わないコード、開くマスが残っていないコード） | `NoChange` | 空 |
+| `ToggleFlag` | 未開放に旗を立てた | `FlagPlaced` | 空 |
+| `ToggleFlag` | 旗を外した | `FlagRemoved` | 空 |
+| `ToggleFlag` | 開放済みのマス（何も起きない） | `NoChange` | 空 |
+
+- **名前**: `MoveOutcome`（種類）と `MoveResult`（種類と、その値）は、`BestTimeOutcome` と `BestTimeResult`（3.6）と同じ組み立てにした。仕様書の「操作」は、押し方やツールバーの操作も含む広い語で、Presentation の `CellAction`（マスに行う操作）とも紛らわしい。そこで、盤面に対する 1 回の手を、ゲームの語として定着している Move と呼ぶ。
+- 勝ったときに `Win` が自動で立てる旗は、`OpenedPositions` に含めない。開いたマスではないからである。勝ったことは `Status` が `Won` であることで分かる。
+- `OpenedPositions` の順は決めない（使う側は、操作したマスからの距離で並べる。12.5）。
+- `Status` は操作の後の `Game.Status` と同じ値である。結果の中に持たせたのは、鳴らす効果音（12.3）を、結果だけから決められるようにするためである。勝敗が決まった後の操作は例外になる（3.5）ので、`Status` が `Won` か `Lost` の結果は、必ず「その操作で勝敗が決まった」ことを表す。
+- `Board.Open` は、連鎖の待ち行列で開くたびに、そのマスを一覧に加えて返す。`Board.ToggleFlag` は変えない。`Game.ToggleFlag` は、操作の前と後のマスの状態から `Outcome` を決める。
+- 結果を作るのは `Game` の中だけなので、結果を作る静的メソッド（`MoveResult.NoChange` など）は作らない。
+
+### 12.3 Presentation: 効果音
+
+```csharp
+public enum SoundEffect { Open, Chain, FlagPlaced, FlagRemoved, Lost, Won }
+
+public static class SoundEffectMapping
+{
+    public static SoundEffect? EffectFor(MoveResult move);   // 鳴らさないときは null
+}
+
+public static class SoundEffectSynthesizer
+{
+    public const int SampleRate = 44100;                     // 1 秒あたりのサンプル数
+    public static float[] Synthesize(SoundEffect effect);    // -1〜1 の波形。モノラル
+}
+```
+
+`SoundEffectMapping.EffectFor` の表（仕様書 5.6）。上の行から順に当てはめる。
+
+| 操作の結果 | 効果音 |
+|------------|--------|
+| `Status` が `Won` | `Won` |
+| `Status` が `Lost` | `Lost` |
+| `Outcome` が `Opened` で、開いたマスが 1 つ | `Open` |
+| `Outcome` が `Opened` で、開いたマスが 2 つ以上 | `Chain` |
+| `Outcome` が `FlagPlaced` | `FlagPlaced` |
+| `Outcome` が `FlagRemoved` | `FlagRemoved` |
+| `Outcome` が `NoChange` | なし（`null`） |
+
+- 効果音の名前は、それを鳴らす出来事の名前（`MoveOutcome` と `GameStatus`）にそろえた。0 の連鎖とコードの音は、コードの中の「連鎖」（`Board` の連鎖の処理）に合わせて `Chain` と呼ぶ。
+- `EffectFor` の名前は、同じ Presentation の `PressMapping.ActionFor` と同じ形にした。
+
+**`SoundEffectSynthesizer` の合成**
+
+- 各効果音を、音の部品（音色、始まりの時刻、長さ、始まりと終わりの周波数、最大振幅）の並びとして、クラスの中の表に持つ。表の 1 行が UI デザイン 10.6 の表の 1 つの音に当たり、値を読み比べられるようにする。部品の型はクラスの中だけで使う（`private`）。
+- 音色は、正弦波、三角波、雑音の 3 つである。雑音は、決まった値の種で作った `Random` で作り、同じ効果音には毎回同じ波形を返す（テストで確かめられる）。
+- 周波数（雑音では低域通過の境の周波数）は、始まりの値から終わりの値へ、指数関数で変える。音量は、4 ミリ秒で最大振幅まで上げ、部品の終わりに向けて指数関数で下げる。どちらも、試聴のページ（docs/sounds-preview.html）の Web Audio の指定（`exponentialRampToValueAtTime`）と同じ形である。
+- 雑音の低域通過は、Web Audio の `BiquadFilterNode`（`lowpass`）と同じ式（Audio EQ Cookbook の低域通過の式。Q は Web Audio の既定の 1）で、サンプルごとに境の周波数を変えて計算する。試聴のページと同じ音にするためである。
+- 部品を足し合わせ、全体の音量 0.8 を掛ける。どの効果音も、足し合わせた最大が 1 を超えない（最大の組み合わせは負けの 0.3 ＋ 0.35）ので、1 に収める処理は置かず、テストで超えないことを確かめる。
+- 波形の長さは、部品の終わりの最大（勝ちなら 0.65 秒）× `SampleRate` を切り上げたサンプル数にする。
+- サンプリング周波数を 44100 にしたのは、音の定番の値で、WPF 版の再生の方法でもそのまま使えるからである。Web 版では、ブラウザーが `AudioContext` の周波数に変換する（アーキテクチャー設計書 9.4）。合成が遅ければ下げる（同 16 章）。
+
+### 12.4 Presentation: `GameSession` と音の出口
+
+```csharp
+public delegate void SoundEffectOutput(SoundEffect effect);
+
+public sealed class GameSession
+{
+    public GameSession(Difficulty difficulty, TimeProvider timeProvider,
+                       SoundEffectOutput? playSoundEffect = null, MineChooser? chooseMines = null);
+
+    public Game Game { get; }               // 現在のゲーム
+    public MoveResult? LastMove { get; }    // 直前の操作。何も起きなかった操作では変わらない。新しいゲームで null
+
+    public void StartNewGame(Difficulty difficulty);
+    public MoveResult Open(CellPosition position);
+    public MoveResult ToggleFlag(CellPosition position);
+}
+```
+
+`Open` と `ToggleFlag` は、どちらも次のことをする。
+
+1. `Game` の同じ名前の操作を呼び、結果を受け取る。
+2. 結果が `NoChange` なら、そのまま返す（直前の操作を置き換えず、音も鳴らさない。アーキテクチャー設計書 14 章の決定 9）。
+3. 結果を `LastMove` にする。
+4. `SoundEffectMapping.EffectFor` が効果音を返したら、音の出口に渡す。
+5. 結果を返す。
+
+- **音の出口の既定**: `playSoundEffect` を省略すると、何もしない出口（`_ => { }`）を使う。共通の側は、出口が本物か何もしないものかを見分けず、常に呼ぶ（アーキテクチャー設計書 4 章）。
+- **delegate にした理由**: 出口の操作は「効果音を 1 つ鳴らす」だけである。`Game` が地雷の選び方を `MineChooser`（3.5）で受け取るのと同じく、名前の付いた delegate にした。`Action<SoundEffect>` より意図が読め、インターフェイスとクラスより読む対象が少ない。C# のイベント（`event`）にしなかったのは、受け取る側が複数いることはなく、コンストラクターで受け取れば、何に依存しているかがコンストラクターを見るだけで分かるからである。
+- **音の出口の約束**: 出口は、呼ばれたらすぐに返す（アーキテクチャー設計書 14 章の決定 12）。オンとオフは出口の中身が持つ（同じく決定 11）。
+- `chooseMines` は、新しいゲームを始めるたびに `Game` に渡す。本番では省略し（乱数）、テストでは盤面の絵から作った選び方を渡す（12.9）。
+- 勝敗が決まった後に `Open` や `ToggleFlag` を呼ぶと、`Game` が `InvalidOperationException` を投げる（3.5）。`GameSession` は、それをそのまま伝える。
+- 持たないもの（ベストタイム、読み上げの文、効果音のオンとオフ、旗モード、盤面の置き方）は、アーキテクチャー設計書 6.2 のとおりである。
+- 名前の Session は「難易度を選んでから、何回も新しいゲームを始めながら遊び続ける、ひと続きの遊び」を表す。1 回の `Game` より長く、ページを開いている間ずっと 1 つである。
+
+### 12.5 Display
+
+```csharp
+public readonly record struct BoardAreaSize(double Width, double Height);
+
+public sealed record BoardPlacement
+{
+    public int BoardHeight { get; }   // RowCount × CellSize + FrameWidth × 2（表示の向きでの、枠を含む盤面の高さ）
+}
+
+public enum CellAnimationKind { Reveal, Explode, MineAppear, WrongFlagAppear, FlagBounce }
+
+public readonly record struct CellAnimation(CellAnimationKind Kind, double Wave);   // Wave: 開始の遅れの比（0〜1）
+
+public static class BoardAnimation
+{
+    public static IReadOnlyDictionary<CellPosition, CellAnimation> Of(MoveResult move, Game game);
+}
+
+public static class CellPresentation
+{
+    public static string CssClassOf(CellAnimationKind kind);   // 1.1.0 で加える
+}
+```
+
+`BoardAnimation.Of` の規則（UI デザイン 10.7）:
+
+| 演出するマス | 条件 | 種類 | 遅れの比 |
+|--------------|------|------|----------|
+| 新たに開いたマスのうち、見せ方が `ExplodedMine` のマス | 負けた操作 | `Explode` | 0 |
+| 新たに開いたマス（上のマスを除く） | いつも | `Reveal` | d ÷ dmax（新たに開いたマスの中で） |
+| 見せ方が `Mine` のマス | `Status` が `Lost` | `MineAppear` | d ÷ dmax（`Mine` のマスの中で） |
+| 見せ方が `WrongFlag` のマス | `Status` が `Lost` | `WrongFlagAppear` | 1 |
+| 見せ方が `Flagged` のマス | `Status` が `Won` | `FlagBounce` | d ÷ dmax（旗のマスの中で） |
+
+- d は、操作したマス（`MoveResult.Position`）の中心からそのマスの中心までの距離（マスの数で数える、ユークリッド距離）で、盤面の座標で求める（アーキテクチャー設計書 14 章の決定 4）。dmax が 0（演出するマスが操作したマスだけ）なら、比は 0 にする。
+- 旗の操作（`FlagPlaced`・`FlagRemoved`）では、空を返す。旗が広がる演出は、今までどおり CSS が `flagged` のクラスで行う。
+- 表にないマスは、辞書に入れない。`BoardView` は、辞書にあるマスにだけ演出のクラスと変数を付ける。
+- 時間の長さと遅れの最大（150、400、300 ミリ秒）は持たない。CSS だけが持つ（アーキテクチャー設計書 14 章の決定 5）。
+
+| `CellAnimationKind` | CSS のクラス | CSS での遅れと動き（UI デザイン 10.7） |
+|---------------------|--------------|----------------------------------------|
+| `Reveal` | `reveal` | 比 × 150 ミリ秒遅れて、未開放のタイルの見た目から開いた見た目へ 100 ミリ秒で変わる。数字は後半で現れる |
+| `Explode` | `explode` | 遅れなしで、爆発の形を 120% から 100% に 150 ミリ秒で縮める |
+| `MineAppear` | `mine-appear` | 比 × 400 ミリ秒遅れて、地雷のアイコンが 0% から 100% に 150 ミリ秒で広がる |
+| `WrongFlagAppear` | `wrong-flag-appear` | 比 × 400 ミリ秒（比は 1 なので 400 ミリ秒）遅れて、× が現れる |
+| `FlagBounce` | `flag-bounce` | 比 × 300 ミリ秒遅れて、旗のアイコンがマスの 20% だけ上に跳ねて戻る（300 ミリ秒） |
+
+- 遅れの間は、`animation-fill-mode: backwards` で最初の見た目を保つ。`Reveal` と `MineAppear` の最初の見た目は、未開放のタイルである（9.1 の決定 10）。
+- `FlagBounce` は、`flagged` のクラスの旗が広がる演出と同じ要素（旗のアイコン）の `animation` を上書きする。自動で立てた旗に 2 つの動きが重ならない（UI デザイン 10.7）。
+- 動きを減らす設定では、どの演出のクラスもアニメーションをしない（`prefers-reduced-motion`）。
+
+`IconKind` に `SoundOn`（スピーカーと 2 本の音の弧）と `SoundOff`（スピーカーと ×）を加える（UI デザイン 10.3）。
+
+`BoardAreaSize` は、`BoardArea` が `GamePage` に知らせる大きさである。幅と高さは、いつも組で渡すので型にした（1.1 の「値の組に名前を付ける」）。`BoardPlacement.Calculate` の引数は変えない（幅と高さを分けて渡す。12.12）。
+
+### 12.6 Browser
+
+```csharp
+public sealed class BrowserFeatures(IJSRuntime jsRuntime) : IAsyncDisposable
+{
+    // 1.1.0 で加える
+    public ValueTask LoadSoundAsync(string name, byte[] samples, int sampleRate);
+    public ValueTask PlaySoundAsync(string name);
+}
+
+public sealed class SoundEffectPlayer(BrowserFeatures browser)
+{
+    public bool IsEnabled { get; set; } = true;   // 効果音のオンとオフ
+    public Task PrepareAsync();                   // 6 つの効果音を合成して JavaScript に渡す。2 回目からは何もしない
+    public void Play(SoundEffect effect);         // SoundEffectOutput の形。IsEnabled が偽なら何もしない
+}
+
+public sealed class SoundSettingStorage(BrowserFeatures browser)
+{
+    public const string StorageKey = "Shos.Minesweeper.SoundEffects";
+    public Task<bool> LoadAsync();                // "off" なら偽。それ以外（値がない、読めない）は真
+    public Task SaveAsync(bool isEnabled);        // "on" か "off" を書く
+}
+```
+
+| C# のメソッド | `browser.js` の関数 | 中身 |
+|---------------|---------------------|------|
+| `LoadSoundAsync` | `loadSound(name, samples, sampleRate)` | 受け取った `Uint8Array` を複写して `Float32Array` にし（4 バイトの境界に合わせるため。アーキテクチャー設計書 16 章）、名前で覚える。`AudioContext` があれば、その場で `AudioBuffer` を作る。最初の呼び出しで、利用者の操作のイベントの受け口を `document` に付ける |
+| `PlaySoundAsync` | `playSound(name)` | その名前の `AudioBuffer` があれば、`AudioBufferSourceNode` を作って鳴らす。なければ（利用者がまだ操作していない、Web Audio がない）何もしない。例外は受け止める |
+| （C# からは呼ばない） | 利用者の操作のイベントの受け口 | `keydown`、マウスの `pointerdown`、タッチとペンの `pointerup`、`touchend` を捕捉の段階で受ける。`AudioContext` がなければ作り、覚えている波形から `AudioBuffer` を作る。動いていなければ `resume()` する（アーキテクチャー設計書 9.4）。`AudioContext` がないブラウザーでは何もしない |
+
+- `SoundEffectPlayer.PrepareAsync` は、`SoundEffect` のすべての値について、`SoundEffectSynthesizer.Synthesize` の波形をバイト列にし（`MemoryMarshal.AsBytes`。WebAssembly もブラウザーも、並びはリトルエンディアンで同じ）、効果音の名前（`"Open"` など）と `SampleRate` とともに `LoadSoundAsync` で渡す（9.1 の決定 15）。
+- `SoundEffectPlayer.Play` は、`PlaySoundAsync` の完了を待たない（音の出口の約束。12.4）。Blazor WebAssembly では、JavaScript の関数はこの呼び出しの中で動き始めるので、音は描き直しの前に鳴り始める。失敗は JavaScript の側で受け止めるので、待たなくても例外が .NET に残らない。
+- `SoundEffectPlayer.IsEnabled` の初期値は真（仕様書 5.6 の既定）で、`GamePage` がページを開いたときに `SoundSettingStorage.LoadAsync` の値を入れる。
+- `SoundSettingStorage` は、`BestTimeStorage`（4.4）と同じ形にした。値を `"on"`・`"off"` の文字にしたのは、localStorage を開いて読んだときに意味が分かるからである（9.1 の決定 14）。
+
+### 12.7 コンポーネント
+
+**`GamePage`**
+
+| 項目 | 1.1.0 の内容 |
+|------|--------------|
+| 注入 | `TimeProvider`、`BestTimeStorage`、`SoundEffectPlayer`、`SoundSettingStorage` |
+| 持つ状態 | `Game game` を `GameSession session` に置き換える。`BoardAreaSize? areaSize` を加える。ほかは変えない。効果音のオンとオフは `SoundEffectPlayer.IsEnabled` が持つ |
+| 初期化 | `new GameSession(Difficulty.Beginner, TimeProvider, SoundEffectPlayer.Play)` を作る。ベストタイムに続けて、`SoundSettingStorage.LoadAsync` の値を `SoundEffectPlayer.IsEnabled` に入れる |
+| 最初の描画の後 | `SoundEffectPlayer.PrepareAsync()` を呼ぶ（アーキテクチャー設計書 14 章の決定 8） |
+
+```csharp
+// 置き方は、領域の大きさと現在の難易度から、描くたびに求める（持ち主を 1 つにし、値を二重に持たない）
+BoardPlacement? Placement
+    => areaSize is { } size ? BoardPlacement.Calculate(size.Width, size.Height, session.Game.Difficulty) : null;
+
+async Task OpenCellAsync(CellPosition position)
+{
+    var move = session.Open(position);
+    if (move.Status == GameStatus.Won) await ShowWinAsync();
+    else if (move.Status == GameStatus.Lost) Announce(Announcements.Lost);
+}
+
+void ToggleFlag(CellPosition position) => session.ToggleFlag(position);
+
+async Task ToggleSoundAsync()
+{
+    SoundEffectPlayer.IsEnabled = !SoundEffectPlayer.IsEnabled;
+    await SoundSettingStorage.SaveAsync(SoundEffectPlayer.IsEnabled);
+}
+```
+
+- 新しいゲームを始めるときは、`new Game(...)` の代わりに `session.StartNewGame(difficulty)` を呼ぶ。直前の操作も消える。
+- `BoardPlacement.Calculate` は、上級でも数回の割り算で済むので、描くたびに求めてよい。
+- 盤面の部分:
+
+```razor
+<div class="game" style="@LayoutVariables">
+    ...
+    <div class="board-region" inert="@isDifficultyDialogOpen">
+        <BoardArea OnResized="SetAreaSize">
+            @if (Placement is { } placement)
+            {
+                <BoardView Game="session.Game" LastMove="session.LastMove" Placement="placement" IsFlagMode="isFlagMode"
+                           OnOpen="OpenCellAsync" OnToggleFlag="ToggleFlag" OnPressingChanged="SetPressing" />
+            }
+        </BoardArea>
+        ...
+    </div>
+</div>
+```
+
+- `LayoutVariables` は、大きさが分かっていれば `--board-area-height: {領域の高さ}px; --board-height: {BoardHeight}px` を、インバリアント カルチャーで書く。分かる前は空にする。CSS は、この 2 つからツールバーをずらす量と、勝利カードの置き場所を求める（アーキテクチャー設計書 9.2）。
+
+**`Toolbar`**
+
+- 引数に `bool IsSoundEnabled`、イベントに `OnSoundClick`（`EventCallback`）を加える。
+- 旗モード ボタンの後に、効果音 ボタンを置く: `class="sound"`、`aria-label="効果音"`、`aria-pressed`（オンなら `true`）、`title` は「効果音（オン）」か「効果音（オフ）」、アイコンは `SoundOn` か `SoundOff`（UI デザイン 10.3）。
+
+**`BoardArea`**
+
+| 項目 | 1.1.0 の内容 |
+|------|--------------|
+| 引数 | `RenderFragment? ChildContent`（盤面）。`Difficulty` と `RenderFragment<BoardPlacement>` をやめる |
+| イベント | `OnResized`（`EventCallback<BoardAreaSize>`） |
+| 持つ状態 | 領域の要素の参照、大きさの監視（`IAsyncDisposable`） |
+
+- 仕事は「盤面の領域の大きさを測り、`GamePage` に知らせる」だけになる。置き方が決まるまで盤面を描かない判断は、`GamePage` の `Placement` が `null` かどうかで行う。
+
+**`BoardView`**
+
+- 引数に `MoveResult? LastMove` を加える。
+- 持つ状態に、演出を計算した操作（`MoveResult?`）と、その結果の辞書を加える。`OnParametersSet` で `LastMove` が前と違うとき（値で比べる）だけ `BoardAnimation.Of` を呼び直す（アーキテクチャー設計書 7.3）。`LastMove` が `null` なら空の辞書にする。
+- マスが辞書にあれば、`CellPresentation.CssClassOf(kind)` のクラスを足し、`style="--wave: {比}"`（インバリアント カルチャー）を付ける。
+
+**`WinCard`**
+
+- 引数とイベントは変えない。
+- カードを、盤面の領域いっぱいの透明な置き場（縦の並び。下端から 8px 上まで）の中に描き、カードの前に、高さ「(`--board-area-height` ＋ `--board-height`) ÷ 2 ＋ 8px」の縮められる詰め物を置く（アーキテクチャー設計書 9.2）。置き場は `pointer-events: none` にし、カードだけ `auto` にする。置き場が盤面の上に重なっても、盤面を押せるようにするためである。
+- 幅は「盤面の領域の幅 − 16px」と 360px の小さいほう。余白と行の間は UI デザイン 10.5 のとおり。
+
+**`Icon`**
+
+- `SoundOn`・`SoundOff` の SVG を加える。
+
+**CSS**
+
+| ファイル | 1.1.0 で加えるもの |
+|----------|--------------------|
+| `wwwroot/css/app.css` | トークン `board` と `shadow`（ライトとダーク）、ボタンの角の半径 10px と押している間の縮み（UI デザイン 10.2） |
+| `GamePage.razor.css` | 上バーのときだけ、ツールバーを `max(0px, (var(--board-area-height) − var(--board-height)) ÷ 2)` だけ下にずらし（`translate`）、重なりの上にする（10.4） |
+| `Toolbar.razor.css`、`ToolbarCounter.razor.css` | 帯、残り地雷数と経過時間の面、効果音 ボタン、画面の幅ごとの寸法（10.2、10.3） |
+| `BoardView.razor.css` | 板とタイルの形（10.2）、12.5 の演出のクラス |
+| `WinCard.razor.css` | 大きさと置き場所（10.5） |
+
+### 12.8 `Program.cs`
+
+```csharp
+builder.Services.AddScoped<SoundEffectPlayer>();
+builder.Services.AddScoped<SoundSettingStorage>();
+```
+
+`GameSession` は登録しない。`GamePage` が作る（アーキテクチャー設計書 6.4）。
+
+### 12.9 テスト
+
+- `Shos.Minesweeper.Presentation.Tests` は、`TestSupport` を参照する。`GameSession` のテストで盤面を決めるためである（9.2 の A7）。
+- `TestGames` に、盤面の絵から難易度と地雷の選び方を作るメソッドを加える（`DifficultyOf(picture)`、`MineChooserOf(picture)`）。今の `FromPicture` は、この 2 つを使う形に整える。`GameSession` のテストは、`new GameSession(TestGames.DifficultyOf(picture), time, played.Add, TestGames.MineChooserOf(picture))` のように作る（`played` は、渡された効果音を覚える `List<SoundEffect>`）。
+
+| テストクラス | 主な観点 |
+|--------------|----------|
+| `GameTests`（足す） | 12.2 の表のすべての行。最初の一手、0 の連鎖、コード、負け（コードで 2 つの地雷を開く場合を含む）、勝ち（自動の旗は `OpenedPositions` に含まない）、未開始の旗 |
+| `SoundEffectMappingTests` | 12.3 の表のすべての行 |
+| `SoundEffectSynthesizerTests` | 6 つの効果音の長さ（UI デザイン 10.6 の長さ × `SampleRate`）、最大の振幅（0 より大きく、最大振幅 × 0.8 以下）、最初と最後のサンプルが 0 に近い、同じ効果音から同じ波形 |
+| `GameSessionTests` | 操作ごとに出口に渡った効果音、何も起きなかった操作では渡らず `LastMove` も変わらない、勝敗が決まった操作では勝ちか負けだけ、新しいゲームで `LastMove` が `null`、出口を渡さなくても同じ操作が進む |
+| `BoardAnimationTests` | 12.5 の表のすべての行。遅れの比（操作したマスで 0、最も遠いマスで 1）、1 マスだけ開いたときは 0、旗の操作では空 |
+| `BoardPlacementTests`（足す） | `BoardHeight`（入れ替えたときは表示の行数で求める） |
+| `CellPresentationTests`（足す） | 演出の種類ごとの CSS のクラス |
+| `SoundEffectPlayerTests` | `PrepareAsync` で、6 つの効果音が名前、サンプリング周波数、バイト数（サンプル数 × 4）とともに渡る。2 回目は渡らない。`Play` で `playSound` が呼ばれる。`IsEnabled` が偽なら呼ばれない |
+| `SoundSettingStorageTests` | 読み書きのキー。`"off"` で偽、値がない・ほかの値で真。書く値 |
+| `GamePageTests`（足す） | 盤面の操作で `playSound` が呼ばれる。効果音 ボタンで切り替わり、保存される。保存した設定がボタンに出る。大きさが分かると CSS の変数が付く |
+| `ToolbarTests`（足す） | 効果音 ボタンの `aria-pressed`、`title`、アイコン。押すと `OnSoundClick` |
+| `BoardViewTests`（足す） | 直前の操作に応じた演出のクラスと `--wave`。押下中の描き直しでは変わらない。新しいゲームで消える |
+| `BoardAreaTests`（改める） | 大きさの変化を `OnResized` で知らせる |
+| `WinCardTests`（足す） | 置き場と詰め物の構造 |
+
+- 音の聞こえ方、演出と置き方の見え方は、自動のテストでは確かめない（アーキテクチャー設計書 12 章）。工程 11 の区切り 2 で試聴のページと聞き比べ、工程 13 で実機で確かめる。
+
+### 12.10 実装の区切り（1.1.0）
+
+各区切りの終わりには、アプリが動き、全テストが Green である。
+
+| # | 区切り | 主な型 | 終わったときにできること |
+|---|--------|--------|--------------------------|
+| 1 | 操作の結果 | `MoveOutcome`、`MoveResult`、`Game`・`Board` の変更 | 操作の結果を GameLogic のテストで確かめられる。画面は 1.0.0 のまま |
+| 2 | 効果音の部品 | `SoundEffect`、`SoundEffectMapping`、`SoundEffectSynthesizer` | 波形をテストで確かめられる。合成にかかる時間を計り、試聴のページと聞き比べる（アーキテクチャー設計書 16 章） |
+| 3 | 1 回のゲームの進め方 | `GameSession`、`SoundEffectOutput`、`TestGames` の変更、`GamePage` の置き換え | `GamePage` が `GameSession` を通して遊べる。まだ鳴らない（出口を渡さない） |
+| 4 | ブラウザーで鳴らす | `browser.js`、`BrowserFeatures`、`SoundEffectPlayer`、`SoundSettingStorage`、効果音 ボタン、`IconKind` | 効果音が鳴り、ボタンで消せて、設定が残る |
+| 5 | 見た目の洗練 | `app.css`、`Toolbar`、`ToolbarCounter`、`BoardView` の CSS、docs/images/cell-states.svg | UI デザイン 10.2、10.3 の見た目になる |
+| 6 | 置き方 | `BoardAreaSize`、`BoardPlacement.BoardHeight`、`BoardArea`、`GamePage` の CSS の変数、`WinCard` | ツールバーが盤面に付き、勝利カードが盤面を隠さない（UI デザイン 10.4、10.5） |
+| 7 | 演出 | `CellAnimationKind`、`CellAnimation`、`BoardAnimation`、`CellPresentation`、`BoardView` の演出、CSS のアニメーション | UI デザイン 10.7 の演出が見える。動きを減らす設定では出ない |
+
+### 12.11 前の成果物を補う・改める決定（1.1.0）
+
+仕様書・UI デザインを補う決定（9.1 の続き）:
+
+| # | 決定 | 理由 |
+|---|------|------|
+| 10 | 地雷が現れる演出（`MineAppear`）でも、遅れの間は未開放のタイルの見た目にする | UI デザイン 10.7 は、連鎖についてだけ書いている。地雷が順に現れるように見せるには、現れる前は未開放に見えている必要がある |
+| 11 | 誤った旗の × の遅れの比は 1 にする（地雷の最大の遅れと同じ） | UI デザイン 10.7 の「最後の地雷と同時」を、時間の値を CSS に 1 つだけ置いて表すため |
+| 12 | 勝った操作で開いたマスにも、開く演出（`Reveal`）をする | UI デザイン 10.7 の表は、勝ちでは旗だけを挙げている。勝った操作でも 0 の連鎖は起きるので、そこだけ開く演出がなくなるのを避ける |
+| 13 | 効果音の波形は、サンプリング周波数 44100 で合成する | 音の定番の値で、WPF 版でもそのまま使える（12.3） |
+| 14 | 効果音の設定は、キー `Shos.Minesweeper.SoundEffects` に `"on"` か `"off"` で保存する。`"off"` 以外（値がない、読めない）はオンとして扱う | 仕様書 5.6 の既定はオン。読めない値を既定に戻す扱いは、ベストタイムと同じである |
+| 15 | JavaScript には、効果音を `SoundEffect` の名前（`"Open"` など）で渡す | JavaScript の側に番号との対応を持たずに済み、調べるときにも読める |
+
+アーキテクチャー設計書を改める点（9.2 の続き。工程 10 のレビューで確かめて反映する）:
+
+| # | 改める点 | アーキテクチャー設計書の場所 | 理由 |
+|---|----------|------------------------------|------|
+| A7 | `Presentation.Tests` が `TestSupport` を参照する | 4 章の構成と参照の図 | `GameSession` のテストで盤面を決めるため（12.9） |
+| A8 | `BoardArea` から `GamePage` へ、盤面の領域の大きさを `BoardAreaSize` で知らせる | 6.3、8.5 | 値の組に名前を付ける方針（1.1）。12.5 |
+
+### 12.12 作らないもの（1.1.0）
+
+| 作らないもの | 理由 |
+|--------------|------|
+| `MoveResult` を作る静的メソッド（`NoChange` など） | 結果を作るのは `Game` の中の 2 つの操作だけである（12.2） |
+| `MoveResult` の「何かが起きたか」を表すプロパティ | 使うのは `GameSession` の 1 か所だけで、`Outcome == MoveOutcome.NoChange` と書けば読める |
+| `BoardPlacement.Calculate` の引数を `BoardAreaSize` に変えること | 既存の呼び出しとテストを書き換えるだけで、読みやすさは変わらない |
+| 合成した波形のキャッシュ | 合成するのは、`PrepareAsync` の 1 回だけである |
+| 演出が終わったことを C# で知る仕組み | 演出のクラスは、次の操作か新しいゲームまで残してよい。CSS のアニメーションは 1 回で終わる |
+| WAV への変換、音の出口のインターフェイス | アーキテクチャー設計書 15 章 |
+
+### 12.13 ユーザーに確認する点（1.1.0）
+
+ない。名前（`MoveResult`、`SoundEffect`、`GameSession` など）と 12.11 の決定は、レビュー（工程 10）で確かめる。
