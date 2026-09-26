@@ -9,24 +9,24 @@
 @* 難易度ダイアログを開いている間は、ほかの部分を inert にする。フォーカスが入らず、スクリーンリーダーからも隠れる（アーキテクチャー設計書 9.2） *@
 <div class="game">
     <div class="toolbar-area" inert="@isDifficultyDialogOpen">
-        <Toolbar @ref="toolbar" Game="game" IsPressing="isPressing" IsFlagMode="isFlagMode"
+        <Toolbar @ref="toolbar" Game="session.Game" IsPressing="isPressing" IsFlagMode="isFlagMode"
                  OnDifficultyClick="OpenDifficultyDialog" OnResetClick="ResetGame" OnFlagModeClick="ToggleFlagMode" />
     </div>
     <div class="board-region" inert="@isDifficultyDialogOpen">
-        <BoardArea Difficulty="game.Difficulty" Context="placement">
-            <BoardView Game="game" Placement="placement" IsFlagMode="isFlagMode"
+        <BoardArea Difficulty="session.Game.Difficulty" Context="placement">
+            <BoardView Game="session.Game" Placement="placement" IsFlagMode="isFlagMode"
                        OnOpen="OpenCellAsync" OnToggleFlag="ToggleFlag" OnPressingChanged="SetPressing" />
         </BoardArea>
         @if (isWinCardOpen)
         {
-            <WinCard Seconds="game.ElapsedSeconds" BestTime="winBestTime" OnPlayAgain="PlayAgain" OnClose="CloseWinCard" />
+            <WinCard Seconds="session.Game.ElapsedSeconds" BestTime="winBestTime" OnPlayAgain="PlayAgain" OnClose="CloseWinCard" />
         }
     </div>
 </div>
 
 @if (isDifficultyDialogOpen)
 {
-    <DifficultyDialog Current="game.Difficulty" BestTimes="bestTimes" OnSelect="SelectDifficulty" OnClose="CloseDifficultyDialog" />
+    <DifficultyDialog Current="session.Game.Difficulty" BestTimes="bestTimes" OnSelect="SelectDifficulty" OnClose="CloseDifficultyDialog" />
 }
 
 <div class="visually-hidden" aria-live="polite">@announcement</div>
@@ -35,7 +35,7 @@
     // 同じ文を続けて知らせるときに、中身を変えるための見えない文字（中身が変わらないと、スクリーンリーダーは読み上げない）
     const string ZeroWidthSpace = "\u200B";
 
-    Game game = default!;
+    GameSession session = default!;
     BestTimes bestTimes = new();
     bool isFlagMode;
     bool isPressing;
@@ -48,7 +48,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        StartNewGame(Difficulty.Beginner);
+        session = new GameSession(Difficulty.Beginner, TimeProvider);
         bestTimes = await BestTimeStorage.LoadAsync();
     }
 
@@ -63,7 +63,7 @@
 
     void StartNewGame(Difficulty difficulty)
     {
-        game = new Game(difficulty, TimeProvider);
+        session.StartNewGame(difficulty);
         // 盤面を押している間に別の指でリセットしても、顔が「驚き」のまま残らないようにする
         isPressing = false;
         isWinCardOpen = false;
@@ -76,7 +76,7 @@
         Announce(Announcements.NewGame(difficulty));
     }
 
-    void ResetGame() => StartNewGameAndAnnounce(game.Difficulty);
+    void ResetGame() => StartNewGameAndAnnounce(session.Game.Difficulty);
 
     void OpenDifficultyDialog() => isDifficultyDialogOpen = true;
 
@@ -113,25 +113,25 @@
 
     async Task OpenCellAsync(CellPosition position)
     {
-        game.Open(position);
-        // Game.Open は勝敗が決まった後には呼ばれないので、ここで勝敗が決まっていれば、いま決まったことになる
-        if (game.Status == GameStatus.Won)
+        var move = session.Open(position);
+        // 勝敗が決まった後には呼ばれないので、操作の後の状態が勝敗なら、この操作で決まったことになる
+        if (move.Status == GameStatus.Won)
             await ShowWinAsync();
-        else if (game.Status == GameStatus.Lost)
+        else if (move.Status == GameStatus.Lost)
             Announce(Announcements.Lost);
     }
 
     async Task ShowWinAsync()
     {
-        winBestTime = bestTimes.Record(game.Difficulty.Kind, game.ElapsedSeconds);
+        winBestTime = bestTimes.Record(session.Game.Difficulty.Kind, session.Game.ElapsedSeconds);
         // 保存できなくても、メモリーの記録は残る（仕様書 3.8）
         if (winBestTime.IsNewBest)
             await BestTimeStorage.SaveAsync(bestTimes);
         isWinCardOpen = true;
-        Announce(Announcements.Won(game.ElapsedSeconds, winBestTime));
+        Announce(Announcements.Won(session.Game.ElapsedSeconds, winBestTime));
     }
 
-    void ToggleFlag(CellPosition position) => game.ToggleFlag(position);
+    void ToggleFlag(CellPosition position) => session.ToggleFlag(position);
 
     void Announce(string text) => announcement = announcement == text ? text + ZeroWidthSpace : text;
 }

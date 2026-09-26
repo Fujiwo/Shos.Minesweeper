@@ -694,8 +694,8 @@ Event Timing（入力から次の描画まで）で測った。前のクリッ�
 | 区切り | 内容 | 状態 |
 |--------|------|------|
 | 1 | 操作の結果 | 指摘を反映済み。ユーザーが承認した（2026-09-26） |
-| 2 | 効果音の部品 | 指摘を反映した。ユーザーの承認を待っている |
-| 3 | 1 回のゲームの進め方 | 未着手 |
+| 2 | 効果音の部品 | 指摘を反映済み。ユーザーが承認した（2026-09-26） |
+| 3 | 1 回のゲームの進め方 | 指摘を反映した。ユーザーの承認を待っている |
 | 4 | ブラウザーで鳴らす | 未着手 |
 | 5 | 見た目の洗練 | 未着手 |
 | 6 | 置き方 | 未着手 |
@@ -823,3 +823,57 @@ Event Timing（入力から次の描画まで）で測った。前のクリッ�
 
 - `dotnet build Shos.Minesweeper.slnx`: 警告 0、エラー 0
 - `dotnet test`: 429 件すべて成功（GameLogic 123、Presentation 70、Web 236）
+
+## 1.1.0 区切り 3: 1 回のゲームの進め方
+
+| 項目 | 内容 |
+|------|------|
+| レビュー日 | 2026-09-26 |
+| 対象 | `Shos.Minesweeper.Presentation` の `SoundEffectOutput`、`GameSession`。`Shos.Minesweeper.TestSupport` の `TestGames`。`Shos.Minesweeper.Presentation.Tests`（`GameSessionTests`、プロジェクトの参照）。`Pages/GamePage.razor` |
+| 意図（ひとことで） | 盤面の操作、直前の操作、効果音を音の出口に渡すことを、どの版でも使う 1 つのクラスにまとめる。版によって違うのは、出口を渡すかどうかだけにする |
+
+### 作ったもの
+
+| 種類 | 内容 |
+|------|------|
+| Presentation の型 | `SoundEffectOutput`（音の出口の delegate）、`GameSession`（`Game`、`LastMove`、`StartNewGame`、`Open`、`ToggleFlag`） |
+| テストの補助 | `TestGames.DifficultyOf`・`MineChooserOf`（盤面の絵から難易度と地雷の選び方を作る）。`FromPicture` はこの 2 つを使う形にした |
+| テスト | `GameSessionTests` 11 件（新しいセッション、結果を返す、操作ごとの効果音、勝ちと負けは 1 つの音だけ、直前の操作、何も起きない操作、新しいゲーム、同じ地雷の選び方、出口なし、勝敗の後の操作）。`Presentation.Tests` から `TestSupport` を参照した（クラス設計書 12.11 の A7） |
+| 変えたもの | `GamePage` が `Game` の代わりに `GameSession` を持ち、盤面の操作を `GameSession` を通して行う。勝敗の判断は、`Open` の戻り値の `Status` で行う。音の出口はまだ渡さない（区切り 4 で渡す） |
+
+進めた順:
+
+1. 準備的リファクタリング: `TestGames` に `DifficultyOf`・`MineChooserOf` を加え、`FromPicture` をこの 2 つで書き直した。振る舞いは変えていない → GameLogic の 123 件 Green。
+2. `GameSessionTests` を書き、`GameSession` がないことによるコンパイルエラー（Red）を確かめてから、`SoundEffectOutput` と `GameSession` を作った → Presentation の 81 件 Green。
+3. `GamePage` を `GameSession` に置き換えた。既存の `GamePageTests` などを書き換えずに通ることで、振る舞いが変わらないことを確かめた → 440 件 Green。
+
+### 指摘
+
+| # | 箇条 | 指摘 | 対応 |
+|---|------|------|------|
+| 1 | 的確な名前 | `GameSessionTests.SessionWithoutOutputPlaysTheSameGameSilently`: 名前が確かめていることより多くを言っている（「Silently（鳴らない）」は、出口がないので観測できず、アサーションもない。確かめているのは、出口がなくても例外なく進み、直前の操作が残ること）→ 名前を確かめていることに合わせる | `SessionWithoutOutputPlaysWithoutErrors` に改めた → 81 件 Green |
+
+実装の途中で決めたこと:
+
+- 何も起きなかった操作の扱い（直前の操作を置き換えず、音も鳴らさない）と、操作の後の扱い（覚える、鳴らす）は、`ReactTo` の 1 か所に置き、`Open` と `ToggleFlag` はどちらも `ReactTo(Game.Xxx(position))` の 1 行にした。2 つの操作で扱いが同じであることが、形で分かる。
+- コンストラクターは `StartNewGame` を呼んで最初のゲームを作る。`Game` が null でないことをコンパイラーに伝えるため、`StartNewGame` に `[MemberNotNull(nameof(Game))]` を付けた。ゲームを作る処理が 1 か所になる。
+- 「UI は `Game` の `Open` と `ToggleFlag` を直接呼ばない」（クラス設計書 12.4）を、`GameSession` の説明のコメントに書いた。
+
+### 設計書との違い
+
+ない。
+
+### 引き算の点検
+
+- 音の出口は delegate 1 つで、インターフェイスや、音を鳴らせるかを表す値は作っていない。
+- `GameSession` に、ベストタイム、読み上げの文、効果音のオンとオフは入れていない（アーキテクチャー設計書 6.2）。
+
+### 良い点
+
+- 版によって違うのが「出口を渡すかどうか」だけであることが、テストで見える。`SessionOf` は出口（`played.Add`）を渡し、`SessionWithoutOutputPlaysWithoutErrors` は渡さずに、同じ操作を同じ結果で進める。
+- `GamePage` の置き換えは、`game` を `session.Game` に変え、盤面の操作を `session` に向けただけで、1.0.0 のコンポーネントのテストはそのまま通った。
+
+### 検証結果
+
+- `dotnet build Shos.Minesweeper.slnx`: 警告 0、エラー 0
+- `dotnet test`: 440 件すべて成功（GameLogic 123、Presentation 81、Web 236）

@@ -30,11 +30,20 @@ public static class TestGames
         """;
 
     public static Game FromPicture(string picture, TimeProvider? timeProvider = null)
+        => new(DifficultyOf(picture), timeProvider ?? new FakeTimeProvider(), MineChooserOf(picture));
+
+    /// <summary>絵の大きさと地雷の数のカスタムの難易度。</summary>
+    public static Difficulty DifficultyOf(string picture)
     {
         var rows = RowsOf(picture);
-        var mines = MinePositionsOf(rows);
-        var difficulty = Difficulty.Custom(width: rows[0].Length, height: rows.Length, mineCount: mines.Length);
-        return new Game(difficulty, timeProvider ?? new FakeTimeProvider(), (_, _) => mines);
+        return Difficulty.Custom(width: rows[0].Length, height: rows.Length, mineCount: MinePositionsOf(rows).Length);
+    }
+
+    /// <summary>候補によらず、絵の地雷の位置を選ぶ選び方。GameSession のように、自分で Game を作るもののテストに渡す。</summary>
+    public static MineChooser MineChooserOf(string picture)
+    {
+        var mines = MinePositionsOf(RowsOf(picture));
+        return (_, _) => mines;
     }
 
     public static void AssertPicture(string expected, Game game)
