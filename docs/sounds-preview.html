@@ -21,7 +21,7 @@ function noise(start, length, peak, f0, f1) {
   for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
   const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(), t = c.currentTime + start;
   s.buffer = b; f.type = "lowpass"; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + length);
-  g.gain.setValueAtTime(peak, t); g.gain.exponentialRampToValueAtTime(0.0001, t + length);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + length);
   s.connect(f).connect(g).connect(master()); s.start(t);
 }
 const sounds = {
