@@ -45,24 +45,32 @@ public sealed class Game
             _                                => CellAppearance.Closed
         };
 
-    public void Open(CellPosition position)
+    public MoveResult Open(CellPosition position)
     {
         ThrowIfOver();
         if (!Board.CellAt(position).CanOpen)
-            return;
+            return ResultOfOpening(position, []);
         if (Status == GameStatus.NotStarted)
             Start(position);
-        Board.Open(position);
+        var openedPositions = Board.Open(position);
         if (Board.HasOpenedMine)
             End(GameStatus.Lost);
         else if (Board.AreAllSafeCellsOpened)
             Win();
+        return ResultOfOpening(position, openedPositions);
     }
 
-    public void ToggleFlag(CellPosition position)
+    public MoveResult ToggleFlag(CellPosition position)
     {
         ThrowIfOver();
         Board.ToggleFlag(position);
+        // 「旗」は未開放と旗を入れ替えるだけなので、操作の後の状態から、何が起きたかが決まる
+        var outcome = Board.CellAt(position).State switch {
+            CellState.Flagged => MoveOutcome.FlagPlaced,
+            CellState.Closed  => MoveOutcome.FlagRemoved,
+            _                 => MoveOutcome.NoChange
+        };
+        return new(position, outcome, [], Status);
     }
 
     /// <summary>本番の地雷の選び方。候補から一様ランダムに選ぶ（仕様書 3.3）。</summary>
@@ -113,4 +121,7 @@ public sealed class Game
         endTimestamp = timeProvider.GetTimestamp();
         Status = status;
     }
+
+    MoveResult ResultOfOpening(CellPosition position, IReadOnlyList<CellPosition> openedPositions)
+        => new(position, openedPositions.Count > 0 ? MoveOutcome.Opened : MoveOutcome.NoChange, openedPositions, Status);
 }

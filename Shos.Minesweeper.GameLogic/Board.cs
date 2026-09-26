@@ -62,37 +62,37 @@ public sealed class Board
         }
     }
 
-    /// <summary>「開く」（仕様書 3.4）。未開放なら開き、開いた数字のマスならコードを行う。それ以外は何もしない。</summary>
-    internal void Open(CellPosition position)
-    {
-        if (CellAt(position).IsOpenedNumber)
-            Chord(position);
-        else
-            OpenInChain([position]);
-    }
+    /// <summary>
+    /// 「開く」（仕様書 3.4）。未開放なら開き、開いた数字のマスならコードを行う。それ以外は何もしない。
+    /// 新たに開いたマスを返す（何も開かなければ空）。
+    /// </summary>
+    internal IReadOnlyList<CellPosition> Open(CellPosition position)
+        => CellAt(position).IsOpenedNumber ? Chord(position) : OpenInChain([position]);
 
-    void Chord(CellPosition position)
+    IReadOnlyList<CellPosition> Chord(CellPosition position)
     {
         var flagCount = NeighborsOf(position).Count(neighbor => StateAt(neighbor) == CellState.Flagged);
-        if (flagCount == adjacentMineCounts[IndexOf(position)])
-            OpenInChain(ChordTargetsOf(position));
+        return flagCount == adjacentMineCounts[IndexOf(position)] ? OpenInChain(ChordTargetsOf(position)) : [];
     }
 
     // 0 のマスから周囲へ広げる。深い再帰にならないように待ち行列で広げる
-    void OpenInChain(IEnumerable<CellPosition> positions)
+    IReadOnlyList<CellPosition> OpenInChain(IEnumerable<CellPosition> positions)
     {
+        var opened = new List<CellPosition>();
         var pending = new Queue<CellPosition>(positions);
         while (pending.TryDequeue(out var position)) {
             var index = IndexOf(position);
             if (states[index] != CellState.Closed)
                 continue;
             states[index] = CellState.Opened;
+            opened.Add(position);
             if (mines[index])
                 HasOpenedMine = true;
             else if (adjacentMineCounts[index] == 0)
                 foreach (var neighbor in NeighborsOf(position))
                     pending.Enqueue(neighbor);
         }
+        return opened;
     }
 
     internal void ToggleFlag(CellPosition position)
