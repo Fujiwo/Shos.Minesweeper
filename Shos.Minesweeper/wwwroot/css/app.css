@@ -1,4 +1,4 @@
-/* 配色のトークン（UI デザイン 4.1、4.3）。値を変えたら、UI デザインのコントラスト比の表を計算し直すこと */
+/* 配色のトークン（UI デザイン 4.1、4.3、10.2）。値を変えたら、UI デザインのコントラスト比の表を計算し直すこと */
 :root {
     color-scheme: light dark;
     --page: #eef1f5;
@@ -11,6 +11,8 @@
     --cell-pressed: #6c7d90;
     --cell-open: #ffffff;
     --grid: #c3cbd4;
+    --board: #526072;
+    --shadow: rgba(15, 23, 42, 0.16);
     --flag: #e0321f;
     --flag-pole: #1f2937;
     --mine: #1f2937;
@@ -42,6 +44,8 @@
         --cell-pressed: #5d6b7c;
         --cell-open: #1b1f24;
         --grid: #2c323a;
+        --board: #5a6674;
+        --shadow: rgba(0, 0, 0, 0.5);
         --flag: #ff6b5a;
         --flag-pole: #e6e9ed;
         --mine: #e6e9ed;
@@ -79,11 +83,28 @@ body {
 button {
     box-sizing: border-box;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     background: var(--surface);
     color: var(--text);
     font: inherit;
     cursor: pointer;
+    transition: transform 80ms ease-out;
+}
+
+/* 押している間は 95% の大きさに縮めて、押した手応えを伝える（UI デザイン 10.2） */
+button:active {
+    transform: scale(0.95);
+}
+
+/* 動きを減らす設定では、縮めない */
+@media (prefers-reduced-motion: reduce) {
+    button {
+        transition: none;
+    }
+
+    button:active {
+        transform: none;
+    }
 }
 
 /* 指したときは少し暗く（ダークでは少し明るく）する。文字の色に寄せれば、どちらの配色でも同じ書き方で済む（UI デザイン 5.6） */

@@ -4,7 +4,12 @@
     grid-auto-rows: var(--cell-size);
     width: max-content;
     margin: auto;   /* 盤面の領域の中央に置く。はみ出すときは、領域をスクロールして端まで見られる */
-    border: var(--frame-width) solid var(--border);
+    /* 盤面を 1 枚の板にし、未開放のマスをその上に並べたタイルにする（UI デザイン 10.2） */
+    --corner-radius: 10px;
+    border: var(--frame-width) solid var(--board);
+    border-radius: var(--corner-radius);
+    background: var(--board);
+    box-shadow: 0 8px 24px var(--shadow);
     /* 長押しの文字選択・コールアウトと、ダブルタップのズームを出さない（仕様書 4.4） */
     user-select: none;
     -webkit-user-select: none;
@@ -37,19 +42,49 @@
     font-weight: 700;
     line-height: 1;
     font-variant-numeric: tabular-nums;
+    /* 角の丸みと、四辺を内側に縮める量。開いたマスは縮めず、1 枚の平面にする */
+    --tile-radius: 0px;
+    --tile-inset: 0px;
 }
 
+/*
+ * 未開放と旗は、四辺を 1px ずつ内側に縮めた角の丸いタイルにし、間に板の色を見せる（UI デザイン 10.2）。
+ * 上端は cell-closed を 6% 白に寄せる。上端の色と cell-open の比が、ライトでも 3:1 を保つ上限である
+ */
 .closed,
 .flagged {
-    background: var(--cell-closed);
-    border: var(--edge) solid;
-    border-color: rgba(255, 255, 255, 0.35) rgba(0, 0, 0, 0.3) rgba(0, 0, 0, 0.3) rgba(255, 255, 255, 0.35);
+    --tile-radius: max(2px, calc(var(--cell-size) * 0.14));
+    --tile-inset: 1px;
+    margin: var(--tile-inset);
+    border-radius: var(--tile-radius);
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--cell-closed), #ffffff 6%), var(--cell-closed));
+    box-shadow: inset 0 var(--edge) 0 rgba(255, 255, 255, 0.28), inset 0 calc(var(--edge) * -1) 0 rgba(0, 0, 0, 0.28);
 }
 
-/* 押下中は、立体の縁を反転してくぼんで見せる（UI デザイン 4.2 の B） */
+/* 押下中は、グラデーションをなくし、上端に暗い線を引いてくぼんで見せる（UI デザイン 10.2 の B） */
 .closed.pressed {
     background: var(--cell-pressed);
-    border-color: rgba(0, 0, 0, 0.3) rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.3);
+    box-shadow: inset 0 var(--edge) 0 rgba(0, 0, 0, 0.3);
+}
+
+/*
+ * 角のマスの角を、板の内側の丸み（板の角の半径 − 枠の太さ）に合わせる。
+ * 板で中身を切り抜く（overflow: hidden）と、端のマスの選択の枠（マスの外側に描く）まで切れるので、切り抜かずに角のマスだけを丸める
+ */
+.board-row:first-child > .cell:first-child {
+    border-top-left-radius: max(var(--tile-radius), var(--corner-radius) - var(--frame-width) - var(--tile-inset));
+}
+
+.board-row:first-child > .cell:last-child {
+    border-top-right-radius: max(var(--tile-radius), var(--corner-radius) - var(--frame-width) - var(--tile-inset));
+}
+
+.board-row:last-child > .cell:first-child {
+    border-bottom-left-radius: max(var(--tile-radius), var(--corner-radius) - var(--frame-width) - var(--tile-inset));
+}
+
+.board-row:last-child > .cell:last-child {
+    border-bottom-right-radius: max(var(--tile-radius), var(--corner-radius) - var(--frame-width) - var(--tile-inset));
 }
 
 .opened,

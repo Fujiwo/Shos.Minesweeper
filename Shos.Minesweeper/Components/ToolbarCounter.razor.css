@@ -1,9 +1,13 @@
+/* 押せないことが分かるように、枠のない、沈んだ小さな面にする（UI デザイン 10.2） */
 .counter {
     box-sizing: border-box;
     display: flex;
     align-items: center;
     width: 64px;
     height: 44px;
+    padding: 0 4px;
+    border-radius: 10px;
+    background: var(--page);
 }
 
 .shown {
@@ -35,10 +39,31 @@
     font-size: 16px;
 }
 
-/* 幅 360px 未満の画面では、数字の幅を詰める（UI デザイン 3.5） */
-@media (max-width: 359px) {
+/* 幅 400px 未満の画面では、面の幅を 56px に詰める。3 桁の数字（999）が収まる: 2 + 16 + 2 + 33.5 + 2 = 55.5px（UI デザイン 10.3） */
+@media (max-width: 399px) {
     .counter {
         width: 56px;
+        padding: 0 2px;
+    }
+
+    .shown {
+        gap: 2px;
+    }
+}
+
+/* 幅 360px 未満の画面では、アイコンと数字も小さくする: 2 + 14 + 2 + 30.1 + 2 = 50.1px（UI デザイン 10.3） */
+@media (max-width: 359px) {
+    .counter {
+        width: 52px;
+    }
+
+    .counter-icon {
+        width: 14px;
+        height: 14px;
+    }
+
+    .counter-value {
+        font-size: 18px;
     }
 }
 
@@ -46,6 +71,7 @@
 @container (orientation: portrait) {
     .counter {
         width: 100%;
+        padding: 0 4px;
     }
 
     .shown {
