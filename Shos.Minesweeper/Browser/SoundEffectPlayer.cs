@@ -14,12 +14,18 @@ public sealed class SoundEffectPlayer(BrowserFeatures browser)
     /// <summary>効果音を鳴らすかどうか。既定はオン（仕様書 5.6）。</summary>
     public bool IsEnabled { get; set; } = true;
 
-    /// <summary>6 つの効果音を合成して、JavaScript に渡す。2 回目からは何もしない（見つからないページから戻ると、GamePage が作り直されて、また呼ぶため）。</summary>
+    /// <summary>
+    /// 6 つの効果音を合成して、JavaScript に渡す。2 回目からは何もしない（見つからないページから戻ると、GamePage が作り直されて、また呼ぶため）。
+    /// 描いた直後に呼ぶと、ブラウザーがその描画を画面に出してから合成する。
+    /// </summary>
     public async Task PrepareAsync()
     {
         if (isPrepared)
             return;
         isPrepared = true;
+        // 合成は WebAssembly で 20〜30 ミリ秒かかる。描画がブラウザーの処理（大きさの変化の知らせなど）の中で行われたときは、
+        // その処理が終わるまで画面に出ないので、いったん処理を返してから合成する（盤面の最初の表示を遅らせない。アーキテクチャー設計書 14 章の決定 8）
+        await Task.Yield();
         foreach (var effect in Enum.GetValues<SoundEffect>())
             await browser.LoadSoundAsync(effect.ToString(), BytesOf(SoundEffectSynthesizer.Synthesize(effect)), SoundEffectSynthesizer.SampleRate);
     }

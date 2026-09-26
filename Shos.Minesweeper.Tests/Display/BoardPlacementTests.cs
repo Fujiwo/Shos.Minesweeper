@@ -122,6 +122,16 @@ public class BoardPlacementTests
         Assert.Equal(new CellPosition(7, 3), placement.ToBoard(new DisplayPosition(3, 7)));
     }
 
+    // 上級を 30 列×16 行、マス 36px で表示する: 16 × 36 + 3 × 2
+    [Fact]
+    public void BoardHeightIsTheDisplayedRowsAndTheFrame()
+        => Assert.Equal(582, BoardPlacement.Calculate(1280, 594, Difficulty.Expert).BoardHeight);
+
+    // 上級を 16 列×30 行、マス 21px で表示する: 30 × 21 + 3 × 2
+    [Fact]
+    public void BoardHeightUsesTheDisplayedRowsWhenTransposed()
+        => Assert.Equal(636, TransposedExpert().BoardHeight);
+
     [Theory]
     [InlineData(0, 0, true)]
     [InlineData(29, 15, true)]

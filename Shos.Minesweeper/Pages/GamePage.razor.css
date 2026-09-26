@@ -11,11 +11,19 @@
 /*
  * ツールバーの置き場所。ツールバーとその部品は、この場所が横長（上バー）か縦長（横バー）かを
  * コンテナークエリーで見て、自分の並べ方を決める。ページが決めるのは置き場所だけである。
+ *
+ * 上バーでは、ツールバーを盤面のすぐ上に付ける（UI デザイン 10.4）。盤面は盤面の領域の縦の中央にあるので、
+ * 盤面の上の余白 (領域の高さ − 盤面の高さ) ÷ 2 だけ下にずらすと、ツールバーと盤面のまとまりが画面の縦の中央に来る。
+ * 盤面が領域より大きい（スクロールする）ときは、ずらさない。translate はレイアウトを変えないので、領域の大きさは変わらない。
+ * ずらすと盤面の領域の上に重なるので、重なりの上にして押せるようにする。変数は GamePage が付ける（アーキテクチャー設計書 9.2）
  */
 .toolbar-area {
     container-type: size;
+    position: relative;
+    z-index: 1;
     min-width: 0;
     min-height: 0;
+    translate: 0 max(0px, (var(--board-area-height, 0px) - var(--board-height, 0px)) / 2);
 }
 
 /* 横バー: 横長で、かつ高さが 500px 以下（スマートフォンの横向き）では、ツールバーを盤面の左に置き、その分の高さを盤面に回す */
@@ -24,9 +32,14 @@
         grid-template-columns: 88px minmax(0, 1fr);
         grid-template-rows: minmax(0, 1fr);
     }
+
+    /* 横バーでは、ツールバーをずらさない（UI デザイン 10.4） */
+    .toolbar-area {
+        translate: none;
+    }
 }
 
-/* 盤面の領域と、その中央に重ねる勝利カードの置き場所 */
+/* 盤面の領域と、それに重ねる勝利カードの置き場（WinCard.razor.css） */
 .board-region {
     position: relative;
     display: grid;

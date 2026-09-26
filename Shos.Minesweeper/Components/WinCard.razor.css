@@ -1,17 +1,37 @@
-/* 盤面の領域の中央に重ねる。幅は盤面の領域の幅と 320px の小さいほう（UI デザイン 2.4） */
-.win-card {
+/*
+ * カードの置き場。盤面の領域に重ね、上端から下端の 8px 上までの縦の並びにする（UI デザイン 10.5）。
+ * 盤面の上に重なっても盤面を押せるように、置き場は押せなくし、カードだけ押せるようにする
+ */
+.win-card-area {
     position: absolute;
-    top: 50%;
-    left: 50%;
+    inset: 0 0 8px;
     z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+}
+
+/*
+ * 詰め物の高さは、盤面の下端 + 8px。盤面は領域の縦の中央にあるので、下端は (領域の高さ + 盤面の高さ) ÷ 2 である。
+ * カードが収まらないときは、詰め物だけが縮み、カードは置き場の下端（領域の下端の 8px 上）に寄る
+ */
+.spacer {
+    flex: 0 1 auto;
+    height: calc((var(--board-area-height) + var(--board-height)) / 2 + 8px);
+}
+
+/* 幅は、盤面の領域の幅 − 16px と 360px の小さいほう（UI デザイン 10.5） */
+.win-card {
+    flex: none;
     box-sizing: border-box;
-    width: min(100%, 320px);
-    padding: 16px;
+    width: min(calc(100% - 16px), 360px);
+    padding: 12px 16px;
     border-radius: 12px;
     background: var(--surface);
     color: var(--text);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-    transform: translate(-50%, -50%);
+    pointer-events: auto;
     animation: fade-in 150ms ease-out;
 }
 
@@ -47,7 +67,7 @@ h2 {
 
 .time,
 .best-time {
-    margin: 12px 0 0;
+    margin: 6px 0 0;
 }
 
 .best-time {
@@ -70,7 +90,7 @@ h2 {
     display: flex;
     justify-content: flex-end;
     gap: 8px;
-    margin-top: 16px;
+    margin-top: 10px;
 }
 
 button {

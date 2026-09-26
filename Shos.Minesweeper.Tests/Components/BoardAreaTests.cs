@@ -1,52 +1,44 @@
 using Bunit;
 using Shos.Minesweeper.Components;
-using Shos.Minesweeper.GameLogic;
+using Shos.Minesweeper.Display;
 
 namespace Shos.Minesweeper.Tests.Components;
 
 public class BoardAreaTests : AppTestContext
 {
-    [Fact]
-    public void ContentIsNotRenderedUntilTheAreaSizeIsKnown()
-    {
-        var cut = RenderArea(Difficulty.Beginner);
+    readonly List<BoardAreaSize> reportedSizes = [];
 
-        Assert.Empty(cut.FindAll("p"));
+    [Fact]
+    public void ContentIsRenderedInTheArea()
+    {
+        var cut = RenderArea();
+
+        Assert.Equal("盤面", cut.Find(".board-area > p").TextContent);
     }
 
     [Fact]
-    public async Task ContentReceivesThePlacementForTheAreaSize()
+    public async Task ResizingReportsTheAreaSize()
     {
-        var cut = RenderArea(Difficulty.Beginner);
+        RenderArea();
 
         await NotifyBoardAreaResizedAsync(352, 576);
+        await NotifyBoardAreaResizedAsync(640, 312);
 
-        cut.WaitForAssertion(() => Assert.Equal("38", cut.Find("p").TextContent));
-    }
-
-    [Fact]
-    public async Task PlacementIsRecalculatedWhenTheDifficultyChanges()
-    {
-        var cut = RenderArea(Difficulty.Beginner);
-        await NotifyBoardAreaResizedAsync(352, 576);
-
-        cut.Render(parameters => parameters.Add(area => area.Difficulty, Difficulty.Expert));
-
-        Assert.Equal("20", cut.Find("p").TextContent);
+        Assert.Equal([new BoardAreaSize(352, 576), new BoardAreaSize(640, 312)], reportedSizes);
     }
 
     [Fact]
     public async Task SizeObservationStopsWhenTheAreaIsDisposed()
     {
-        RenderArea(Difficulty.Beginner);
+        RenderArea();
 
         await DisposeComponentsAsync();
 
         Assert.Contains(JSInterop.Invocations, invocation => invocation.Identifier == "disconnect");
     }
 
-    IRenderedComponent<BoardArea> RenderArea(Difficulty difficulty)
+    IRenderedComponent<BoardArea> RenderArea()
         => Render<BoardArea>(parameters => parameters
-               .Add(area => area.Difficulty, difficulty)
-               .Add(area => area.ChildContent, placement => $"<p>{placement.CellSize}</p>"));
+               .Add(area => area.OnResized, reportedSizes.Add)
+               .AddChildContent("<p>盤面</p>"));
 }

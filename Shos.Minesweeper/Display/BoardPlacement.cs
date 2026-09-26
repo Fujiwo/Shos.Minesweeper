@@ -14,6 +14,9 @@ public sealed record BoardPlacement
     public int RowCount { get; }
     public int ColumnCount { get; }
 
+    /// <summary>表示している向きでの、枠を含む盤面の高さ（px）。</summary>
+    public int BoardHeight => RowCount * CellSize + FrameWidth * 2;
+
     BoardPlacement(int cellSize, bool isTransposed, int rowCount, int columnCount)
     {
         CellSize = cellSize;

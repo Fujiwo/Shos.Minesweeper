@@ -1,4 +1,5 @@
 @page "/"
+@using System.Globalization
 @inject TimeProvider TimeProvider
 @inject BestTimeStorage BestTimeStorage
 @inject SoundEffectPlayer SoundEffectPlayer
@@ -9,15 +10,19 @@
 <h1 class="visually-hidden">マインスイーパー</h1>
 
 @* 難易度ダイアログを開いている間は、ほかの部分を inert にする。フォーカスが入らず、スクリーンリーダーからも隠れる（アーキテクチャー設計書 9.2） *@
-<div class="game">
+<div class="game" style="@LayoutVariables">
     <div class="toolbar-area" inert="@isDifficultyDialogOpen">
         <Toolbar @ref="toolbar" Game="session.Game" IsPressing="isPressing" IsFlagMode="isFlagMode" IsSoundEnabled="SoundEffectPlayer.IsEnabled"
                  OnDifficultyClick="OpenDifficultyDialog" OnResetClick="ResetGame" OnFlagModeClick="ToggleFlagMode" OnSoundClick="ToggleSoundAsync" />
     </div>
     <div class="board-region" inert="@isDifficultyDialogOpen">
-        <BoardArea Difficulty="session.Game.Difficulty" Context="placement">
-            <BoardView Game="session.Game" Placement="placement" IsFlagMode="isFlagMode"
-                       OnOpen="OpenCellAsync" OnToggleFlag="ToggleFlag" OnPressingChanged="SetPressing" />
+        <BoardArea OnResized="SetAreaSize">
+            @* 置き方は領域の大きさが分かってから決まるので、それまでは盤面を描かない *@
+            @if (Placement is { } placement)
+            {
+                <BoardView Game="session.Game" Placement="placement" IsFlagMode="isFlagMode"
+                           OnOpen="OpenCellAsync" OnToggleFlag="ToggleFlag" OnPressingChanged="SetPressing" />
+            }
         </BoardArea>
         @if (isWinCardOpen)
         {
@@ -38,6 +43,7 @@
     const string ZeroWidthSpace = "\u200B";
 
     GameSession session = default!;
+    BoardAreaSize? areaSize;
     BestTimes bestTimes = new();
     bool isFlagMode;
     bool isPressing;
@@ -56,13 +62,24 @@
         SoundEffectPlayer.IsEnabled = await SoundSettingStorage.LoadAsync();
     }
 
-    // フォーカスは描き直しの後に移す。inert を外す前の要素には、フォーカスが入らないため
+    // 置き方は、領域の大きさと現在の難易度から、描くたびに求める（持ち主を 1 つにし、値を二重に持たない。アーキテクチャー設計書 8.5）
+    BoardPlacement? Placement
+        => areaSize is { } size ? BoardPlacement.Calculate(size.Width, size.Height, session.Game.Difficulty) : null;
+
+    // ツールバーをずらす量と勝利カードの置き場所を CSS が求めるための、領域の高さと盤面の高さ（アーキテクチャー設計書 9.2）。
+    // 端末の言語によらず小数点が「.」になるように、インバリアント カルチャーで書く
+    string? LayoutVariables
+        => areaSize is { } size && Placement is { } placement
+           ? string.Create(CultureInfo.InvariantCulture, $"--board-area-height: {size.Height}px; --board-height: {placement.BoardHeight}px")
+           : null;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // 効果音の合成は、ページの最初の描画を遅らせないように、描いた後に 1 回だけ行う（アーキテクチャー設計書 14 章の決定 8）。
-        // 盤面は、この後に領域の大きさが分かってから描くので、盤面の最初の表示は合成の分（PC で 20〜30 ミリ秒）遅れうる。区切り 6 で見直す
-        if (firstRender)
+        // 効果音は、盤面の最初の表示を遅らせないように、盤面を描いた後に用意する（アーキテクチャー設計書 14 章の決定 8）。
+        // 盤面は、最初の描画の後に領域の大きさが分かってから描く。用意は 2 回目からは何もしない
+        if (Placement is not null)
             await SoundEffectPlayer.PrepareAsync();
+        // フォーカスは描き直しの後に移す。inert を外す前の要素には、フォーカスが入らないため
         if (focusAfterRender is not { } focus)
             return;
         focusAfterRender = null;
@@ -118,6 +135,9 @@
     void ToggleFlagMode() => isFlagMode = !isFlagMode;
 
     void SetPressing(bool pressing) => isPressing = pressing;
+
+    // EventCallback で受けるので、この後に描き直され、置き方も求め直される
+    void SetAreaSize(BoardAreaSize size) => areaSize = size;
 
     // オンに戻しても、音は鳴らさない（UI デザイン 10.8 の決定 10）
     async Task ToggleSoundAsync()

@@ -1361,7 +1361,7 @@ public sealed class BrowserFeatures(IJSRuntime jsRuntime) : IAsyncDisposable
 public sealed class SoundEffectPlayer(BrowserFeatures browser)
 {
     public bool IsEnabled { get; set; } = true;   // 効果音のオンとオフ
-    public Task PrepareAsync();                   // 6 つの効果音を合成して JavaScript に渡す。2 回目からは何もしない（12.6）
+    public Task PrepareAsync();                   // 6 つの効果音を合成して JavaScript に渡す。いったん処理を返してから合成する。2 回目からは何もしない（12.6）
     public void Play(SoundEffect effect);         // SoundEffectOutput の形。IsEnabled が偽なら何もしない
 }
 
@@ -1380,10 +1380,11 @@ public sealed class SoundSettingStorage(BrowserFeatures browser)
 | （C# からは呼ばない） | 利用者の操作のイベントの受け口 | `keydown`、マウスの `pointerdown`、タッチとペンの `pointerup`、`touchend` を捕捉の段階で受ける。`AudioContext` がなければ作り、覚えている波形から `AudioBuffer` を作る。動いていなければ `resume()` する（アーキテクチャー設計書 9.4）。`AudioContext` がないブラウザーでは何もしない |
 
 - `SoundEffectPlayer.PrepareAsync` は、`SoundEffect` のすべての値について、`SoundEffectSynthesizer.Synthesize` の波形をバイト列にし（`MemoryMarshal.AsBytes`。WebAssembly もブラウザーも、並びはリトルエンディアンで同じ）、効果音の名前（`"Open"` など）と `SampleRate` とともに `LoadSoundAsync` で渡す（9.1 の決定 15）。
+- `SoundEffectPlayer.PrepareAsync` は、合成の前に `Task.Yield()` で処理をいったん返す。盤面の最初の描画は、ブラウザーの領域の大きさの知らせの処理の中で行われる。その中で合成（WebAssembly で 20〜30 ミリ秒）まで続けると、盤面が画面に出るのがその分遅れるからである（工程 11 の区切り 6 で改めた。アーキテクチャー設計書 8.7）。
 - `SoundEffectPlayer.Play` は、`PlaySoundAsync` の完了を待たない（音の出口の約束。12.4）。Blazor WebAssembly では、JavaScript の関数はこの呼び出しの中で動き始めるので、音は描き直しの前に鳴り始める。
   - 戻り値の `ValueTask` は、`AsTask()` で `Task` にしてから捨てる。`ValueTask` を待たずに捨てることを、書き手の意図として明示し、その理由（待たない約束）をコメントに書く。
   - 鳴らすときの失敗（Web Audio がない、再生に失敗した）は、JavaScript の側で受け止める（アーキテクチャー設計書 11 章）。それでも .NET に届く例外は、関数の名前の誤りのようなプログラムの誤りだけで、`SoundEffectPlayerTests` と `GamePageTests` で呼び出しを確かめて防ぐ。
-- `PrepareAsync` の 2 回目を何もしないのは、`GamePage` が作り直されることがあるからである。見つからないページ（`NotFound`）からゲームに戻ると `GamePage` が新しく作られ、最初の描画の後にまた `PrepareAsync` を呼ぶ。`SoundEffectPlayer` はスコープの有効期間（アプリの実行中ずっと 1 つ）なので、合成と受け渡しを 2 回しないようにする。
+- `PrepareAsync` の 2 回目を何もしないのは、`GamePage` が作り直されることがあるからである。見つからないページ（`NotFound`）からゲームに戻ると `GamePage` が新しく作られ、盤面を描いた後にまた `PrepareAsync` を呼ぶ。`SoundEffectPlayer` はスコープの有効期間（アプリの実行中ずっと 1 つ）なので、合成と受け渡しを 2 回しないようにする。
 - `SoundEffectPlayer.IsEnabled` の初期値は真（仕様書 5.6 の既定）で、`GamePage` がページを開いたときに `SoundSettingStorage.LoadAsync` の値を入れる。
 - `SoundSettingStorage` は、`BestTimeStorage`（4.4）と同じ形にした。値を `"on"`・`"off"` の文字にしたのは、localStorage を開いて読んだときに意味が分かるからである（9.1 の決定 14）。
 
@@ -1396,7 +1397,7 @@ public sealed class SoundSettingStorage(BrowserFeatures browser)
 | 注入 | `TimeProvider`、`BestTimeStorage`、`SoundEffectPlayer`、`SoundSettingStorage` |
 | 持つ状態 | `Game game` を `GameSession session` に置き換える。`BoardAreaSize? areaSize` を加える。ほかは変えない。効果音のオンとオフは `SoundEffectPlayer.IsEnabled` が持つ |
 | 初期化 | `new GameSession(Difficulty.Beginner, TimeProvider, SoundEffectPlayer.Play)` を作る。ベストタイムに続けて、`SoundSettingStorage.LoadAsync` の値を `SoundEffectPlayer.IsEnabled` に入れる |
-| 最初の描画の後 | `SoundEffectPlayer.PrepareAsync()` を呼ぶ（アーキテクチャー設計書 14 章の決定 8） |
+| 盤面を描いた後 | `Placement` が `null` でなければ、`SoundEffectPlayer.PrepareAsync()` を呼ぶ（アーキテクチャー設計書 14 章の決定 8。2 回目からは何もしない） |
 
 ```csharp
 // 置き方は、領域の大きさと現在の難易度から、描くたびに求める（持ち主を 1 つにし、値を二重に持たない）

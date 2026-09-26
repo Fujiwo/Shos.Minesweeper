@@ -1,44 +1,30 @@
 @implements IAsyncDisposable
 @inject BrowserFeatures Browser
 
+@* 盤面の領域。大きさを測って GamePage に知らせる。置き方は GamePage が求める（アーキテクチャー設計書 8.5） *@
 <div class="board-area" @ref="area">
-    @if (placement is not null)
-    {
-        @ChildContent(placement)
-    }
+    @ChildContent
 </div>
 
 @code {
-    [Parameter, EditorRequired] public Difficulty Difficulty { get; set; } = default!;
+    /// <summary>盤面。</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    /// <summary>盤面。置き方を受け取って描く。</summary>
-    [Parameter, EditorRequired] public RenderFragment<BoardPlacement> ChildContent { get; set; } = default!;
+    /// <summary>領域の大きさが分かったとき、変わったとき。</summary>
+    [Parameter] public EventCallback<BoardAreaSize> OnResized { get; set; }
 
     ElementReference area;
-    (double Width, double Height)? size;
-    BoardPlacement? placement;
     IAsyncDisposable? sizeObservation;
-
-    protected override void OnParametersSet() => UpdatePlacement();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
-            sizeObservation = await Browser.ObserveSizeAsync(area, OnResizedAsync);
+            sizeObservation = await Browser.ObserveSizeAsync(area, NotifyResizedAsync);
     }
 
-    Task OnResizedAsync(double width, double height)
-        => InvokeAsync(() => {
-            size = (width, height);
-            UpdatePlacement();
-            StateHasChanged();
-        });
-
-    void UpdatePlacement()
-    {
-        if (size is { } areaSize)
-            placement = BoardPlacement.Calculate(areaSize.Width, areaSize.Height, Difficulty);
-    }
+    // JavaScript から呼ばれるので、コンポーネントの処理の流れに戻してから知らせる
+    Task NotifyResizedAsync(double width, double height)
+        => InvokeAsync(() => OnResized.InvokeAsync(new BoardAreaSize(width, height)));
 
     public async ValueTask DisposeAsync()
     {

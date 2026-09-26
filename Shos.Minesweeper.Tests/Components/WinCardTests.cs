@@ -22,8 +22,19 @@ public class WinCardTests : AppTestContext
         Assert.Contains("タイム 45 秒", cut.Find(".time").TextContent);
     }
 
+    // カードは、盤面の領域いっぱいの置き場の中で、盤面の下端までの高さの詰め物の後に置く（アーキテクチャー設計書 9.2。1.1.0）
+    [Fact]
+    public void CardFollowsASpacerInItsArea()
+    {
+        var cut = RenderCard(45, new BestTimeResult(BestTimeOutcome.NotEligible, null));
+
+        var area = cut.Find(".win-card-area");
+        Assert.Equal(["spacer", "win-card"], area.Children.Select(child => child.ClassName));
+        Assert.Equal("dialog", area.Children[1].GetAttribute("role"));
+    }
+
     [Theory]
-    [InlineData(BestTimeOutcome.Updated,     52,   "ベストタイム更新！（これまで 52 秒）", true)]
+    [InlineData(BestTimeOutcome.Updated,    52,   "ベストタイム更新！（これまで 52 秒）", true)]
     [InlineData(BestTimeOutcome.FirstRecord, null, "ベストタイムを記録しました",          true)]
     [InlineData(BestTimeOutcome.NotUpdated,  30,   "ベスト 30 秒",                        false)]
     public void BestTimeLineFollowsTheResult(BestTimeOutcome outcome, int? previousSeconds, string text, bool hasStar)

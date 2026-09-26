@@ -1,3 +1,4 @@
+using System.Globalization;
 using Bunit;
 using Microsoft.AspNetCore.Components.Web;
 using Shos.Minesweeper.Pages;
@@ -15,6 +16,56 @@ public class GamePageTests : AppTestContext
 
         cut.WaitForAssertion(() => Assert.Equal("盤面、9 行 9 列", cut.Find("[role=grid]").GetAttribute("aria-label")));
         Assert.Equal(81, cut.FindAll("[role=gridcell]").Count);
+    }
+
+    // 盤面の置き方（1.1.0。アーキテクチャー設計書 8.5、9.2）
+
+    [Fact]
+    public void BoardIsNotRenderedUntilTheAreaSizeIsKnown()
+    {
+        var cut = Render<GamePage>();
+
+        Assert.Empty(cut.FindAll("[role=grid]"));
+        Assert.False(cut.Find(".game").HasAttribute("style"));
+    }
+
+    // 初級を 352×576 の領域に置くと、マスは 38px になる。盤面の高さは 9 × 38 + 3 × 2
+    [Fact]
+    public async Task AreaAndBoardHeightsArePassedToTheCss()
+    {
+        var cut = await RenderPageWithBoardAsync();
+
+        Assert.Equal("--board-area-height: 576px; --board-height: 348px", cut.Find(".game").GetAttribute("style"));
+    }
+
+    // 上級は、同じ領域では縦と横を入れ替え、マスは下限の 20px になる。盤面の高さは 30 × 20 + 3 × 2
+    [Fact]
+    public async Task ChoosingADifficultyRecalculatesThePlacement()
+    {
+        var cut = await RenderPageWithBoardAsync();
+        cut.Find("button.difficulty").Click();
+
+        cut.FindAll("button.preset")[2].Click();
+
+        Assert.Equal("盤面、30 行 16 列", cut.Find("[role=grid]").GetAttribute("aria-label"));
+        Assert.Equal("--board-area-height: 576px; --board-height: 606px", cut.Find(".game").GetAttribute("style"));
+    }
+
+    // 小数点に「,」を使う言語の端末でも、CSS の値は「.」で書く
+    [Fact]
+    public async Task AreaHeightIsWrittenWithAPeriodInAnyCulture()
+    {
+        var culture = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = new CultureInfo("de-DE");
+        try {
+            var cut = Render<GamePage>();
+
+            await NotifyBoardAreaResizedAsync(352, 576.5);
+
+            cut.WaitForAssertion(() => Assert.StartsWith("--board-area-height: 576.5px;", cut.Find(".game").GetAttribute("style")));
+        } finally {
+            CultureInfo.CurrentCulture = culture;
+        }
     }
 
     [Fact]
@@ -242,14 +293,24 @@ public class GamePageTests : AppTestContext
 
     // 効果音（仕様書 5.6。1.1.0）
 
+    // 合成で盤面の最初の表示を遅らせないように、盤面を描いてから用意する
     [Fact]
-    public async Task SoundsArePreparedAfterTheFirstRender()
+    public void SoundsAreNotPreparedBeforeTheBoardIsShown()
     {
         Render<GamePage>();
 
+        Assert.DoesNotContain(JSInterop.Invocations, invocation => invocation.Identifier == "loadSound");
+    }
+
+    // 用意は、盤面の描画を画面に出してから（処理をいったん返してから）行うので、終わるのを待つ
+    [Fact]
+    public async Task SoundsArePreparedAfterTheBoardIsShown()
+    {
+        var cut = Render<GamePage>();
+
         await NotifyBoardAreaResizedAsync(352, 576);
 
-        Assert.Equal(6, JSInterop.Invocations.Count(invocation => invocation.Identifier == "loadSound"));
+        cut.WaitForAssertion(() => Assert.Equal(6, JSInterop.Invocations.Count(invocation => invocation.Identifier == "loadSound")));
     }
 
     [Fact]
