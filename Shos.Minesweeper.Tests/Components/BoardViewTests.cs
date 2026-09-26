@@ -1,3 +1,4 @@
+using System.Globalization;
 using Bunit;
 using Shos.Minesweeper.Components;
 using Shos.Minesweeper.Display;
@@ -70,8 +71,76 @@ public class BoardViewTests : AppTestContext
         Assert.Empty(cut.FindAll("#cell-0-3 svg"));
     }
 
-    IRenderedComponent<BoardView> RenderBoard(Game game, BoardPlacement placement)
+    // 演出（UI デザイン 10.7。1.1.0）。左の 2 列が開き、(2, 0) から最も遠い (0, 1) の遅れの比が 1 になる（BoardAnimationTests）
+
+    [Fact]
+    public void AnimatedCellsGetTheAnimationClassAndDelayRatio()
+    {
+        var game = TestGames.FromPicture(TestGames.WallPicture);
+        var move = game.Open(new CellPosition(2, 0));
+
+        var cut = RenderBoard(game, WallPlacement, move);
+
+        Assert.Equal("cell opened reveal", cut.Find("#cell-2-0").ClassName);
+        Assert.Equal("--delay-ratio: 0", cut.Find("#cell-2-0").GetAttribute("style"));
+        Assert.Equal("--delay-ratio: 1", cut.Find("#cell-0-1").GetAttribute("style"));
+        Assert.Equal("cell closed", cut.Find("#cell-0-4").ClassName);
+        Assert.False(cut.Find("#cell-0-4").HasAttribute("style"));
+    }
+
+    // 小数点に「,」を使う言語の端末でも、CSS の値は「.」で書く。(2, 1) の比は 1 ÷ √5
+    [Fact]
+    public void DelayRatioIsWrittenWithAPeriodInAnyCulture()
+    {
+        var culture = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = new CultureInfo("de-DE");
+        try {
+            var game = TestGames.FromPicture(TestGames.WallPicture);
+            var move = game.Open(new CellPosition(2, 0));
+
+            var cut = RenderBoard(game, WallPlacement, move);
+
+            Assert.StartsWith("--delay-ratio: 0.447", cut.Find("#cell-2-1").GetAttribute("style"));
+        } finally {
+            CultureInfo.CurrentCulture = culture;
+        }
+    }
+
+    // 押下中の表示のために描き直しても、演出のクラスと変数は変わらないので、アニメーションは続く（アーキテクチャー設計書 8.6）
+    [Fact]
+    public void PressingKeepsTheAnimations()
+    {
+        var game = TestGames.FromPicture(TestGames.WallPicture);
+        var move = game.Open(new CellPosition(2, 0));
+        var cut = RenderBoard(game, WallPlacement, move);
+
+        cut.Find("#cell-0-4").PointerDown(Mouse());
+
+        Assert.Contains("pressed", cut.Find("#cell-0-4").ClassList);
+        Assert.Equal("cell opened n2 reveal", cut.Find("#cell-0-1").ClassName);
+        Assert.Equal("--delay-ratio: 1", cut.Find("#cell-0-1").GetAttribute("style"));
+    }
+
+    [Fact]
+    public void NewGameEndsTheAnimations()
+    {
+        var game = TestGames.FromPicture(TestGames.WallPicture);
+        var move = game.Open(new CellPosition(2, 0));
+        var cut = RenderBoard(game, WallPlacement, move);
+
+        cut.Render(parameters => parameters
+            .Add(board => board.Game, TestGames.FromPicture(TestGames.WallPicture))
+            .Add(board => board.LastMove, null));
+
+        Assert.Empty(cut.FindAll(".reveal"));
+        Assert.Empty(cut.FindAll("[role=gridcell][style]"));
+    }
+
+    static readonly BoardPlacement WallPlacement = BoardPlacement.Calculate(400, 400, TestGames.DifficultyOf(TestGames.WallPicture));
+
+    IRenderedComponent<BoardView> RenderBoard(Game game, BoardPlacement placement, MoveResult? lastMove = null)
         => Render<BoardView>(parameters => parameters
                .Add(board => board.Game, game)
-               .Add(board => board.Placement, placement));
+               .Add(board => board.Placement, placement)
+               .Add(board => board.LastMove, lastMove));
 }

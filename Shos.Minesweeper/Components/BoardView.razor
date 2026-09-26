@@ -1,4 +1,5 @@
 @implements IDisposable
+@using System.Globalization
 @inject TimeProvider TimeProvider
 @inject BrowserFeatures Browser
 
@@ -20,8 +21,10 @@
                 var position = Placement.ToBoard(displayPosition);
                 var appearance = Game.AppearanceOf(position);
                 var adjacentMineCount = Game.Board.CellAt(position).AdjacentMineCount;
+                CellAnimation? animation = animations.TryGetValue(position, out var found) ? found : null;
                 <div id="@CellIdOf(position)" role="gridcell"
-                     class="@CellClassOf(appearance, adjacentMineCount, isPressed: pressedCells.Contains(position), isSelected: position == cursor.Position)"
+                     class="@CellClassOf(appearance, adjacentMineCount, animation, isPressed: pressedCells.Contains(position), isSelected: position == cursor.Position)"
+                     style="@DelayStyleOf(animation)"
                      aria-label="@CellPresentation.AccessibleNameOf(displayPosition, appearance, adjacentMineCount)"
                      @onpointerdown="pointer => HandlePointerDownAsync(position, pointer)">
                     @if (CellPresentation.IconOf(appearance) is IconKind icon)
@@ -45,10 +48,14 @@
 
 @code {
     const int LongPressVibrationMilliseconds = 30;   // UI デザイン 5.2
+    static readonly IReadOnlyDictionary<CellPosition, CellAnimation> NoAnimations = new Dictionary<CellPosition, CellAnimation>();
 
     [Parameter, EditorRequired] public Game Game { get; set; } = default!;
     [Parameter, EditorRequired] public BoardPlacement Placement { get; set; } = default!;
     [Parameter] public bool IsFlagMode { get; set; }
+
+    /// <summary>直前の操作。演出するマスを決める。新しいゲームでは null。</summary>
+    [Parameter] public MoveResult? LastMove { get; set; }
 
     [Parameter] public EventCallback<CellPosition> OnOpen { get; set; }
     [Parameter] public EventCallback<CellPosition> OnToggleFlag { get; set; }
@@ -63,6 +70,8 @@
     Ring? ring;
     bool isPressing;
     Game? shownGame;
+    MoveResult? animatedMove;
+    IReadOnlyDictionary<CellPosition, CellAnimation> animations = NoAnimations;
     bool shouldRender = true;
 
     protected override void OnInitialized()
@@ -72,6 +81,12 @@
     {
         if (!ReferenceEquals(Game, shownGame))
             StartShowing(Game);
+        // 直前の操作が変わったときだけ求め直す。押下中の表示などで描き直しても、演出のクラスと変数が変わらず、
+        // アニメーションが最初からやり直さずに続くようにするため（アーキテクチャー設計書 7.3、8.6）
+        if (LastMove != animatedMove) {
+            animatedMove = LastMove;
+            animations = LastMove is { } move ? BoardAnimation.Of(move, Game) : NoAnimations;
+        }
         shouldRender = true;
     }
 
@@ -220,8 +235,19 @@
         isPressing = false;
     }
 
-    static string CellClassOf(CellAppearance appearance, int adjacentMineCount, bool isPressed, bool isSelected)
-        => $"cell {CellPresentation.CssClassOf(appearance, adjacentMineCount)}{(isPressed ? " pressed" : "")}{(isSelected ? " selected" : "")}";
+    // 付けるクラスを 1 行に 1 つ並べ、付けないもの（null）を除いてつなぐ
+    static string CellClassOf(CellAppearance appearance, int adjacentMineCount, CellAnimation? animation, bool isPressed, bool isSelected)
+        => string.Join(' ', new[] {
+               "cell",
+               CellPresentation.CssClassOf(appearance, adjacentMineCount),
+               animation is { } shown ? CellPresentation.CssClassOf(shown.Kind) : null,
+               isPressed ? "pressed" : null,
+               isSelected ? "selected" : null,
+           }.OfType<string>());
+
+    // 遅れの比は CSS が演出ごとの最大の遅れに掛ける。端末の言語によらず小数点が「.」になるように、インバリアント カルチャーで書く
+    static string? DelayStyleOf(CellAnimation? animation)
+        => animation is { } shown ? string.Create(CultureInfo.InvariantCulture, $"--delay-ratio: {shown.DelayRatio}") : null;
 
     static string CellIdOf(CellPosition position) => $"cell-{position.Row}-{position.Column}";
 

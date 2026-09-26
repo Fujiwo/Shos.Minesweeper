@@ -33,6 +33,10 @@ public sealed class Board
            ? [.. NeighborsOf(position).Where(neighbor => StateAt(neighbor) == CellState.Closed)]
            : [];
 
+    /// <summary>盤面のすべてのマスの位置。行の順、行の中は列の順。</summary>
+    public IEnumerable<CellPosition> AllPositions
+        => Enumerable.Range(0, Height).SelectMany(row => Enumerable.Range(0, Width).Select(column => new CellPosition(row, column)));
+
     internal bool HasOpenedMine { get; private set; }
 
     internal int FlagCount => states.Count(state => state == CellState.Flagged);
@@ -41,9 +45,6 @@ public sealed class Board
         => Enumerable.Range(0, states.Length).All(index => mines[index] || states[index] == CellState.Opened);
 
     internal bool HasMineAt(CellPosition position) => mines[IndexOf(position)];
-
-    internal IEnumerable<CellPosition> AllPositions
-        => Enumerable.Range(0, Height).SelectMany(row => Enumerable.Range(0, Width).Select(column => new CellPosition(row, column)));
 
     internal IEnumerable<CellPosition> NeighborsOf(CellPosition position)
         => from rowOffset in Enumerable.Range(-1, 3)

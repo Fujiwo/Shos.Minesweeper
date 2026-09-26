@@ -45,20 +45,24 @@
     /* 角の丸みと、四辺を内側に縮める量。開いたマスは縮めず、1 枚の平面にする */
     --tile-radius: 0px;
     --tile-inset: 0px;
+    /*
+     * 未開放のタイルの角の丸み、面、縁。未開放と旗のマスと、開く演出で重ねる覆い（.reveal::before）で使う。
+     * 面の上端は cell-closed を 6% 白に寄せる。上端の色と cell-open の比が、ライトでも 3:1 を保つ上限である
+     */
+    --closed-tile-radius: max(2px, calc(var(--cell-size) * 0.14));
+    --closed-tile-face: linear-gradient(to bottom, color-mix(in srgb, var(--cell-closed), #ffffff 6%), var(--cell-closed));
+    --closed-tile-edges: inset 0 var(--edge) 0 rgba(255, 255, 255, 0.28), inset 0 calc(var(--edge) * -1) 0 rgba(0, 0, 0, 0.28);
 }
 
-/*
- * 未開放と旗は、四辺を 1px ずつ内側に縮めた角の丸いタイルにし、間に板の色を見せる（UI デザイン 10.2）。
- * 上端は cell-closed を 6% 白に寄せる。上端の色と cell-open の比が、ライトでも 3:1 を保つ上限である
- */
+/* 未開放と旗は、四辺を 1px ずつ内側に縮めた角の丸いタイルにし、間に板の色を見せる（UI デザイン 10.2） */
 .closed,
 .flagged {
-    --tile-radius: max(2px, calc(var(--cell-size) * 0.14));
+    --tile-radius: var(--closed-tile-radius);
     --tile-inset: 1px;
     margin: var(--tile-inset);
     border-radius: var(--tile-radius);
-    background: linear-gradient(to bottom, color-mix(in srgb, var(--cell-closed), #ffffff 6%), var(--cell-closed));
-    box-shadow: inset 0 var(--edge) 0 rgba(255, 255, 255, 0.28), inset 0 calc(var(--edge) * -1) 0 rgba(0, 0, 0, 0.28);
+    background: var(--closed-tile-face);
+    box-shadow: var(--closed-tile-edges);
 }
 
 /* 押下中は、グラデーションをなくし、上端に暗い線を引いてくぼんで見せる（UI デザイン 10.2 の B） */
@@ -124,9 +128,126 @@
     }
 }
 
-/* 動きを減らす設定では、すぐに 100% で表示する（UI デザイン 5.7） */
+/*
+ * 演出（UI デザイン 10.7。1.1.0）。BoardView が、演出するマスに種類のクラスと開始の遅れの比（--delay-ratio、0〜1）を付ける。
+ * 時間の値はここだけに置き、遅れは「比 × 演出ごとの最大の遅れ」にする（アーキテクチャー設計書 9.2）。
+ * 遅れの間は、animation-fill-mode の backwards で最初の見た目を保つ
+ */
+
+/*
+ * 開いたマスと、負けで現れる地雷のマスには、未開放のタイルの覆いを重ね、遅れの間は未開放に見せる（クラス設計書 12.11 の決定 10）。
+ * 覆いは、未開放のタイルと同じ位置（開いたマスの右と下の線の内側から、左上を 1px 縮めた範囲）に置く
+ */
+.reveal,
+.mine-appear {
+    position: relative;
+}
+
+.reveal::before,
+.mine-appear::before {
+    content: "";
+    position: absolute;
+    inset: 1px 0 0 1px;
+    border-radius: var(--closed-tile-radius);
+    background: var(--closed-tile-face);
+    box-shadow: var(--closed-tile-edges);
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* マスが開く: 覆いを 100 ミリ秒で縮めながら消す。数字は変化の後半で現れる。遅れは最大 150 ミリ秒 */
+.reveal {
+    animation: number-appear 100ms linear calc(var(--delay-ratio) * 150ms) backwards;
+}
+
+.reveal::before {
+    animation: tile-leave 100ms ease-in calc(var(--delay-ratio) * 150ms) backwards;
+}
+
+@keyframes number-appear {
+    0%, 50% {
+        color: transparent;
+    }
+}
+
+@keyframes tile-leave {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+}
+
+/* 爆発: 遅れなしで、爆発の形を 120% から 100% に 150 ミリ秒で縮める。はみ出した部分も見せる */
+.explode {
+    position: relative;
+    overflow: visible;
+}
+
+.explode ::deep .icon {
+    animation: explode 150ms ease-out;
+}
+
+@keyframes explode {
+    from {
+        transform: scale(1.2);
+    }
+}
+
+/* 地雷が現れる: 覆いが消え、地雷が 0% から 100% に 150 ミリ秒で広がる。遅れは最大 400 ミリ秒 */
+.mine-appear::before {
+    animation: tile-leave 150ms ease-in calc(var(--delay-ratio) * 400ms) backwards;
+}
+
+.mine-appear ::deep .icon {
+    animation: grow 150ms ease-out calc(var(--delay-ratio) * 400ms) backwards;
+}
+
+@keyframes grow {
+    from {
+        transform: scale(0);
+    }
+}
+
+/* 誤った旗: × だけが、最後の地雷と同時に（比は 1）広がって現れる */
+.wrong-flag-appear ::deep .cross {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: grow 150ms ease-out calc(var(--delay-ratio) * 400ms) backwards;
+}
+
+/*
+ * 旗が跳ねる（勝ち）: マスの 20% だけ上に跳ねて戻る（300 ミリ秒）。遅れは最大 300 ミリ秒。跳ねた旗は、上のマスに重ねて見せる。
+ * 旗が広がる演出（.flagged）より後に書き、自動で立てた旗に 2 つの動きを重ねない（UI デザイン 10.7）
+ */
+.flag-bounce {
+    position: relative;
+    overflow: visible;
+}
+
+.flag-bounce ::deep .icon {
+    animation: flag-bounce 300ms ease-out calc(var(--delay-ratio) * 300ms);
+}
+
+@keyframes flag-bounce {
+    50% {
+        transform: translateY(calc(var(--cell-size) * -0.2));
+    }
+}
+
+/* 動きを減らす設定では、どの演出もせず、すぐに最後の見た目にする（UI デザイン 5.7、10.7） */
 @media (prefers-reduced-motion: reduce) {
-    .flagged ::deep .icon {
+    .flagged ::deep .icon,
+    .reveal,
+    .reveal::before,
+    .explode ::deep .icon,
+    .mine-appear::before,
+    .mine-appear ::deep .icon,
+    .wrong-flag-appear ::deep .cross,
+    .flag-bounce ::deep .icon {
         animation: none;
     }
 }

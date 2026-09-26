@@ -20,7 +20,7 @@
             @* 置き方は領域の大きさが分かってから決まるので、それまでは盤面を描かない *@
             @if (Placement is { } placement)
             {
-                <BoardView Game="session.Game" Placement="placement" IsFlagMode="isFlagMode"
+                <BoardView Game="session.Game" LastMove="session.LastMove" Placement="placement" IsFlagMode="isFlagMode"
                            OnOpen="OpenCellAsync" OnToggleFlag="ToggleFlag" OnPressingChanged="SetPressing" />
             }
         </BoardArea>

@@ -50,4 +50,14 @@ public class CellPresentationTests
     [InlineData(CellAppearance.WrongFlag,    0, "3 行 5 列、誤った旗")]
     public void AccessibleNameTellsThePositionFromOneAndTheState(CellAppearance appearance, int adjacentMineCount, string name)
         => Assert.Equal(name, CellPresentation.AccessibleNameOf(new DisplayPosition(2, 4), appearance, adjacentMineCount));
+
+    // 演出の CSS のクラス（クラス設計書 12.5。1.1.0）
+    [Theory]
+    [InlineData(CellAnimationKind.Reveal,          "reveal")]
+    [InlineData(CellAnimationKind.Explode,         "explode")]
+    [InlineData(CellAnimationKind.MineAppear,      "mine-appear")]
+    [InlineData(CellAnimationKind.WrongFlagAppear, "wrong-flag-appear")]
+    [InlineData(CellAnimationKind.FlagBounce,      "flag-bounce")]
+    public void CssClassFollowsTheAnimation(CellAnimationKind kind, string cssClass)
+        => Assert.Equal(cssClass, CellPresentation.CssClassOf(kind));
 }

@@ -75,8 +75,8 @@ public class GamePageTests : AppTestContext
 
         Click(cut, "#cell-4-4", Mouse());
 
-        // 最初に開いたマスは必ず 0 なので、乱数の盤面でも開いた姿が決まる
-        Assert.Equal("cell opened", cut.Find("#cell-4-4").ClassName);
+        // 最初に開いたマスは必ず 0 なので、乱数の盤面でも開いた姿が決まる。開いたマスには、開く演出のクラスも付く（1.1.0）
+        Assert.Equal("cell opened reveal", cut.Find("#cell-4-4").ClassName);
     }
 
     [Fact]
@@ -369,6 +369,29 @@ public class GamePageTests : AppTestContext
         var cut = await RenderPageWithBoardAsync();
 
         Assert.Equal("false", cut.Find("button.sound").GetAttribute("aria-pressed"));
+    }
+
+    // 演出（仕様書 5.7。1.1.0）
+
+    [Fact]
+    public async Task OpeningACellAnimatesIt()
+    {
+        var cut = await RenderPageWithBoardAsync();
+
+        Click(cut, "#cell-4-4", Mouse());
+
+        Assert.Contains("reveal", cut.Find("#cell-4-4").ClassList);
+    }
+
+    [Fact]
+    public async Task NewGameEndsTheAnimations()
+    {
+        var cut = await RenderPageWithBoardAsync();
+        Click(cut, "#cell-4-4", Mouse());
+
+        cut.Find("button.reset").Click();
+
+        Assert.Empty(cut.FindAll(".reveal"));
     }
 
     string[] PlayedSounds()

@@ -16,6 +16,17 @@ public static class CellPresentation
             _                           => throw new ArgumentOutOfRangeException(nameof(appearance), appearance, null)
         };
 
+    /// <summary>演出の CSS のクラス。動きと時間は CSS が決める（UI デザイン 10.7）。</summary>
+    public static string CssClassOf(CellAnimationKind kind)
+        => kind switch {
+            CellAnimationKind.Reveal          => "reveal",
+            CellAnimationKind.Explode         => "explode",
+            CellAnimationKind.MineAppear      => "mine-appear",
+            CellAnimationKind.WrongFlagAppear => "wrong-flag-appear",
+            CellAnimationKind.FlagBounce      => "flag-bounce",
+            _                                 => throw new ArgumentOutOfRangeException(nameof(kind), kind, null)
+        };
+
     public static IconKind? IconOf(CellAppearance appearance)
         => appearance switch {
             CellAppearance.Flagged      => IconKind.Flag,

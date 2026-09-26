@@ -110,10 +110,10 @@ Web 版 1.0.0 を `https://fujiwo.github.io/Shos.Minesweeper/` に公開した�
 | プロジェクト | 内容 |
 |--------------|------|
 | `Shos.Minesweeper.GameLogic` | ゲームのルールと、ベストタイムの保存の形式（クラスライブラリ）。UI に依存しない |
-| `Shos.Minesweeper.Presentation` | UI の技術に依存しない、アプリで共有する表示と入力の部品（表示の文言、押し方からの操作の割り当て）。クラスライブラリ |
+| `Shos.Minesweeper.Presentation` | UI の技術に依存しない、アプリで共有する表示と入力の部品（表示の文言、押し方からの操作の割り当て、1 回のゲームの進め方 `GameSession`、効果音の種類・鳴らす音を決める表・波形の合成）。音を鳴らす仕組みには依存しない。クラスライブラリ |
 | `Shos.Minesweeper` | Blazor WebAssembly アプリ |
 | `Shos.Minesweeper.GameLogic.Tests` | GameLogic のテスト（xUnit v3）。Web アプリに依存しない |
-| `Shos.Minesweeper.Presentation.Tests` | Presentation のテスト（xUnit v3）。Web アプリに依存しない |
+| `Shos.Minesweeper.Presentation.Tests` | Presentation のテスト（xUnit v3）。Web アプリに依存しない。`GameSession` のテストで盤面を決めるため、TestSupport を参照する |
 | `Shos.Minesweeper.Tests` | Web アプリのテスト（xUnit v3。コンポーネントのテストには bUnit を使う） |
 | `Shos.Minesweeper.TestSupport` | テストの共通の補助（盤面を文字の絵で書く `TestGames`）。クラスライブラリ |
 

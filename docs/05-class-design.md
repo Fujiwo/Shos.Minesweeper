@@ -247,12 +247,12 @@ public sealed class Board
     public int Height { get; }
     public Cell CellAt(CellPosition position);
     public IReadOnlyList<CellPosition> ChordTargetsOf(CellPosition position);
+    public IEnumerable<CellPosition> AllPositions { get; }   // 1.1.0 で公開した（12.5 の BoardAnimation が使う）
 
     // ここから下は Game だけが使う
     internal int FlagCount { get; }
     internal bool HasOpenedMine { get; }
     internal bool AreAllSafeCellsOpened { get; }
-    internal IEnumerable<CellPosition> AllPositions { get; }
     internal bool HasMineAt(CellPosition position);
     internal IEnumerable<CellPosition> NeighborsOf(CellPosition position);
     internal void PlaceMines(IReadOnlyCollection<CellPosition> positions);
@@ -1114,7 +1114,7 @@ Assert.Equal("""
 |----------|----|------|----------------|------------------|
 | GameLogic | `MoveOutcome` | enum | 加える | 1 回の盤面の操作で起きたことの種類 |
 | | `MoveResult` | record struct | 加える | 1 回の盤面の操作の結果（操作したマス、起きたこと、新たに開いたマス、操作の後のゲームの状態） |
-| | `Board`、`Game` | class | 変える | 盤面の操作が結果を返す |
+| | `Board`、`Game` | class | 変える | 盤面の操作が結果を返す。`Board.AllPositions` を公開する（12.5） |
 | Presentation | `SoundEffect` | enum | 加える | 効果音の種類 |
 | | `SoundEffectMapping` | static class | 加える | 操作の結果から、鳴らす効果音を決める |
 | | `SoundEffectSynthesizer` | static class | 加える | 効果音の波形を合成する |
@@ -1330,6 +1330,7 @@ public static class CellPresentation
 - d は、操作したマス（`MoveResult.Position`）の中心からそのマスの中心までの距離（マスの数で数える、ユークリッド距離）で、盤面の座標で求める（アーキテクチャー設計書 14 章の決定 4）。dmax が 0（演出するマスが操作したマスだけ）なら、比は 0 にする。
 - 旗の操作（`FlagPlaced`・`FlagRemoved`）では、空を返す。旗が広がる演出は、今までどおり CSS が `flagged` のクラスで行う。
 - 表にないマスは、辞書に入れない。`BoardView` は、辞書にあるマスにだけ演出のクラスと変数を付ける。
+- 地雷・誤った旗・旗のマスは、`Board.AllPositions` から見せ方で探す。`AllPositions` は `Game` の中だけで使っていたが、盤面のすべての位置を列挙する同じ式を 2 か所に書かないように、1.1.0 の実装（工程 11 の区切り 7）で公開した。盤面を変える操作ではないので、3.4 の「盤面を変える操作を `internal` にした理由」には当たらない。
 - 時間の長さと遅れの最大（150、400、300 ミリ秒）は持たない。CSS だけが持つ（アーキテクチャー設計書 14 章の決定 5）。
 
 | `CellAnimationKind` | CSS のクラス | CSS での遅れと動き（UI デザイン 10.7） |
@@ -1545,6 +1546,7 @@ builder.Services.AddScoped<SoundSettingStorage>();
 | 13 | 効果音の波形は、サンプリング周波数 44100 で合成する | 音の定番の値で、WPF 版でもそのまま使える（12.3） |
 | 14 | 効果音の設定は、キー `Shos.Minesweeper.SoundEffects` に `"on"` か `"off"` で保存する。`"off"` 以外（値がない、読めない）はオンとして扱う | 仕様書 5.6 の既定はオン。読めない値を既定に戻す扱いは、ベストタイムと同じである |
 | 15 | JavaScript には、効果音を `SoundEffect` の名前（`"Open"` など）で渡す | JavaScript の側に番号との対応を持たずに済み、調べるときにも読める |
+| 16 | 誤った旗の演出の遅れの間は、開いたマスの背景に旗だけを出し、× を後から現す（工程 11 の区切り 7 で決めた） | UI デザイン 10.7 は × が現れる時期だけを決めている。未開放のタイルの覆いを重ねると、旗まで隠れてしまう |
 
 アーキテクチャー設計書を改める点（9.2 の続き。工程 10 のレビューで確かめ、アーキテクチャー設計書に反映した）:
 
