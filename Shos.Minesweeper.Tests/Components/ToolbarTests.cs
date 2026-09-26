@@ -11,6 +11,7 @@ public class ToolbarTests : AppTestContext
     int difficultyClicks;
     int resetClicks;
     int flagModeClicks;
+    int soundClicks;
 
     [Fact]
     public void DifficultyButtonShowsTheCurrentDifficulty()
@@ -102,6 +103,21 @@ public class ToolbarTests : AppTestContext
     }
 
     [Fact]
+    public void SoundButtonTellsItsStateByTheIconAndTheTooltip()
+    {
+        var on = RenderToolbar(new Game(Difficulty.Beginner, Time)).Find("button.sound");
+        var off = RenderToolbar(new Game(Difficulty.Beginner, Time), isSoundEnabled: false).Find("button.sound");
+
+        Assert.Equal("効果音", on.GetAttribute("aria-label"));
+        Assert.Equal("true", on.GetAttribute("aria-pressed"));
+        Assert.Equal("効果音（オン）", on.GetAttribute("title"));
+        Assert.Equal("SoundOn", on.QuerySelector("svg")!.GetAttribute("data-kind"));
+        Assert.Equal("false", off.GetAttribute("aria-pressed"));
+        Assert.Equal("効果音（オフ）", off.GetAttribute("title"));
+        Assert.Equal("SoundOff", off.QuerySelector("svg")!.GetAttribute("data-kind"));
+    }
+
+    [Fact]
     public void ButtonsReportClicks()
     {
         var cut = RenderToolbar(new Game(Difficulty.Beginner, Time));
@@ -109,8 +125,9 @@ public class ToolbarTests : AppTestContext
         cut.Find("button.difficulty").Click();
         cut.Find("button.reset").Click();
         cut.Find("button.flag-mode").Click();
+        cut.Find("button.sound").Click();
 
-        Assert.Equal((1, 1, 1), (difficultyClicks, resetClicks, flagModeClicks));
+        Assert.Equal((1, 1, 1, 1), (difficultyClicks, resetClicks, flagModeClicks, soundClicks));
     }
 
     [Fact]
@@ -120,17 +137,19 @@ public class ToolbarTests : AppTestContext
 
         var focusable = cut.FindAll("button").Select(button => button.ClassList[0]);
 
-        Assert.Equal(["difficulty", "reset", "flag-mode"], focusable);
+        Assert.Equal(["difficulty", "reset", "flag-mode", "sound"], focusable);
     }
 
-    IRenderedComponent<Toolbar> RenderToolbar(Game game, bool isPressing = false, bool isFlagMode = false)
+    IRenderedComponent<Toolbar> RenderToolbar(Game game, bool isPressing = false, bool isFlagMode = false, bool isSoundEnabled = true)
         => Render<Toolbar>(parameters => parameters
                .Add(toolbar => toolbar.Game, game)
                .Add(toolbar => toolbar.IsPressing, isPressing)
                .Add(toolbar => toolbar.IsFlagMode, isFlagMode)
+               .Add(toolbar => toolbar.IsSoundEnabled, isSoundEnabled)
                .Add(toolbar => toolbar.OnDifficultyClick, () => difficultyClicks++)
                .Add(toolbar => toolbar.OnResetClick, () => resetClicks++)
-               .Add(toolbar => toolbar.OnFlagModeClick, () => flagModeClicks++));
+               .Add(toolbar => toolbar.OnFlagModeClick, () => flagModeClicks++)
+               .Add(toolbar => toolbar.OnSoundClick, () => soundClicks++));
 
     static string? FaceOf(IRenderedComponent<Toolbar> cut) => cut.Find("button.reset svg").GetAttribute("data-kind");
 }

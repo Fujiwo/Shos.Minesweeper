@@ -38,6 +38,14 @@ public sealed class BrowserFeatures(IJSRuntime jsRuntime) : IAsyncDisposable
     public async ValueTask SuppressKeyScrollingAsync(ElementReference element)
         => await (await Module).InvokeVoidAsync("suppressKeyScrolling", element);
 
+    /// <summary>効果音の波形（float の並びのバイト列）を名前で渡しておく。以後、その名前で鳴らせる（アーキテクチャー設計書 9.4）。</summary>
+    public async ValueTask LoadSoundAsync(string name, byte[] samples, int sampleRate)
+        => await (await Module).InvokeVoidAsync("loadSound", name, samples, sampleRate);
+
+    /// <summary>渡しておいた効果音を鳴らす。利用者がまだ操作していないとき、Web Audio がないときは、何もしない。</summary>
+    public async ValueTask PlaySoundAsync(string name)
+        => await (await Module).InvokeVoidAsync("playSound", name);
+
     public async ValueTask DisposeAsync()
     {
         if (module is not null)

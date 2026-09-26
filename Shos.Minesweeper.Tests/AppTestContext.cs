@@ -23,6 +23,8 @@ public abstract class AppTestContext : BunitContext
         Services.AddSingleton<TimeProvider>(Time);
         Services.AddScoped<BrowserFeatures>();
         Services.AddScoped<BestTimeStorage>();
+        Services.AddScoped<SoundEffectPlayer>();
+        Services.AddScoped<SoundSettingStorage>();
     }
 
     /// <summary>盤面の領域の大きさが変わったことを、ブラウザーの代わりに知らせる。</summary>

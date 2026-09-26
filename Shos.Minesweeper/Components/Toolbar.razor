@@ -1,4 +1,4 @@
-@* ツールバー。左（横バーでは上）から、難易度、残り地雷数、リセット、経過時間、旗モードの順に並べる（UI デザイン 2.1） *@
+@* ツールバー。左（横バーでは上）から、難易度、残り地雷数、リセット、経過時間、旗モード、効果音の順に並べる（UI デザイン 2.1、10.3） *@
 <div class="toolbar">
     <button type="button" class="difficulty" aria-label="難易度、@DifficultyName" title="難易度を変える" @ref="difficultyButton" @onclick="OnDifficultyClick">
         <span class="difficulty-name">@DifficultyName</span>
@@ -15,16 +15,23 @@
         <span class="flag-icon"><Icon Kind="IconKind.Flag" /></span>
         <span class="flag-mode-label">旗モード</span>
     </button>
+    @* 効果音のオンとオフは、アイコンの形だけで示し、背景は塗らない（UI デザイン 10.3、10.8 の決定 9） *@
+    <button type="button" class="sound" aria-label="効果音" aria-pressed="@(IsSoundEnabled ? "true" : "false")"
+            title="@(IsSoundEnabled ? "効果音（オン）" : "効果音（オフ）")" @onclick="OnSoundClick">
+        <span class="sound-icon"><Icon Kind="@(IsSoundEnabled ? IconKind.SoundOn : IconKind.SoundOff)" /></span>
+    </button>
 </div>
 
 @code {
     [Parameter, EditorRequired] public Game Game { get; set; } = default!;
     [Parameter] public bool IsPressing { get; set; }
     [Parameter] public bool IsFlagMode { get; set; }
+    [Parameter] public bool IsSoundEnabled { get; set; }
 
     [Parameter] public EventCallback OnDifficultyClick { get; set; }
     [Parameter] public EventCallback OnResetClick { get; set; }
     [Parameter] public EventCallback OnFlagModeClick { get; set; }
+    [Parameter] public EventCallback OnSoundClick { get; set; }
 
     ElementReference difficultyButton;
     ElementReference resetButton;

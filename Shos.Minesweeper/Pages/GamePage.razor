@@ -1,6 +1,8 @@
 @page "/"
 @inject TimeProvider TimeProvider
 @inject BestTimeStorage BestTimeStorage
+@inject SoundEffectPlayer SoundEffectPlayer
+@inject SoundSettingStorage SoundSettingStorage
 
 <PageTitle>マインスイーパー</PageTitle>
 
@@ -9,8 +11,8 @@
 @* 難易度ダイアログを開いている間は、ほかの部分を inert にする。フォーカスが入らず、スクリーンリーダーからも隠れる（アーキテクチャー設計書 9.2） *@
 <div class="game">
     <div class="toolbar-area" inert="@isDifficultyDialogOpen">
-        <Toolbar @ref="toolbar" Game="session.Game" IsPressing="isPressing" IsFlagMode="isFlagMode"
-                 OnDifficultyClick="OpenDifficultyDialog" OnResetClick="ResetGame" OnFlagModeClick="ToggleFlagMode" />
+        <Toolbar @ref="toolbar" Game="session.Game" IsPressing="isPressing" IsFlagMode="isFlagMode" IsSoundEnabled="SoundEffectPlayer.IsEnabled"
+                 OnDifficultyClick="OpenDifficultyDialog" OnResetClick="ResetGame" OnFlagModeClick="ToggleFlagMode" OnSoundClick="ToggleSoundAsync" />
     </div>
     <div class="board-region" inert="@isDifficultyDialogOpen">
         <BoardArea Difficulty="session.Game.Difficulty" Context="placement">
@@ -48,13 +50,19 @@
 
     protected override async Task OnInitializedAsync()
     {
-        session = new GameSession(Difficulty.Beginner, TimeProvider);
+        // 盤面の操作の効果音は、GameSession が音の出口（SoundEffectPlayer.Play）に渡す（クラス設計書 12.4）
+        session = new GameSession(Difficulty.Beginner, TimeProvider, SoundEffectPlayer.Play);
         bestTimes = await BestTimeStorage.LoadAsync();
+        SoundEffectPlayer.IsEnabled = await SoundSettingStorage.LoadAsync();
     }
 
     // フォーカスは描き直しの後に移す。inert を外す前の要素には、フォーカスが入らないため
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        // 効果音の合成は、ページの最初の描画を遅らせないように、描いた後に 1 回だけ行う（アーキテクチャー設計書 14 章の決定 8）。
+        // 盤面は、この後に領域の大きさが分かってから描くので、盤面の最初の表示は合成の分（PC で 20〜30 ミリ秒）遅れうる。区切り 6 で見直す
+        if (firstRender)
+            await SoundEffectPlayer.PrepareAsync();
         if (focusAfterRender is not { } focus)
             return;
         focusAfterRender = null;
@@ -110,6 +118,13 @@
     void ToggleFlagMode() => isFlagMode = !isFlagMode;
 
     void SetPressing(bool pressing) => isPressing = pressing;
+
+    // オンに戻しても、音は鳴らさない（UI デザイン 10.8 の決定 10）
+    async Task ToggleSoundAsync()
+    {
+        SoundEffectPlayer.IsEnabled = !SoundEffectPlayer.IsEnabled;
+        await SoundSettingStorage.SaveAsync(SoundEffectPlayer.IsEnabled);
+    }
 
     async Task OpenCellAsync(CellPosition position)
     {

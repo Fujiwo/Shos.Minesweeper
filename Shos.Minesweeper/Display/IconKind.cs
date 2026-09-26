@@ -16,5 +16,7 @@ public enum IconKind
     Star,
     Check,
     Warning,
-    Close
+    Close,
+    SoundOn,
+    SoundOff
 }

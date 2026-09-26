@@ -10,5 +10,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<BrowserFeatures>();
 builder.Services.AddScoped<BestTimeStorage>();
+builder.Services.AddScoped<SoundEffectPlayer>();
+builder.Services.AddScoped<SoundSettingStorage>();
 
 await builder.Build().RunAsync();

@@ -31,7 +31,8 @@ button {
     height: 16px;
 }
 
-.reset {
+.reset,
+.sound {
     width: 44px;
     padding: 0;
 }
@@ -41,7 +42,8 @@ button {
     height: 28px;
 }
 
-.flag-icon {
+.flag-icon,
+.sound-icon {
     width: 24px;
     height: 24px;
 }

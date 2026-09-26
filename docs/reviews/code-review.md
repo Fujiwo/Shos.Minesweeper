@@ -695,8 +695,8 @@ Event Timing（入力から次の描画まで）で測った。前のクリッ�
 |--------|------|------|
 | 1 | 操作の結果 | 指摘を反映済み。ユーザーが承認した（2026-09-26） |
 | 2 | 効果音の部品 | 指摘を反映済み。ユーザーが承認した（2026-09-26） |
-| 3 | 1 回のゲームの進め方 | 指摘を反映した。ユーザーの承認を待っている |
-| 4 | ブラウザーで鳴らす | 未着手 |
+| 3 | 1 回のゲームの進め方 | 指摘を反映済み。ユーザーが承認した（2026-09-26） |
+| 4 | ブラウザーで鳴らす | 指摘を反映した。ユーザーの承認を待っている |
 | 5 | 見た目の洗練 | 未着手 |
 | 6 | 置き方 | 未着手 |
 | 7 | 演出 | 未着手 |
@@ -877,3 +877,70 @@ Event Timing（入力から次の描画まで）で測った。前のクリッ�
 
 - `dotnet build Shos.Minesweeper.slnx`: 警告 0、エラー 0
 - `dotnet test`: 440 件すべて成功（GameLogic 123、Presentation 81、Web 236）
+
+## 1.1.0 区切り 4: ブラウザーで鳴らす
+
+| 項目 | 内容 |
+|------|------|
+| レビュー日 | 2026-09-26 |
+| 対象 | `wwwroot/js/browser.js`（効果音）、`Browser/BrowserFeatures.cs`、`Browser/SoundEffectPlayer.cs`、`Browser/SoundSettingStorage.cs`、`Display/IconKind.cs`、`Components/Icon.razor`・`Icon.razor.css`・`SpeakerShape.razor`、`Components/Toolbar.razor`・`Toolbar.razor.css`、`Pages/GamePage.razor`、`Program.cs`。テスト（`SoundEffectPlayerTests`、`SoundSettingStorageTests`、`ToolbarTests`、`GamePageTests`、`AppTestContext`） |
+| 意図（ひとことで） | 盤面の操作の効果音がブラウザーで鳴り、ツールバーのボタンで消せて、その設定が残るようにする |
+
+### 作ったもの
+
+| 種類 | 内容 |
+|------|------|
+| JavaScript | `loadSound`（波形を複写して `Float32Array` で覚える）、`playSound`（`AudioBufferSourceNode` を作って鳴らす）、利用者の操作と見なされるイベント（`keydown`、マウスの `pointerdown`、タッチとペンの `pointerup`、`touchend`）を `document` で捕捉の段階に受けて、`AudioContext` を作る・動かす処理（アーキテクチャー設計書 9.4） |
+| C# | `BrowserFeatures.LoadSoundAsync`・`PlaySoundAsync`、`SoundEffectPlayer`（`IsEnabled`、`PrepareAsync`、`Play`）、`SoundSettingStorage`（`"on"`・`"off"`） |
+| 画面 | ツールバーの最後に効果音 ボタン（`aria-pressed`、ツールチップ、`SoundOn`・`SoundOff` のアイコン）。スピーカーの形は、旗や地雷と同じく小さな部品（`SpeakerShape`）にした |
+| つなぎ | `GamePage` が `SoundEffectPlayer.Play` を音の出口として `GameSession` に渡す。ページを開いたときに設定を読み、最初の描画の後に効果音を用意し、ボタンで切り替えて保存する。`Program.cs` に 2 つを登録した |
+| テスト | 20 件（`SoundSettingStorageTests` 7、`SoundEffectPlayerTests` 6、`ToolbarTests` 1、`GamePageTests` 6）。既存の `ToolbarTests` の 2 件（押したことを伝える、Tab の順）に効果音 ボタンを加えた |
+
+テストファーストで進めた。テストを先に書き、`SoundEffectPlayer` がないことによるコンパイルエラー（Red）を確かめてから実装した。
+
+### ブラウザーで確かめたこと
+
+公開用にビルドしたものを、GitHub Pages と同じサブパス（`/Shos.Minesweeper/`）で配り、ヘッドレスの Chrome で確かめた。鳴ったかどうかは、ページの中で `createBufferSource` の呼び出しを数えて見た（Chrome の WebAudio の観測は、この部品の作成を知らせなかった）。
+
+| 確かめたこと | 結果 |
+|--------------|------|
+| 操作の前 | `AudioContext` は作られていない |
+| 最初の操作（マウスで開く） | `AudioContext` が作られて動き（suspended → running）、6 つの効果音の `AudioBuffer` が C# の波形と同じ長さで作られ、音が 1 回鳴った |
+| 旗を立てる | 2 回目の音が鳴った |
+| 効果音 ボタンでオフにして旗を立てる | 鳴らない。ボタンは `aria-pressed="false"`・「効果音（オフ）」、localStorage は `"off"` |
+| ページを開き直す | ボタンはオフのまま、アイコンは `SoundOff` |
+| オンに戻す | 鳴らない（UI デザイン 10.8 の決定 10）。localStorage は `"on"` |
+| コンソール | エラーも警告もない |
+| ツールバーの幅（320×640、360×740、390×844、640×320） | ボタンを加えても、はみ出す要素はない。寸法の調整は区切り 5 で行う |
+
+**WebAssembly での合成の時間**: 各効果音が JavaScript に届いた時刻の間隔から求めた。6 つを合わせて 20〜30 ミリ秒（3 回とも同じ程度。1 つあたり 0〜12 ミリ秒）で、この PC のネイティブの .NET（3 ミリ秒）の 7〜10 倍だった。心配した数百ミリ秒にはならなかった（アーキテクチャー設計書 16 章に結果を書いた）。スマートフォンでの時間は工程 13 で確かめる。
+
+### 指摘
+
+| # | 箇条 | 指摘 | 対応 |
+|---|------|------|------|
+| 1 | 意図を表現 | `GamePage.OnAfterRenderAsync` のコメント: 事実と違うコメント（「最初の表示を遅らせないように、描いた後に行う」とあるが、盤面は最初の描画の後に領域の大きさが分かってから描くので、合成は盤面の最初の表示の前に走り、その分（PC で 20〜30 ミリ秒）盤面の表示を遅らせる。上の計測で分かった）→ コメントを事実に合わせ、用意する時期は区切り 6 で見直す | コメントに、盤面の最初の表示が合成の分遅れうることと、区切り 6 で見直すことを書いた。区切り 6 で、`GamePage` が盤面の領域の大きさを持つようになったら、盤面を初めて描いた後に用意する形を検討する → 460 件 Green |
+
+### 設計書との違い・補った決定
+
+- アーキテクチャー設計書 16 章のリスクのうち、合成の時間、`Float32Array` の読み方、試聴のページとの違いの 3 つに、確かめた結果を書いた。
+
+### 引き算の点検
+
+- 音を鳴らせるかを表す値や、Web Audio がないブラウザーのための別の仕組みは作っていない。Web Audio がなければ、`browser.js` が何もしないだけである。
+- `navigator.audioSession` は設定していない（iOS の消音スイッチに従う。仕様書 5.6）。
+
+### 良い点
+
+- `GamePage` が音について書いたのは、出口を渡すこと、設定を読むこと、用意すること、切り替えることの 4 か所だけで、どの操作でどの音を鳴らすかは `GameSession` と `SoundEffectMapping` に任せている。
+- 鳴らすときの失敗は、すべて `browser.js` の中で受け止め、C# には何も返さない（アーキテクチャー設計書 9.1）。
+
+### 検証結果
+
+- `dotnet build Shos.Minesweeper.slnx`: 警告 0、エラー 0
+- `dotnet test`: 460 件すべて成功（GameLogic 123、Presentation 81、Web 256）
+- ブラウザー（ヘッドレスの Chrome）: 上の表のとおり
+
+### 作業環境で起きたこと
+
+- Web アプリのビルドが、既知のロック（MSB4018。`obj/Debug/net10.0/tmp-webcil` を消せない）で 4 回続けて失敗した。`tmp-webcil` には、前のビルドの一時フォルダーが多く残っていた。このフォルダーを消してからビルドすると通った。公開用のビルドは、前回と同じく、ソースを Dropbox の外に写して行った。

@@ -14,6 +14,10 @@
     fill: var(--flag-pole);
 }
 
+.icon ::deep .speaker {
+    fill: currentColor;
+}
+
 /* 旗の布と未開放のマスの色の比は 3:1 に届かないので、白で縁取って形を見せる（UI デザイン 4.1） */
 .icon ::deep .flag-cloth {
     fill: var(--flag);
