@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8"><title>効果音の試聴（1.1.0 の UI デザイン）</title>
+<style>body{font:16px system-ui,sans-serif;margin:24px;max-width:640px}button{font:inherit;margin:6px;padding:10px 16px;border-radius:10px;border:1px solid #7b8794;background:#fff;cursor:pointer}td{padding:4px 8px}</style></head>
+<body>
+<h1>効果音の試聴</h1>
+<p>UI デザイン（docs/03-ui-design.md）10.6 の表の音を、ブラウザーの中で合成して鳴らします。実装では、同じ設計を C# で合成します。表の値を変えたら、このページの値も合わせてください。</p>
+<div id="buttons"></div>
+<p><button id="all">全部を順に鳴らす</button></p>
+<script>
+let ctx;
+const audio = () => ctx ??= new AudioContext();
+const master = () => { const c = audio(); if (!c.__master) { c.__master = c.createGain(); c.__master.gain.value = 0.8; c.__master.connect(c.destination); } return c.__master; };
+function tone(type, f0, f1, start, length, peak) {
+  const c = audio(), o = c.createOscillator(), g = c.createGain(), t = c.currentTime + start;
+  o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + length);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + length);
+  o.connect(g).connect(master()); o.start(t); o.stop(t + length + 0.02);
+}
+function noise(start, length, peak, f0, f1) {
+  const c = audio(), n = c.sampleRate * length, b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+  const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(), t = c.currentTime + start;
+  s.buffer = b; f.type = "lowpass"; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + length);
+  g.gain.setValueAtTime(peak, t); g.gain.exponentialRampToValueAtTime(0.0001, t + length);
+  s.connect(f).connect(g).connect(master()); s.start(t);
+}
+const sounds = {
+  "開く": () => tone("triangle", 900, 600, 0, 0.05, 0.2),
+  "連鎖": () => [523.25, 659.25, 783.99].forEach((f, i) => tone("triangle", f, f, i * 0.035, 0.08, 0.18)),
+  "旗を立てる": () => tone("sine", 440, 660, 0, 0.09, 0.25),
+  "旗を外す": () => tone("sine", 660, 440, 0, 0.09, 0.25),
+  "負け": () => { noise(0, 0.32, 0.3, 1200, 200); tone("sine", 110, 40, 0, 0.32, 0.35); },
+  "勝ち": () => [[523.25, 0, 0.1], [659.25, 0.1, 0.1], [783.99, 0.2, 0.1], [1046.5, 0.3, 0.35]].forEach(([f, s, l]) => tone("triangle", f, f, s, l, 0.2)),
+};
+const box = document.getElementById("buttons");
+for (const [name, play] of Object.entries(sounds)) { const b = document.createElement("button"); b.textContent = name; b.onclick = () => { audio().resume(); play(); }; box.append(b); }
+document.getElementById("all").onclick = async () => { audio().resume(); for (const play of Object.values(sounds)) { play(); await new Promise(r => setTimeout(r, 900)); } };
+</script>
+</body></html>
