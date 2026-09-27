@@ -219,7 +219,7 @@ public class BoardViewModelTests
         var notified = WatchCells();
 
         var move = session.Open(new CellPosition(0, 0));
-        board.Show(move);
+        board.Show(move, withAnimation: false);
 
         Assert.Equal(move.OpenedPositions.ToHashSet(), notified);
     }
@@ -249,7 +249,7 @@ public class BoardViewModelTests
         Show(session.Open(new CellPosition(0, 0)));
         var notified = WatchCells();
 
-        board.Show(session.Open(new CellPosition(0, 0)));
+        board.Show(session.Open(new CellPosition(0, 0)), withAnimation: false);
 
         Assert.Empty(notified);
     }
@@ -306,6 +306,115 @@ public class BoardViewModelTests
         Assert.Empty(PressedPositions());
     }
 
+    // 演出（Web 版の UI デザイン 10.7）。種類と遅れの比は BoardAnimation が決め、盤面はマスに付けるだけにする
+    [Fact]
+    public void AnimatedOpeningRevealsTheOpenedCells()
+    {
+        var move = session.Open(new CellPosition(0, 0));
+
+        ShowAnimated(move);
+
+        var animated = board.Cells.Where(cell => cell.Animation is not null).ToList();
+        Assert.Equal(move.OpenedPositions.ToHashSet(), animated.Select(cell => cell.Position).ToHashSet());
+        Assert.All(animated, cell => Assert.Equal(CellAnimationKind.Reveal, cell.Animation!.Value.Kind));
+        Assert.Equal(0, board.Cells[0].Animation!.Value.DelayRatio);
+    }
+
+    // アニメーション効果がオフなら、演出を付けない（UI デザイン 2.10）
+    [Fact]
+    public void OpeningWithoutAnimationAddsNoAnimation()
+    {
+        Show(session.Open(new CellPosition(0, 0)));
+
+        Assert.All(board.Cells, cell => Assert.Null(cell.Animation));
+    }
+
+    [Fact]
+    public void AnimationChangesAreNotified()
+    {
+        var changed = new List<string?>();
+        ((INotifyPropertyChanged)board.Cells[0]).PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        ShowAnimated(session.Open(new CellPosition(0, 0)));
+
+        Assert.Contains(nameof(CellViewModel.Animation), changed);
+    }
+
+    [Fact]
+    public void NextMoveClearsThePreviousAnimations()
+    {
+        ShowAnimated(session.Open(new CellPosition(0, 0)));
+
+        ShowAnimated(session.ToggleFlag(new CellPosition(0, 4)));
+
+        Assert.All(board.Cells, cell => Assert.Null(cell.Animation));
+    }
+
+    // 何も起きなかった操作では、前の演出を止めない（Web 版と同じ）
+    [Fact]
+    public void MoveThatChangedNothingKeepsTheAnimations()
+    {
+        ShowAnimated(session.Open(new CellPosition(0, 0)));
+
+        ShowAnimated(session.Open(new CellPosition(0, 0)));
+
+        Assert.NotNull(board.Cells[0].Animation);
+    }
+
+    // 旗を立てたら、旗が広がる（Web 版の UI デザイン 5.2）。外したときは広がらない
+    [Fact]
+    public void PlacingAFlagMarksItAsJustPlaced()
+    {
+        ShowAnimated(session.ToggleFlag(new CellPosition(2, 3)));
+        Assert.True(board.Cells[2 * 9 + 3].IsFlagJustPlaced);
+
+        ShowAnimated(session.ToggleFlag(new CellPosition(2, 3)));
+        Assert.False(board.Cells[2 * 9 + 3].IsFlagJustPlaced);
+    }
+
+    // 旗が広がる演出も、アニメーション効果がオフなら出さない（クラス設計書 9.1 の決定 4）
+    [Fact]
+    public void PlacingAFlagWithoutAnimationDoesNotMarkIt()
+    {
+        Show(session.ToggleFlag(new CellPosition(2, 3)));
+
+        Assert.False(board.Cells[2 * 9 + 3].IsFlagJustPlaced);
+    }
+
+    [Fact]
+    public void NextMoveClearsTheJustPlacedFlag()
+    {
+        ShowAnimated(session.ToggleFlag(new CellPosition(2, 3)));
+
+        ShowAnimated(session.Open(new CellPosition(0, 0)));
+
+        Assert.False(board.Cells[2 * 9 + 3].IsFlagJustPlaced);
+    }
+
+    [Fact]
+    public void LosingAnimatesTheExplosionAndTheMines()
+    {
+        Show(session.Open(new CellPosition(0, 0)));
+
+        ShowAnimated(session.Open(new CellPosition(0, 4)));
+
+        Assert.Equal(CellAnimationKind.Explode, board.Cells[4].Animation!.Value.Kind);
+        Assert.Equal(CellAnimationKind.MineAppear, board.Cells[9 + 4].Animation!.Value.Kind);
+    }
+
+    [Fact]
+    public void NewGameClearsTheAnimations()
+    {
+        ShowAnimated(session.ToggleFlag(new CellPosition(2, 3)));
+        ShowAnimated(session.Open(new CellPosition(0, 0)));
+
+        session.StartNewGame(Difficulty.Beginner);
+        board.ShowNewGame();
+
+        Assert.All(board.Cells, cell => Assert.Null(cell.Animation));
+        Assert.All(board.Cells, cell => Assert.False(cell.IsFlagJustPlaced));
+    }
+
     void Lose()
     {
         Show(session.Open(new CellPosition(0, 0)));
@@ -313,7 +422,9 @@ public class BoardViewModelTests
         board.PressRight(new CellPosition(0, 4));   // カーソルを (0, 4) に置く。負けた後なので操作はしない
     }
 
-    void Show(MoveResult move) => board.Show(move);
+    void Show(MoveResult move) => board.Show(move, withAnimation: false);
+
+    void ShowAnimated(MoveResult move) => board.Show(move, withAnimation: true);
 
     CellPosition[] PressedPositions() => [.. board.Cells.Where(cell => cell.IsPressed).Select(cell => cell.Position)];
 

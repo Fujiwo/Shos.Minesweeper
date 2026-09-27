@@ -38,6 +38,17 @@
         <Setter Property="BoxShadow" Value="inset 0 2 0 0 #47ffffff, inset 0 -2 0 0 #47000000" />
     </Style>
 
+    <!-- 演出で重ねる覆い。未開放のタイルと同じ見た目と位置（開いたマスの右と下の線の内側から、左上を 1px 縮めた範囲） -->
+    <Style Selector="v|CellView Border.cover">
+        <Setter Property="IsVisible" Value="False" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+        <Setter Property="Margin" Value="1,1,0,0" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Background" Value="{DynamicResource closed-tile-face}" />
+        <Setter Property="BoxShadow" Value="inset 0 2 0 0 #47ffffff, inset 0 -2 0 0 #47000000" />
+        <Setter Property="RenderTransformOrigin" Value="50%,50%" />
+    </Style>
+
     <Style Selector="v|CellView.closed:pointerover Border.tile, v|CellView.flagged:pointerover Border.tile">
         <Setter Property="Background" Value="{DynamicResource cell-closed-hover}" />
     </Style>
@@ -101,7 +112,7 @@
       フォーカスの枠は、ボタンの縁を focus の色の 3px にして示す（Web 版の UI デザイン 6.3 は、ボタンの外に 2px 離して描く。
       Avalonia のフォーカスの adorner でボタンの外に描くと、枠が切り取られて角しか見えなかったため）
     -->
-    <Style Selector="Button">
+    <Style Selector="Button, ToggleButton">
         <Setter Property="Height" Value="44" />
         <Setter Property="MinWidth" Value="44" />
         <Setter Property="CornerRadius" Value="10" />
@@ -120,17 +131,24 @@
         </Setter>
         <Setter Property="FocusAdorner" Value="{x:Null}" />
     </Style>
-    <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <!-- 効果音 ボタンは、オンでも見た目を変えない（オンとオフはアイコンで示す。Web 版と同じ）。Fluent の強調色を打ち消す -->
+    <Style Selector="ToggleButton:checked /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource border}" />
+        <Setter Property="Foreground" Value="{DynamicResource text}" />
+    </Style>
+    <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button:pressed /template/ ContentPresenter#PART_ContentPresenter,
+                     ToggleButton:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton:pressed /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource button-hover}" />
         <Setter Property="BorderBrush" Value="{DynamicResource border}" />
         <Setter Property="Foreground" Value="{DynamicResource text}" />
     </Style>
     <!-- 指したときのスタイルより後に書き、指したままでもフォーカスの色を保つ（後に書いたスタイルが勝つ） -->
-    <Style Selector="Button:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button:focus-visible /template/ ContentPresenter#PART_ContentPresenter, ToggleButton:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="BorderBrush" Value="{DynamicResource focus}" />
         <Setter Property="BorderThickness" Value="3" />
     </Style>
-    <Style Selector="Button:pressed">
+    <Style Selector="Button:pressed, ToggleButton:pressed">
         <Setter Property="RenderTransform" Value="scale(0.95)" />
     </Style>
 
@@ -138,7 +156,7 @@
         <Setter Property="MinWidth" Value="72" />
     </Style>
 
-    <Style Selector="Button.reset">
+    <Style Selector="Button.reset, ToggleButton.sound">
         <Setter Property="Width" Value="44" />
         <Setter Property="Padding" Value="0" />
     </Style>

@@ -6,11 +6,10 @@
              x:Class="Shos.Minesweeper.Desktop.Views.ToolbarView"
              x:DataType="vm:GameViewModel">
     <!--
-      ツールバー。左から、難易度、残り地雷数、リセット、経過時間の順に、均等の間隔で並べる（UI デザイン 2.4）。
-      効果音 ボタンは区切り 7 で加える
+      ツールバー。左から、難易度、残り地雷数、リセット、経過時間、効果音の順に、均等の間隔で並べる（UI デザイン 2.4）
     -->
     <Border Classes="toolbar">
-        <Grid ColumnDefinitions="Auto,*,Auto,*,Auto,*,Auto">
+        <Grid ColumnDefinitions="Auto,*,Auto,*,Auto,*,Auto,*,Auto">
             <Button x:Name="DifficultyButton" Grid.Column="0" Classes="difficulty" Command="{Binding OpenDifficultyDialog}"
                     AutomationProperties.Name="{Binding DifficultyButtonName}" ToolTip.Tip="{x:Static p:ToolbarTexts.DifficultyToolTip}">
                 <StackPanel Orientation="Horizontal" Spacing="4">
@@ -34,6 +33,11 @@
                     <TextBlock Text="{Binding ElapsedSeconds}" />
                 </DockPanel>
             </Border>
+            <!-- オンかオフかを、トグル ボタンの状態としてナレーターに伝える（UI デザイン 2.11）。切り替えるのはビューモデルで、状態はそこから受ける -->
+            <ToggleButton Grid.Column="8" Classes="sound" IsChecked="{Binding IsSoundEnabled, Mode=OneWay}" Command="{Binding ToggleSound}"
+                          AutomationProperties.Name="{x:Static p:ToolbarTexts.SoundEffects}" ToolTip.Tip="{Binding SoundEffectsToolTip}">
+                <v:IconView Kind="{Binding IsSoundEnabled, Converter={x:Static v:ViewConverters.SoundIcon}}" Width="24" Height="24" />
+            </ToggleButton>
         </Grid>
     </Border>
 </UserControl>

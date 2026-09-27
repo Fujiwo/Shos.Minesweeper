@@ -6,8 +6,11 @@ namespace Shos.Minesweeper.Desktop.ViewModels;
 /// <summary>
 /// 勝利カードに出す文（クラス設計書 4.6。Web 版の UI デザイン 2.4）。見出しとボタンの文言は定数なので、XAML から WinCardTexts を指す。
 /// </summary>
-public sealed class WinCardViewModel(int seconds, BestTimeResult bestTime)
+public sealed class WinCardViewModel(int seconds, BestTimeResult bestTime, bool fadesIn)
 {
+    /// <summary>出すときに 150 ミリ秒で現れるか。アニメーション効果がオフなら、すぐに出す（Web 版の WinCard.razor.css）。</summary>
+    public bool FadesIn { get; } = fadesIn;
+
     /// <summary>「タイム 45 秒」。</summary>
     public string TimeText { get; } = WinCardTexts.TimeOf(seconds);
 

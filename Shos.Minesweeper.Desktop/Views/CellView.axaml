@@ -10,6 +10,8 @@
     <Panel>
         <Border Classes="tile">
             <Panel>
+                <!-- 未開放のタイルの覆い。開く演出と地雷が現れる演出の間だけ出し、遅れの間は未開放に見せる（Web 版のクラス設計書 12.11 の決定 10） -->
+                <Border x:Name="Cover" Classes="cover" />
                 <TextBlock x:Name="NumberText" Classes="number" />
                 <v:IconView x:Name="Icon" IsVisible="False" HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Panel>

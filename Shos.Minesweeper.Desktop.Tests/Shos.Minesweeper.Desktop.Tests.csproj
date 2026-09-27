@@ -3,7 +3,9 @@
   <!-- デスクトップ版のテスト。画面のテスト（Avalonia.Headless.XUnit）は xUnit v3 の 4 系で動かないので使わず、
        ビューモデルと計算を Avalonia を起動せずに確かめる（docs/desktop-console/reviews/code-review.md の区切り 1） -->
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <!-- テストの対象（Desktop）に合わせる。Windows の API と NAudio を呼ぶテストは作らないので、Linux でも動く（クラス設計書 7.1） -->
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -22,6 +24,14 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+  </ItemGroup>
+
+  <!-- 配色と演出の時間が Web 版と同じかを比べるファイル（WebStyleConsistencyTests）。パスをたどらずに読めるように、出力のフォルダーに写す -->
+  <ItemGroup>
+    <None Include="..\Shos.Minesweeper\wwwroot\css\app.css" Link="Styles\app.css" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Shos.Minesweeper\Components\BoardView.razor.css" Link="Styles\BoardView.razor.css" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Shos.Minesweeper\Components\WinCard.razor.css" Link="Styles\WinCard.razor.css" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Shos.Minesweeper.Desktop\Assets\Colors.axaml" Link="Styles\Colors.axaml" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

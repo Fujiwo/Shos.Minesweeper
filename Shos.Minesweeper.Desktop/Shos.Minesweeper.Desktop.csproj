@@ -3,16 +3,23 @@
   <!-- デスクトップ版（docs/desktop-console/04-architecture.md の 7 章）。名前に技術（Avalonia）を入れないのは、技術を変えても名前が嘘をつかないようにするため -->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <!-- NAudio の音の出力（NAudio.WinMM 3 系）が Windows 向けの対象にしか入らないので、net10.0-windows にする。
+         EnableWindowsTargeting で、Linux の上でもビルド・テスト・発行ができる（ユーザーの決定、2026-09-28） -->
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <!-- LibraryImport が生成する呼び出しのコード（Platform/AnimationEffects.cs）に要る -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="12.1.3" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.3" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.3" />
+    <PackageReference Include="NAudio.Core" Version="3.1.0" />
+    <PackageReference Include="NAudio.WinMM" Version="3.1.0" />
   </ItemGroup>
 
   <ItemGroup>

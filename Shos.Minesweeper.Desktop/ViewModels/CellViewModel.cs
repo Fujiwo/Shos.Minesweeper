@@ -33,6 +33,12 @@ public sealed class CellViewModel : INotifyPropertyChanged
     /// <summary>押下中の表示。</summary>
     public bool IsPressed { get; private set; }
 
+    /// <summary>直前の操作で旗を立てたか（旗が広がる演出。クラス設計書 9.1 の決定 4）。</summary>
+    public bool IsFlagJustPlaced { get; private set; }
+
+    /// <summary>直前の操作の演出。演出しないマスは null。</summary>
+    public CellAnimation? Animation { get; private set; }
+
     int AdjacentMineCount => session.Game.Board.CellAt(Position).AdjacentMineCount;
 
     /// <summary>ゲームが変わったことを知らせる（見せ方、数字、名前を読み直させる）。</summary>
@@ -44,6 +50,22 @@ public sealed class CellViewModel : INotifyPropertyChanged
             return;
         IsPressed = isPressed;
         Notify(nameof(IsPressed));
+    }
+
+    internal void SetFlagJustPlaced(bool isFlagJustPlaced)
+    {
+        if (IsFlagJustPlaced == isFlagJustPlaced)
+            return;
+        IsFlagJustPlaced = isFlagJustPlaced;
+        Notify(nameof(IsFlagJustPlaced));
+    }
+
+    internal void SetAnimation(CellAnimation? animation)
+    {
+        if (Animation == animation)
+            return;
+        Animation = animation;
+        Notify(nameof(Animation));
     }
 
     void Notify(params string[] propertyNames)

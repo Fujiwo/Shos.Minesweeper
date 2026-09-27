@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using Avalonia.Input;
 using Shos.Minesweeper.Desktop.Input;
+using Shos.Minesweeper.Desktop.Platform;
 using Shos.Minesweeper.GameLogic;
 using Shos.Minesweeper.Presentation;
 
@@ -9,7 +10,7 @@ namespace Shos.Minesweeper.Desktop.ViewModels;
 /// <summary>
 /// ゲームの画面のビューモデル（クラス設計書 4.3）。画面全体の状態の持ち主で、Web 版の GamePage に当たる。
 /// 盤面の操作を GameSession に伝え、勝敗、ベストタイム、難易度ダイアログ、勝利カード、読み上げ、ツールバーの値を受け持つ。
-/// 判断は各部品に任せ、つなぐ。効果音と演出は区切り 7 で加える。
+/// 効果音のオンとオフと、演出をするかも受け持つ。判断は各部品に任せ、つなぐ。
 /// </summary>
 public sealed class GameViewModel : INotifyPropertyChanged
 {
@@ -19,13 +20,25 @@ public sealed class GameViewModel : INotifyPropertyChanged
     readonly GameSession session;
     readonly BestTimesFile bestTimesFile;
     readonly BestTimes bestTimes;
+    readonly SoundSettingFile soundSettingFile;
+    readonly SoundEffectOutput playSoundEffect;
+    readonly Func<bool> areAnimationEffectsEnabled;
     int shownElapsedSeconds;
 
-    public GameViewModel(TimeProvider timeProvider, BestTimesFile bestTimesFile, MineChooser? chooseMines = null)
+    /// <summary>
+    /// 引数はどれも、テストで差し替える外のもの（時刻、2 つのファイル、音の出口、OS の設定、地雷の置き方）で、呼ぶのは App とテストだけである
+    /// （クラス設計書 4.3。まとめる型を作っても、中身がばらばらで名前が付かない）。
+    /// </summary>
+    public GameViewModel(TimeProvider timeProvider, BestTimesFile bestTimesFile, SoundSettingFile soundSettingFile,
+                         SoundEffectOutput playSoundEffect, Func<bool> areAnimationEffectsEnabled, MineChooser? chooseMines = null)
     {
         this.bestTimesFile = bestTimesFile;
+        this.soundSettingFile = soundSettingFile;
+        this.playSoundEffect = playSoundEffect;
+        this.areAnimationEffectsEnabled = areAnimationEffectsEnabled;
         bestTimes = bestTimesFile.Load();
-        session = new GameSession(Difficulty.Beginner, timeProvider, chooseMines: chooseMines);
+        IsSoundEnabled = soundSettingFile.Load();
+        session = new GameSession(Difficulty.Beginner, timeProvider, PlayIfEnabled, chooseMines);
         Board = new BoardViewModel(session, Request, () => Notify(nameof(Face)));
     }
 
@@ -63,6 +76,12 @@ public sealed class GameViewModel : INotifyPropertyChanged
             _               => Board.IsPressing ? FaceKind.Surprised : FaceKind.Normal
         };
 
+    /// <summary>効果音のオンとオフ。効果音 ボタンのトグルの状態でもある（オンかオフかを、ナレーターに状態として伝える。UI デザイン 2.11）。</summary>
+    public bool IsSoundEnabled { get; private set; }
+
+    /// <summary>「効果音（オン）」「効果音（オフ）」。</summary>
+    public string SoundEffectsToolTip => ToolbarTexts.SoundEffectsToolTipOf(IsSoundEnabled);
+
     /// <summary>難易度ダイアログ。開いていなければ null。</summary>
     public DifficultyDialogViewModel? DifficultyDialog { get; private set; }
 
@@ -94,6 +113,21 @@ public sealed class GameViewModel : INotifyPropertyChanged
 
     /// <summary>勝利カードを閉じる。勝った盤面はそのまま残る。</summary>
     public void CloseWinCard() => SetWinCard(null);
+
+    /// <summary>効果音を切り替えて保存する。オンに戻しても、音は鳴らさない（UI デザイン 2.10）。</summary>
+    public void ToggleSound()
+    {
+        IsSoundEnabled = !IsSoundEnabled;
+        soundSettingFile.Save(IsSoundEnabled);
+        Notify(nameof(IsSoundEnabled), nameof(SoundEffectsToolTip));
+    }
+
+    // 音の出口（GameSession に渡す）。オンとオフはここで持ち、鳴らす仕組み（SoundEffectPlayer）は鳴らすだけにする（クラス設計書 9.2 の A1）
+    void PlayIfEnabled(SoundEffect effect)
+    {
+        if (IsSoundEnabled)
+            playSoundEffect(effect);
+    }
 
     /// <summary>Views のタイマーが 250 ミリ秒ごとに呼ぶ。秒が変わったときだけ知らせる（Web 版の ElapsedTime と同じ考え方）。</summary>
     public void UpdateElapsedTime()
@@ -133,7 +167,7 @@ public sealed class GameViewModel : INotifyPropertyChanged
     void Request(CellAction action, CellPosition position)
     {
         var move = action == CellAction.Open ? session.Open(position) : session.ToggleFlag(position);
-        Board.Show(move);
+        Board.Show(move, withAnimation: areAnimationEffectsEnabled());
         if (move.Status == GameStatus.Won)
             Win();
         else if (move.Status == GameStatus.Lost)
@@ -147,7 +181,7 @@ public sealed class GameViewModel : INotifyPropertyChanged
         var result = bestTimes.Record(Difficulty.Kind, Game.ElapsedSeconds);
         if (result.IsNewBest)
             bestTimesFile.Save(bestTimes);
-        SetWinCard(new WinCardViewModel(Game.ElapsedSeconds, result));
+        SetWinCard(new WinCardViewModel(Game.ElapsedSeconds, result, fadesIn: areAnimationEffectsEnabled()));
         Announce(Announcements.Won(Game.ElapsedSeconds, result));
     }
 

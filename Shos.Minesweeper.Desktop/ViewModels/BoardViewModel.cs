@@ -17,6 +17,7 @@ public sealed class BoardViewModel : INotifyPropertyChanged
     readonly GameSession session;
     readonly Action<CellAction, CellPosition> requestAction;
     readonly Action pressingChanged;
+    readonly List<CellViewModel> animatedCells = [];
     IReadOnlyList<CellViewModel> cells;
     BoardCursor cursor = new();
     CellPosition? pressedPosition;
@@ -124,18 +125,23 @@ public sealed class BoardViewModel : INotifyPropertyChanged
     /// <summary>
     /// 盤面の操作の結果を見せる。変わったマス（操作したマスと新たに開いたマス）だけを知らせ、描き直しを速く保つ
     /// （アーキテクチャー設計書 7.3）。勝敗が決まったら、地雷の表示と自動の旗が変わるので、全マスを知らせる。
+    /// 演出をするなら、見せ方を知らせた後に、マスに演出を付ける（Views は、新しい見せ方の上で演出を始める）。
+    /// 何も起きなかった操作では、前の演出も止めない（Web 版と同じ）。
     /// </summary>
-    public void Show(MoveResult move)
+    public void Show(MoveResult move, bool withAnimation)
     {
         if (move.Outcome == MoveOutcome.NoChange)
             return;
+        ClearAnimations();
         if (session.Game.IsOver) {
             RefreshAll();
-            return;
+        } else {
+            CellAt(move.Position).Refresh();
+            foreach (var opened in move.OpenedPositions.Where(opened => opened != move.Position))
+                CellAt(opened).Refresh();
         }
-        CellAt(move.Position).Refresh();
-        foreach (var opened in move.OpenedPositions.Where(opened => opened != move.Position))
-            CellAt(opened).Refresh();
+        if (withAnimation)
+            Animate(move);
     }
 
     /// <summary>新しいゲームの盤面を見せる。カーソルは左上に戻す（Web 版と同じ。クラス設計書 9.1 の決定 9）。</summary>
@@ -143,6 +149,7 @@ public sealed class BoardViewModel : INotifyPropertyChanged
     {
         pressedPosition = null;
         cursor = new BoardCursor();
+        ClearAnimations();
         if (HasTheSameShapeAsTheBoard(cells)) {
             foreach (var cell in cells) {
                 cell.SetPressed(false);
@@ -179,6 +186,29 @@ public sealed class BoardViewModel : INotifyPropertyChanged
 
     IEnumerable<CellPosition> PressedPositionsOf(CellPosition position)
         => Board.CellAt(position).State == CellState.Closed ? [position] : Board.ChordTargetsOf(position);
+
+    // 種類と遅れの比は BoardAnimation が決める。旗が広がる演出は BoardAnimation の外にあるので、ここで付ける
+    void Animate(MoveResult move)
+    {
+        foreach (var (position, animation) in BoardAnimation.Of(move, session.Game)) {
+            CellAt(position).SetAnimation(animation);
+            animatedCells.Add(CellAt(position));
+        }
+        if (move.Outcome == MoveOutcome.FlagPlaced) {
+            CellAt(move.Position).SetFlagJustPlaced(true);
+            animatedCells.Add(CellAt(move.Position));
+        }
+    }
+
+    // 演出を付けたマスを覚えておき、次の操作でそのマスだけを消す（全マスを見て回らない）
+    void ClearAnimations()
+    {
+        foreach (var cell in animatedCells) {
+            cell.SetAnimation(null);
+            cell.SetFlagJustPlaced(false);
+        }
+        animatedCells.Clear();
+    }
 
     void RefreshAll()
     {

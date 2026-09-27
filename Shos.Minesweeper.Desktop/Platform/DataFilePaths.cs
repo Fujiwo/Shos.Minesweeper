@@ -8,4 +8,6 @@ public static class DataFilePaths
     static readonly string Folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Shos.Minesweeper", "Desktop");
 
     public static string BestTimes { get; } = Path.Combine(Folder, "best-times.json");
+
+    public static string SoundSetting { get; } = Path.Combine(Folder, "sound.json");
 }

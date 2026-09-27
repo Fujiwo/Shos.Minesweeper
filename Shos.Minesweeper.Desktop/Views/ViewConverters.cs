@@ -13,4 +13,7 @@ public static class ViewConverters
         FaceKind.Lost      => IconKind.FaceLost,
         _                  => IconKind.FaceNormal
     });
+
+    /// <summary>効果音のオンとオフを、効果音 ボタンのアイコンにする。</summary>
+    public static FuncValueConverter<bool, IconKind> SoundIcon { get; } = new(isEnabled => isEnabled ? IconKind.SoundOn : IconKind.SoundOff);
 }

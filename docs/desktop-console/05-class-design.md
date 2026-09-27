@@ -287,6 +287,7 @@ public sealed class BestTimesFile(string path)
 | | `DataFilePaths` | static class | 保存するファイルのパス |
 | Views | `MainWindow`、`ToolbarView`、`BoardView`、`CellView`、`DifficultyDialogView`、`WinCardView` | XAML と code-behind | 4.10 |
 | | `WinCardArea`（区切り 6 で加えた） | class（`Panel`） | 勝利カードの置き場（4.10） |
+| | `ViewAnimations`（区切り 7 で加えた） | static class | 演出を Avalonia のアニメーションとして組み立てる（4.11） |
 | | `CellAnimationTimings` | static class | 演出の長さと遅れの最大（Web 版の CSS と同じ値） |
 | （直下） | `App`、`Program` | class | 起動、テーマ、組み立て（4.12） |
 
@@ -546,11 +547,12 @@ public sealed class CustomFieldViewModel : INotifyPropertyChanged
 ### 4.6 `WinCardViewModel`
 
 ```csharp
-public sealed class WinCardViewModel(int seconds, BestTimeResult bestTime)
+public sealed class WinCardViewModel(int seconds, BestTimeResult bestTime, bool fadesIn)   // fadesIn は区切り 7 で加えた
 {
     public string TimeText { get; }          // WinCardTexts.TimeOf
     public string? BestTimeText { get; }     // WinCardTexts.BestTimeOf。null なら行を出さない
     public bool IsNewBest { get; }           // 星のアイコンを出す（BestTimeResult.IsNewBest）
+    public bool FadesIn { get; }             // 出すときに 150 ミリ秒で現れるか（アニメーション効果の設定。区切り 7 で加えた）
 }
 ```
 
@@ -629,9 +631,10 @@ public static class DataFilePaths
 
 **`SoundEffectPlayer`**（NAudio の導入は、区切り 7 でパッケージを加える前に、ユーザーに改めて確かめる。アーキ 17 章）
 
-- 音の出力は NAudio の `WaveOutEvent`（NAudio.WinMM）を 1 つ開き、`MixingSampleProvider`（NAudio.Core。44,100 Hz、モノラル、浮動小数点）をつなぐ。ミキサーは入力がなくても無音を出し続ける設定（`ReadFully`）にし、出力を止めない。
+- 音の出力は NAudio の `WaveOut`（NAudio.WinMM。3 系で `WaveOutEvent` から改名された。区切り 7）を 1 つ開き、`MixingSampleProvider`（NAudio.Core。44,100 Hz、モノラル、浮動小数点）をつなぐ。ミキサーは入力がなくても無音を出し続ける設定（`ReadFully`）にし、出力を止めない。
 - `Play` は、合成しておいた波形を読む小さな `ISampleProvider`（クラスの中だけの型）を作り、ミキサーの入力に足す。前の音を止めずに重なる（仕様書 4.6）。鳴り終わった入力は、ミキサーが外す。
-- 最初の音の遅れ（出力のバッファーの長さ）は、区切り 7 で実機で計って決める（アーキ 11 章 #4）。
+- 最初の音の遅れ（出力のバッファーの長さ）は、区切り 7 で実機で計って決める（アーキ 11 章 #4）。**区切り 7**: バッファーを 20 ミリ秒 × 3 にした（遅れは、およそ 50〜60 ミリ秒）。聞いて確かめるのはユーザーである（code-review.md の区切り 7）。
+- 出力を開き直すときに閉じた前の出力も、止まったと後から知らせてくる。今の出力の知らせだけを受ける（区切り 7 のレビューの指摘）。
 - **失敗の受け止め**（アーキ 7.6、10 章）:
   - 出力を開く・鳴らすときの NAudio の失敗（`MmException`。音の出力の機器がないなど）は、`Prepare` と `Play` の中で受け止め、出力を持たない状態にする。
   - 再生の途中の失敗は、NAudio が再生のスレッドで受け止め、`PlaybackStopped` の引数（`StoppedEventArgs.Exception`）で知らせる。`SoundEffectPlayer` はこれを受けて「出力が止まった」と覚えるだけにし、例外を投げない（どのスレッドで呼ばれても安全な形にする）。次の `Play` で、出力を開き直す。機器が戻れば、また鳴る。
@@ -692,12 +695,16 @@ public static class CellAnimationTimings
     public static readonly TimeSpan AppearMaxDelay = TimeSpan.FromMilliseconds(400);
     public static readonly TimeSpan FlagBounce = TimeSpan.FromMilliseconds(300);
     public static readonly TimeSpan FlagBounceMaxDelay = TimeSpan.FromMilliseconds(300);
+    public static readonly TimeSpan WinCardFadeIn = TimeSpan.FromMilliseconds(150);        // 勝利カードが現れる（区切り 7 で加えた。Web 版の WinCard.razor.css）
 }
 ```
 
-- 演出の動き（どの部品の、何を、どう変えるか）は Web 版 クラス 12.5 の表のとおりで、`CellView` が Avalonia のアニメーションで行う。遅れは「`CellAnimation.DelayRatio` × 最大の遅れ」、遅れの間は最初の見た目を保つ（Web 版の `backwards`）。
+- 演出の動き（どの部品の、何を、どう変えるか）は Web 版 クラス 12.5 の表のとおりで、Avalonia のアニメーションで行う。組み立ては `Views/ViewAnimations`（区切り 7 で加えた）、始めて止めるのは `CellView` と `WinCardView` である。遅れは「`CellAnimation.DelayRatio` × 最大の遅れ」、遅れの間は最初の見た目を保つ（Web 版の `backwards`）。
 - 演出の時間を XAML でなく C# に置くのは、遅れがマスごとに違い（比 × 最大）、演出を code-behind で組み立てるからである。
-- **Web 版と一致することのテスト**（アーキ 7.5）: `Colors.axaml` と Web 版の `app.css` のトークンを、ライトとダークのそれぞれで比べる。`CellAnimationTimings` と Web 版の `BoardView.razor.css` の `animation` の長さと遅れを比べる。どちらのファイルも、テストのプロジェクトにリンクして出力のフォルダーに写し、パスをたどらずに読む（7.2）。
+- **Avalonia の制約**（区切り 7 で分かった）: Avalonia 12 には `RenderTransform` を丸ごと変えるアニメーションがない（`No animator registered for the property RenderTransform`）。大きさと位置は、`ScaleTransform.ScaleX`・`ScaleY` と `TranslateTransform.Y` の値として変える。
+- 開く演出と地雷が現れる演出では、マスに未開放のタイルの覆い（`Cover`）を重ね、遅れの間は未開放に見せる（Web 版の `::before`）。覆いは演出の間だけ出す。
+- 演出は終わるのを待たずに始め、`async void` にして、演出の中の誤り（プログラムの誤り）を握りつぶさない。止めたとき（次の操作）に Avalonia は例外を出さないことを、実機で確かめた。
+- **Web 版と一致することのテスト**（アーキ 7.5）: `Colors.axaml` と Web 版の `app.css` のトークンを、ライトとダークのそれぞれで比べる。`CellAnimationTimings` と Web 版の `BoardView.razor.css`、`WinCard.razor.css` の `animation` の長さと遅れを比べる。どちらのファイルも、テストのプロジェクトにリンクして出力のフォルダーに写し、パスをたどらずに読む（7.2）。
 
 ### 4.12 組み立て（`App`）
 
@@ -1117,7 +1124,7 @@ GameLoop.Run(terminal, new ScreenNavigator(game), new FrameWriter(terminal.Outpu
 
 | プロジェクト | 参照 | パッケージ |
 |--------------|------|------------|
-| `Shos.Minesweeper.Desktop.Tests`（加える。区切り 5 で作る） | Desktop、TestSupport | xUnit v3、Microsoft.Extensions.TimeProvider.Testing（既存と同じ版）。Avalonia.Headless.XUnit は使わない（区切り 1 の確認で、xUnit v3 の 4 系では動かなかった。アーキ 11 章 #1。docs/desktop-console/reviews/code-review.md の区切り 1） |
+| `Shos.Minesweeper.Desktop.Tests`（加える。区切り 5 で作る。区切り 7 から、対象は Desktop と同じ `net10.0-windows`。9.2 の A6） | Desktop、TestSupport | xUnit v3、Microsoft.Extensions.TimeProvider.Testing（既存と同じ版）。Avalonia.Headless.XUnit は使わない（区切り 1 の確認で、xUnit v3 の 4 系では動かなかった。アーキ 11 章 #1。docs/desktop-console/reviews/code-review.md の区切り 1） |
 | `Shos.Minesweeper.ConsoleApp.Tests`（加える） | ConsoleApp、TestSupport | xUnit v3、Microsoft.Extensions.TimeProvider.Testing |
 
 - 盤面は `TestGames.DifficultyOf(絵)` と `TestGames.MineChooserOf(絵)` で決める（既存の補助）。
@@ -1200,6 +1207,7 @@ GameLoop.Run(terminal, new ScreenNavigator(game), new FrameWriter(terminal.Outpu
 | A3 | `NO_COLOR` のときに色を付けないのは、`FrameWriter` の 1 か所で行う。画面の単位はいつも色を付けて作る | 8.1 の「画面の行」の段落 | 画面の単位ごとに `NO_COLOR` を見ると、同じ判断が画面の数だけ並ぶ（5.2） |
 | A4 | コンソール版の画面の単位は、`IScreen` を実装し、次の画面を返す。移り変わりと端末が小さいときの扱いは `ScreenNavigator` が受け持つ | 8.1 の図、8.3、15 章 | 15 章の「作らないもの」は端末の窓口のインターフェイスで、画面の単位のインターフェイスは実装が 3 つある（5.4） |
 | A5 | コンソール版の必要な端末の大きさは、今の画面の行数と 76 列で決める。端末の大きさが変わったら、すべての行を書き直す | 8.2 の手順 1、8.3 | 9.1 の決定 6、7 |
+| A6 | デスクトップ版とそのテストの対象を `net10.0-windows` にし、`EnableWindowsTargeting` で Linux の上でもビルド・テスト・発行する（区切り 7 で加えた） | 7 章の構成の図 | NAudio.WinMM の 3 系は、Windows 向けの対象（`net9.0-windows` 以降）にしか入らない。ユーザーの決定（2026-09-28）。WSL で、ビルド（警告なし）、テスト、Windows 向けの発行が通り、その実行ファイルが Windows で動くことを確かめた |
 
 ## 10. 作らないもの
 
@@ -1227,4 +1235,4 @@ GameLoop.Run(terminal, new ScreenNavigator(game), new FrameWriter(terminal.Outpu
 | 2 | NAudio の導入（アーキ 17 章の確認事項 1 の続き） | 導入する | 設計はこの案で進めた。パッケージを加えるのは区切り 7 で、その前に改めて確かめる |
 
 - **確認事項 1 の回答**（2026-09-27）: 「仕様書は『Web 版と同じ』を理由にしているので、Web 版の実際の動きに合わせる」。推した案のとおり、3 つの版とも新しいゲームで左上に戻す（9.1 の決定 9）。仕様書 4.3 と 5.3 を改めた。
-- 確認事項 2 は、区切り 7 の前に確かめる。
+- **確認事項 2 の回答**（2026-09-28、区切り 7 の前）: 「導入する」。推した案のとおり、NAudio.Core と NAudio.WinMM をデスクトップ版に加える（4.9）。

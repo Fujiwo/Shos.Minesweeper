@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Globalization;
+using Avalonia.Animation;
 using Avalonia.Controls;
 using Shos.Minesweeper.Desktop.ViewModels;
 using Shos.Minesweeper.GameLogic;
@@ -8,7 +9,7 @@ namespace Shos.Minesweeper.Desktop.Views;
 
 /// <summary>
 /// 1 つのマス。見せ方からクラス（未開放、旗、開いた、地雷、踏んだ地雷、誤った旗）と数字とアイコンを決める（Web 版の CellPresentation に当たる）。
-/// ポインターのイベントは、盤面（BoardView）がまとめて受ける。
+/// ポインターのイベントは、盤面（BoardView）がまとめて受ける。演出の組み立ては ViewAnimations にあり、ここは始めて止めるだけにする。
 /// </summary>
 public partial class CellView : UserControl
 {
@@ -20,11 +21,13 @@ public partial class CellView : UserControl
     static readonly string[] AppearanceClasses = ["closed", "flagged", "opened", "mine", "exploded", "wrong-flag"];
 
     CellViewModel? cell;
+    CancellationTokenSource? runningAnimations;
 
     public CellView() => InitializeComponent();
 
     protected override void OnDataContextChanged(EventArgs e)
     {
+        StopAnimations();
         if (cell is not null)
             cell.PropertyChanged -= OnCellChanged;
         cell = DataContext as CellViewModel;
@@ -43,8 +46,44 @@ public partial class CellView : UserControl
 
     void OnCellChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(CellViewModel.Appearance))
-            ShowAppearance();
+        switch (e.PropertyName) {
+            case nameof(CellViewModel.Appearance):
+                ShowAppearance();
+                break;
+            case nameof(CellViewModel.Animation) or nameof(CellViewModel.IsFlagJustPlaced):
+                Animate();
+                break;
+        }
+    }
+
+    // 演出は、ビューモデルが新しい見せ方を知らせた後に付ける。付け直されたら、前の演出を止めて始め直す
+    void Animate()
+    {
+        StopAnimations();
+        if (cell is null)
+            return;
+        var animations = ViewAnimations.CellAnimationsOf(cell, Cover, NumberText, Icon, Bounds.Height);
+        if (animations.Count == 0)
+            return;
+        runningAnimations = new CancellationTokenSource();
+        Run(animations, runningAnimations.Token);
+    }
+
+    // 終わるのを待たない。async void にするのは、演出の誤り（プログラムの誤り）を握りつぶさず、UI のスレッドの例外としてアプリに届けるため
+    // （Task を捨てると、例外が見えなくなり、覆いが残ったまま気づけない）
+    async void Run(IReadOnlyList<(Animation Animation, Animatable Target)> animations, CancellationToken cancellation)
+    {
+        Cover.IsVisible = animations.Any(animation => animation.Target == Cover);
+        await Task.WhenAll(animations.Select(animation => animation.Animation.RunAsync(animation.Target, cancellation)));
+        if (!cancellation.IsCancellationRequested)
+            Cover.IsVisible = false;
+    }
+
+    void StopAnimations()
+    {
+        runningAnimations?.Cancel();
+        runningAnimations = null;
+        Cover.IsVisible = false;
     }
 
     void ShowAppearance()
