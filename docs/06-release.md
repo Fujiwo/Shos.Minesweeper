@@ -62,7 +62,7 @@ Web 版の最初の版（1.0.0）を、GitHub Pages のプロジェクト サイ
 |---|------|--------|--------------|
 | 1 | 公開する変更をコミットし、`main` を `origin` に push する（コミットと push はユーザーの指示で行う） | Claude（指示を受けて）かユーザー | `origin/main` に `.github/workflows/deploy.yml` がある |
 | 2 | GitHub のリポジトリの Settings → Pages → Build and deployment → Source を「GitHub Actions」にする（初回だけ） | ユーザー | Pages の設定画面に、公開先の URL が表示される |
-| 3 | Actions → 「GitHub Pages に公開」→ Run workflow（ブランチは `main`）で起動する | ユーザー（または、ユーザーの指示で Claude） | `build`（テスト・発行・整える・アップロード）と `deploy` が成功する。テストの件数が、ローカルの `dotnet test` と同じ |
+| 3 | Actions → 「GitHub Pages に公開」→ Run workflow（ブランチは `main`）で起動する。過去の実行の画面の「Re-run jobs」は使わない（再実行は元の古いコミットでビルドし、前の版を公開し直す。1.1.0 の公開で起きた） | ユーザー（または、ユーザーの指示で Claude） | 実行の一覧の一番上に、公開するコミットの新しい実行が出る。`build`（テスト・発行・整える・アップロード）と `deploy` が成功する。テストの件数が、ローカルの `dotnet test` と同じ |
 | 4 | 公開後の確認（6 章）を行う | Claude とユーザー | 6 章の表のすべて |
 | 5 | 確認が済んだら、公開したコミットに `v1.0.0` のタグを付けて push する（ユーザーの指示で行う） | Claude（指示を受けて）かユーザー | `origin` に `v1.0.0` のタグがある |
 | 6 | 公開後の確認の結果を、docs/reviews/06-release-review.md に追記する | Claude | — |

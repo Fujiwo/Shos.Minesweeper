@@ -100,10 +100,11 @@ Web 版 1.0.0 は工程 1〜16 をすべて終えた（2026-09-26 に公開）�
 
 ## コードの現状
 
-Web 版 1.0.0 を `https://fujiwo.github.io/Shos.Minesweeper/` に公開した（タグ `v1.0.0`）。公開の手順と確認項目は docs/06-release.md、公開後の確認の結果は docs/reviews/06-release-review.md にある。
+Web 版 1.1.0（UI の洗練と効果音）を `https://fujiwo.github.io/Shos.Minesweeper/` に公開した（2026-09-27、タグ `v1.1.0`。その前の版は 1.0.0、タグ `v1.0.0`）。公開の手順と確認項目は docs/06-release.md（1.1.0 は 9 章）、公開後の確認の結果は docs/reviews/06-release-review.md、変更の一覧は docs/release-notes.md にある。
 
 - 実装（工程 11）は、クラス設計書（docs/05-class-design.md）の 8 章の区切り 1〜7 で行った。区切りごとのレビュー、リファクタリング（工程 12。R1〜R5 と、R5 の後のやり直しの RR1〜RR4）、結合テスト（工程 13）の記録は docs/reviews/code-review.md にある。
-- WPF 版・コンソール版と共有する部品は、`Shos.Minesweeper.GameLogic`（ゲームのルールとベストタイムの保存の形式）と `Shos.Minesweeper.Presentation`（表示の文言と押し方からの操作の割り当て）に切り出してある（工程 12 の R5）。
+- 1.1.0 の実装は、クラス設計書の 12.10 の区切り 1〜7 で行った。区切りごとのレビュー、リファクタリング（R1〜R3）、結合テスト（見つけた不具合 B1、B2）の記録は、docs/reviews/code-review.md の「1.1.0」の節にある。
+- WPF 版・コンソール版と共有する部品は、`Shos.Minesweeper.GameLogic`（ゲームのルールとベストタイムの保存の形式。1.1.0 で操作の結果 `MoveResult`）と `Shos.Minesweeper.Presentation`（表示の文言、押し方からの操作の割り当て。1.1.0 で 1 回のゲームの進め方 `GameSession`、効果音の部品、入力された文字列の整え方 `InputText`）に切り出してある（1.0.0 の工程 12 の R5、1.1.0 のアーキテクチャー設計）。
 
 ## コマンド
 ソリューションは新しい XML 形式の `Shos.Minesweeper.slnx` で、次の 7 つのプロジェクトがある。
