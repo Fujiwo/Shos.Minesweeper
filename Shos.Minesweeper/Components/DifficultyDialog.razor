@@ -1,4 +1,5 @@
 @using System.Globalization
+@inject BrowserFeatures Browser
 @* 難易度ダイアログ（UI デザイン 2.3）。開いている間、ページのほかの部分は GamePage が inert にする *@
 <div class="backdrop" @onclick="OnClose"></div>
 <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="difficulty-dialog-title" @onkeydown="HandleKeyDownAsync">
@@ -39,7 +40,7 @@
         {
             <div class="field">
                 <label for="@field.Id">@field.Label</label>
-                <input id="@field.Id" type="text" inputmode="numeric" @bind="field.Text" @bind:event="oninput" @ref="field.Input"
+                <input id="@field.Id" type="text" inputmode="numeric" @bind="field.Text" @bind:event="oninput" @bind:after="() => NormalizeAsync(field)" @ref="field.Input"
                        aria-invalid="@(field.IsInvalid ? "true" : null)" aria-describedby="@DescriptionIdsOf(field)" />
                 <span id="@field.Id-range" class="range">@RangeTextOf(field)</span>
                 @if (field.IsInvalid)
@@ -70,11 +71,13 @@
         public string Id { get; } = id;
         public string Label { get; } = label;
         public string Text { get; set; } = initialValue.ToString(CultureInfo.InvariantCulture);
+        /// <summary>入力を整えた文字列（NormalizeAsync が Text から作る）。値はこちらから読む。</summary>
+        public string NormalizedText { get; set; } = initialValue.ToString(CultureInfo.InvariantCulture);
         public bool IsInvalid { get; set; }
         public ElementReference Input { get; set; }
 
         // 整数に変換できない入力は null（ValidateCustom が範囲の外と同じ誤りとして扱う）
-        public int? Value => int.TryParse(Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : null;
+        public int? Value => int.TryParse(NormalizedText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : null;
     }
 
     readonly ElementReference[] presetButtons = new ElementReference[Difficulty.Presets.Count];
@@ -100,6 +103,11 @@
         var presetIndex = Difficulty.Presets.ToList().FindIndex(preset => preset.Kind == Current.Kind);
         await (presetIndex >= 0 ? presetButtons[presetIndex] : width.Input).FocusAsync();
     }
+
+    // 入力は、解釈する前に整える（前後の空白を除き、全角の数字も受け付ける。ユーザーの指示、2026-09-27）。
+    // ブラウザーの .NET は NFKC に対応していないので、ブラウザーの機能で行う（BrowserFeatures.NormalizeInputAsync）
+    async Task NormalizeAsync(CustomField field)
+        => field.NormalizedText = await Browser.NormalizeInputAsync(field.Text);
 
     async Task StartCustomAsync()
     {

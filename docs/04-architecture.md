@@ -96,6 +96,7 @@ Shos.Minesweeper.slnx
 │   └─ BestTimesJson.cs               ベストタイムの保存の形式。ほかの小さな型はクラス設計で決める
 ├─ Shos.Minesweeper.Presentation/     クラスライブラリ（net10.0）。UI の技術に依存しない、アプリで共有する表示と入力と効果音の部品
 │   ├─ DifficultyNames.cs、Announcements.cs   表示の文言
+│   ├─ InputText.cs                   利用者が入力した文字列を整える（1.1.0 の工程 13）
 │   ├─ PressMapping.cs、PressKind.cs、CellAction.cs   押し方からの操作の割り当て
 │   ├─ SoundEffect.cs、SoundEffectMapping.cs、SoundEffectSynthesizer.cs   効果音の種類、鳴らす場面、波形の合成（1.1.0）
 │   └─ GameSession.cs                1 回のゲームの進め方と、音の出口（1.1.0）
@@ -250,6 +251,7 @@ flowchart TB
 | `DifficultyNames` | 難易度の表示名（「初級」など） |
 | `Announcements` | 新しいゲームと勝敗を知らせる文（Web 版では読み上げ用の領域で使う） |
 | `PressMapping` | 押し方（タップ・長押し・右クリック）と旗モードとマスの状態から、行う操作（開く・旗・何もしない）を決める。長押しの円を出すかどうかも、ここで決まる（UI 5.2） |
+| `InputText` | 利用者が入力した文字列を、解釈する前に整える（前後の空白を除き、NFKC で正規化する。仕様書 3.1。1.1.0 の工程 13 でユーザーの指示により加えた）。WPF 版・コンソール版はこれを使う。Web 版は、ブラウザーの .NET が NFKC に対応していないので、同じ変換を `browser.js` で行う（9.1） |
 
 **Presentation の効果音の部品（Web 版と WPF 版で共有する。1.1.0）**
 
@@ -580,7 +582,7 @@ sequenceDiagram
 
 ### 9.1 JavaScript を使うもの
 
-CLAUDE.md のとおり、JavaScript は必要なときに限る。使うのは次の 6 つ（1.1.0 で 2 つ加えた）で、すべて `wwwroot/js/browser.js`（ES モジュール）に置き、C# からは `BrowserFeatures` だけが呼ぶ。
+CLAUDE.md のとおり、JavaScript は必要なときに限る。使うのは次の 7 つ（1.1.0 で 3 つ加えた）で、すべて `wwwroot/js/browser.js`（ES モジュール）に置き、C# からは `BrowserFeatures` だけが呼ぶ。
 
 | 機能 | JavaScript が要る理由 | 失敗したとき |
 |------|------------------------|--------------|
@@ -589,6 +591,7 @@ CLAUDE.md のとおり、JavaScript は必要なときに限る。使うのは�
 | localStorage の読み書き | Blazor に localStorage の機能がない | 読めないときは「記録なし」、書けないときは何もしない（仕様書 3.8） |
 | 盤面での矢印キーと Space の既定の動作の抑止 | Blazor の `:preventDefault` は、キーごとに切り替えられない。盤面のキーをすべて止めると Tab キーで盤面から出られなくなる | — |
 | 効果音の再生（Web Audio。1.1.0） | Blazor に音を鳴らす機能がない | 何もしない（Web Audio がない、再生に失敗した。ゲームは続ける） |
+| 入力された文字列の正規化（NFKC。1.1.0 の工程 13） | ブラウザーの .NET は互換正規化（`NormalizationForm.FormKC`）に対応しておらず、`PlatformNotSupportedException` を投げる（工程 13 で確かめた。`HybridGlobalization` を有効にしても同じ）。ブラウザーの `String.prototype.normalize("NFKC")` は、対象のどのブラウザーでも使える。`trim().normalize("NFKC")` は、C# の `Trim().Normalize(NormalizationForm.FormKC)` と同じ結果になる | —（例外にならない） |
 | 利用者の操作で、効果音を鳴らせる状態にする（1.1.0） | ブラウザーは、利用者の操作のイベントの処理の中で動かした `AudioContext` でなければ、音を出さない（調査書 8.7）。Blazor のイベントの処理は .NET を通ってから JavaScript を呼ぶので、その中で動かすと「操作の最中」と見なされないおそれがある | 鳴らない（ゲームは続ける） |
 
 - localStorage、振動、効果音（1.1.0）の例外は、`browser.js` の中で受け止め、C# には結果（値、なし）だけを返す。C# 側で JavaScript の例外を扱う箇所を作らないためである。

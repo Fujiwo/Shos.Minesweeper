@@ -669,6 +669,7 @@ public sealed class BrowserFeatures(IJSRuntime jsRuntime) : IAsyncDisposable
     public ValueTask<string?> ReadStorageAsync(string key);   // 読めない・値がないときは null
     public ValueTask WriteStorageAsync(string key, string value);
     public ValueTask SuppressKeyScrollingAsync(ElementReference element);
+    public ValueTask<string> NormalizeInputAsync(string text);   // 1.1.0 の工程 13
     public ValueTask DisposeAsync();
 }
 ```
@@ -680,6 +681,7 @@ public sealed class BrowserFeatures(IJSRuntime jsRuntime) : IAsyncDisposable
 | `ReadStorageAsync` | `readStorage(key)` | localStorage から読む。例外は受け止めて `null` を返す |
 | `WriteStorageAsync` | `writeStorage(key, value)` | localStorage に書く。例外は受け止めて何もしない |
 | `SuppressKeyScrollingAsync` | `suppressKeyScrolling(element)` | 要素の `keydown` で、矢印キーと Space の既定の動作（スクロール）を止める。Tab は止めない |
+| `NormalizeInputAsync`（1.1.0 の工程 13） | `normalizeInput(text)` | `text.trim().normalize("NFKC")` を返す。Presentation の `InputText.Normalize` と同じ結果である。ブラウザーの .NET は NFKC に対応していない（アーキテクチャー設計書 9.1） |
 
 - `browser.js` は、最初に使うときに `import("./js/browser.js")` で読み込み、モジュールの参照を持ち続ける。相対パスなので、`<base href>` がサブパスでも読み込める（アーキテクチャー設計書 16 章のリスクは、工程 11 で確かめる）。
 - 監視は `SizeObservation`（`public sealed class`。コンストラクターは `internal`）で表す。JavaScript から呼ばれる `NotifyResized` を持つ。bUnit のテストでは、この `NotifyResized` を呼んで、大きさの変化をブラウザーの代わりに知らせる。
@@ -904,7 +906,7 @@ async Task ShowWinAsync()
 | 持つ状態 | 幅・高さ・地雷数の入力欄の文字列（初期値は `Current` の値）、最後の検証の結果（`CustomDifficultyValidation?`）、各入力欄と各行の要素の参照 |
 | 描くもの | UI デザイン 2.3 のとおり。行ごとに `DifficultyNames.Of`、大きさ、地雷数、`BestTimes.SecondsOf`。範囲の表示は `Difficulty.WidthRange`・`HeightRange`・`MineCountRange` から作る |
 
-- 入力欄の文字列は、`int.TryParse` で変換できなければ `null` として `ValidateCustom` に渡す。
+- 入力欄の文字列は、入力のたびに `BrowserFeatures.NormalizeInputAsync` で整え（`@bind:after`。1.1.0 の工程 13。仕様書 3.1）、整えた文字列を `int.TryParse` で変換する。変換できなければ `null` として `ValidateCustom` に渡す。入力欄の表示は、入力したままにする。
 - 地雷数の範囲の表示は、`Difficulty.FindMineCountRange` が範囲を返せばその値を、`null`（幅か高さが誤っている）なら「1〜（幅×高さ − 9）」を出す。誤りの文も同じ範囲の表示を使う（「{範囲} の整数を入力してください」）。「幅と高さが正しいときだけ上限が決まる」という規則は、`FindMineCountRange` の 1 か所に置き、`ValidateCustom` もこれを使う（docs/reviews/code-review.md の区切り 6 の指摘 1）。
 - 3 つの入力欄は、欄の状態（入力中の文字列、誤りの有無、要素の参照）を小さなクラス（`CustomField`）にまとめ、同じ書き方で描く。
 - 開いたときは、現在の難易度の行にフォーカスを移す。カスタムのゲーム中なら、「幅」の入力欄に移す（9 章の決定 4）。
@@ -1097,7 +1099,7 @@ Assert.Equal("""
 | 矢印キーの方向を盤面の方向に変えるメソッド | 位置を表示の座標に変えてから動かせば、方向の変換は要らない（4.2） |
 | スクロールの要否の計算 | CSS に任せる（4.3） |
 | 押下中のマスの集合を返すクラス | 未開放ならそのマス、そうでなければ `ChordTargetsOf` の 1 行で済む |
-| 全角数字の入力の受け付け（カスタム） | 仕様書にない。スマートフォンでは `inputmode="numeric"` で半角の数字のキーボードが出る。全角で入力した場合は、範囲の外と同じ誤りの文が出る |
+| 全角数字の入力の受け付け（カスタム） | 1.0.0 では、仕様書になかったので作らなかった。1.1.0 の工程 13 で、ユーザーの指示により受け付けることにした（仕様書 3.1、5.2 の `DifficultyDialog`） |
 | 文言をまとめたリソース | 画面の言語は日本語だけである（仕様書 5.5）。複数の場所で使う文言（難易度の表示名）だけを 1 か所に置いた |
 
 ## 11. ユーザーに確認した点
@@ -1131,7 +1133,8 @@ Assert.Equal("""
 | | `BoardAnimation` | static class | 加える | 直前の操作から、マスごとの演出を決める |
 | | `IconKind` | enum | 変える | `SoundOn`・`SoundOff` を加える |
 | | `CellPresentation` | static class | 変える | 演出の CSS のクラスを加える |
-| Browser | `BrowserFeatures` | class | 変える | 効果音を渡す・鳴らすメソッドを加える |
+| Presentation | `InputText` | static class | 加える（工程 13） | 利用者が入力した文字列を、解釈する前に整える（前後の空白を除き、NFKC で正規化する。ユーザーの指示、2026-09-27） |
+| Browser | `BrowserFeatures` | class | 変える | 効果音を渡す・鳴らすメソッドを加える。入力を整えるメソッドを加える（工程 13） |
 | | `SoundEffectPlayer` | class | 加える | Web 版の音の出口。オンとオフを持つ |
 | | `SoundSettingStorage` | class | 加える | 効果音のオンとオフを localStorage に読み書きする |
 | Components・Pages | `GamePage`、`Toolbar`、`BoardArea`、`BoardView`、`WinCard`、`Icon` | Razor | 変える | 12.7 |
@@ -1516,6 +1519,8 @@ builder.Services.AddScoped<SoundSettingStorage>();
 | `CellPresentationTests`（足す） | 演出の種類ごとの CSS のクラス |
 | `SoundEffectPlayerTests` | `PrepareAsync` で、6 つの効果音が名前、サンプリング周波数、バイト数（サンプル数 × 4）とともに渡る。2 回目は渡らない。`Play` で `playSound` が呼ばれる。`IsEnabled` が偽なら呼ばれない |
 | `SoundSettingStorageTests` | 読み書きのキー。`"off"` で偽、値がない・ほかの値で真。書く値 |
+| `InputTextTests`（工程 13） | 全角の数字・マイナス、前後の半角・全角の空白、半角のカタカナ、間の空白を残すこと |
+| `DifficultyDialogTests`（足す。工程 13） | 全角の数字と前後の空白でカスタムを始められる。地雷数の範囲の表示も同じように読む。bUnit の偽物の `normalizeInput` は、本物と同じ結果を `InputText` で返す |
 | `GamePageSoundTests`（加える。はじめは `GamePageTests` に足し、1.1.0 の工程 12 で分けた） | 盤面を描いた後に効果音を用意する。盤面の操作で `playSound` が呼ばれる。効果音 ボタンで切り替わり、保存される。保存した設定がボタンに出る |
 | `GamePageTests`（足す） | 大きさが分かると盤面を描き、CSS の変数が付く。難易度を変えると置き方を求め直す。マスを開くと演出のクラスが付き、新しいゲームで消える |
 | `ToolbarTests`（足す） | 効果音 ボタンの `aria-pressed`、`title`、アイコン。押すと `OnSoundClick` |

@@ -105,6 +105,31 @@ public class DifficultyDialogTests : AppTestContext
         Assert.Equal([Difficulty.Custom(20, 10, 30)], selected);
     }
 
+    // 入力は、前後の空白を除き、全角の数字を半角にしてから読む（ユーザーの指示、2026-09-27）
+    [Fact]
+    public void FullWidthDigitsAndSurroundingSpacesAreAccepted()
+    {
+        var cut = RenderDialog(Difficulty.Beginner);
+        cut.Find("#custom-width").Input("２０");
+        cut.Find("#custom-height").Input(" 10\u3000");      // 後ろは全角の空白
+        cut.Find("#custom-mine-count").Input("\u3000３０ ");
+
+        cut.Find("button.start-custom").Click();
+
+        Assert.Equal([Difficulty.Custom(20, 10, 30)], selected);
+    }
+
+    // 地雷数の範囲の表示も、同じように読んだ幅と高さから求める
+    [Fact]
+    public void MineCountRangeFollowsFullWidthSize()
+    {
+        var cut = RenderDialog(Difficulty.Intermediate);
+
+        cut.Find("#custom-width").Input("１０");
+
+        Assert.Equal("1〜151", cut.FindAll(".range")[2].TextContent);
+    }
+
     [Fact]
     public void InvalidCustomValuesAreShownWithoutStarting()
     {

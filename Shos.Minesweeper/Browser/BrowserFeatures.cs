@@ -38,6 +38,13 @@ public sealed class BrowserFeatures(IJSRuntime jsRuntime) : IAsyncDisposable
     public async ValueTask SuppressKeyScrollingAsync(ElementReference element)
         => await (await Module).InvokeVoidAsync("suppressKeyScrolling", element);
 
+    /// <summary>
+    /// 利用者が入力した文字列を整える（前後の空白を除き、NFKC で正規化する。Presentation の InputText と同じ結果）。
+    /// ブラウザーの .NET は NFKC に対応していないので、ブラウザーの機能で行う。
+    /// </summary>
+    public async ValueTask<string> NormalizeInputAsync(string text)
+        => await (await Module).InvokeAsync<string>("normalizeInput", text);
+
     /// <summary>効果音の波形（float の並びのバイト列）を名前で渡しておく。以後、その名前で鳴らせる（アーキテクチャー設計書 9.4）。</summary>
     public async ValueTask LoadSoundAsync(string name, byte[] samples, int sampleRate)
         => await (await Module).InvokeVoidAsync("loadSound", name, samples, sampleRate);

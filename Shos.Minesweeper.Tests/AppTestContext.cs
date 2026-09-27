@@ -8,6 +8,7 @@ using Microsoft.Extensions.Time.Testing;
 using Microsoft.JSInterop;
 using Shos.Minesweeper.Browser;
 using Shos.Minesweeper.Pages;
+using Shos.Minesweeper.Presentation;
 
 namespace Shos.Minesweeper.Tests;
 
@@ -27,6 +28,7 @@ public abstract class AppTestContext : BunitContext
         Services.AddScoped<BestTimeStorage>();
         Services.AddScoped<SoundEffectPlayer>();
         Services.AddScoped<SoundSettingStorage>();
+        JSInterop.AddInvocationHandler(new NormalizeInputHandler());
     }
 
     /// <summary>ゲームのページを開き、盤面の領域の大きさ（352×576。初級のマスは 38px）を知らせて、盤面が描かれるまで待つ。</summary>
@@ -79,6 +81,19 @@ public abstract class AppTestContext : BunitContext
         var restoring = new CultureRestoring(CultureInfo.CurrentCulture);
         CultureInfo.CurrentCulture = new CultureInfo(name);
         return restoring;
+    }
+
+    /// <summary>
+    /// browser.js の normalizeInput の偽物。本物（trim().normalize("NFKC")）と同じ結果を、C# の InputText で返す。
+    /// 入力欄に値を入れるテストが、本物と同じ値で進むようにする。
+    /// </summary>
+    sealed class NormalizeInputHandler() : JSRuntimeInvocationHandlerBase<string>(invocation => invocation.Identifier == "normalizeInput", isCatchAllHandler: false)
+    {
+        protected override Task<string> HandleAsync(JSRuntimeInvocation invocation)
+        {
+            _ = base.HandleAsync(invocation);   // 呼び出しを JSInterop.Invocations に記録する
+            return Task.FromResult(InputText.Normalize((string)invocation.Arguments[0]!));
+        }
     }
 
     sealed class CultureRestoring(CultureInfo original) : IDisposable

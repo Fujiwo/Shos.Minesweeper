@@ -44,6 +44,13 @@ export function writeStorage(key, value) {
     }
 }
 
+// 利用者が入力した文字列を、解釈する前に整える: 前後の空白を除き、Unicode の互換正規化（NFKC）をする（ユーザーの指示、2026-09-27）。
+// C# の Trim().Normalize(NormalizationForm.FormKC)（Presentation の InputText）と同じ結果になる。
+// ブラウザーの .NET は FormKC に対応していない（PlatformNotSupportedException）ので、Web 版はブラウザーの機能で行う
+export function normalizeInput(text) {
+    return text.trim().normalize("NFKC");
+}
+
 // 効果音（アーキテクチャー設計書 9.4）。C# で合成した波形を名前で覚えておき、利用者の操作で動かした AudioContext で鳴らす
 const soundWaveforms = new Map();   // 名前 → { samples: Float32Array, sampleRate }
 const soundBuffers = new Map();     // 名前 → AudioBuffer
@@ -103,10 +110,14 @@ function activateAudio() {
     }
 }
 
-// AudioBuffer は AudioContext と違うサンプリング周波数でも作れ、鳴らすときにブラウザーが変換する
+// AudioBuffer は AudioContext と違うサンプリング周波数でも作れ、鳴らすときにブラウザーが変換する。
+// 作れなかった効果音は鳴らさないだけにし、ほかの効果音とゲームは続ける（アーキテクチャー設計書 9.1）
 function createSoundBuffer(name) {
-    const { samples, sampleRate } = soundWaveforms.get(name);
-    const buffer = audioContext.createBuffer(1, samples.length, sampleRate);
-    buffer.copyToChannel(samples, 0);
-    soundBuffers.set(name, buffer);
+    try {
+        const { samples, sampleRate } = soundWaveforms.get(name);
+        const buffer = audioContext.createBuffer(1, samples.length, sampleRate);
+        buffer.copyToChannel(samples, 0);
+        soundBuffers.set(name, buffer);
+    } catch {
+    }
 }

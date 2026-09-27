@@ -16,7 +16,7 @@ Web ブラウザーで遊べるマインスイーパーを作る。
 - 画面: 縦向きと横向きの両方で、画面サイズに合わせたレイアウトにする（レスポンシブ）
 
 ## 開発手順
-現在の工程: 1.1.0 の 12. リファクタリング（工程が承認されたら、Claude がこの行を次の工程に更新する）
+現在の工程: 1.1.0 の 13. 結合テストとデバッグ（工程が承認されたら、Claude がこの行を次の工程に更新する）
 
 Web 版 1.0.0 は工程 1〜16 をすべて終えた（2026-09-26 に公開）。1.1.0（UI の洗練と効果音）も同じ工程をたどる。1.1.0 では、次のように進める。
 - 成果物は新しいファイルにせず、既存の文書に「改訂（1.1.0）」の節を足すか、該当する箇所を書き換えて、冒頭の状態に改訂したことを書く。レビューは、既存のレビューのファイルに「1.1.0 のレビュー」の節を追記する。コードレビュー・リファクタリング・結合テストは docs/reviews/code-review.md に 1.1.0 の節を足す。リリースノートは docs/release-notes.md の先頭に 1.1.0 を足す
@@ -79,6 +79,7 @@ Web 版 1.0.0 は工程 1〜16 をすべて終えた（2026-09-26 に公開）�
 
 ## 設計方針
 - ゲームロジックは UI に依存しない C# クラスとして分け、単体テストできるようにする
+- 利用者が入力した文字列は、解釈する前に `Trim().Normalize(NormalizationForm.FormKC)` で整える（ユーザーの指示、2026-09-27）。変換は Presentation の `InputText.Normalize` の 1 か所に置く。ただし、ブラウザーの .NET は FormKC に対応していない（`PlatformNotSupportedException` になる）ので、Web 版は同じ変換を `browser.js` の `normalizeInput`（`trim().normalize("NFKC")`）で行う（docs/04-architecture.md の 9.1）
 
 ## コーディング規範（sustainable-code スキル）
 設計・実装・テスト・レビューの判断基準には、`.claude/skills/` にあるプロジェクトのスキルを使う。このプロジェクトの会話は日本語なので、**`sustainable-code-jp` を使う**（`sustainable-code` は同じ内容の英語版）。どの reference を読むかはスキルの SKILL.md にある表に従い、ここでは工程との対応だけを定める。
@@ -110,7 +111,7 @@ Web 版 1.0.0 を `https://fujiwo.github.io/Shos.Minesweeper/` に公開した�
 | プロジェクト | 内容 |
 |--------------|------|
 | `Shos.Minesweeper.GameLogic` | ゲームのルールと、ベストタイムの保存の形式（クラスライブラリ）。UI に依存しない |
-| `Shos.Minesweeper.Presentation` | UI の技術に依存しない、アプリで共有する表示と入力の部品（表示の文言、押し方からの操作の割り当て、1 回のゲームの進め方 `GameSession`、効果音の種類・鳴らす音を決める表・波形の合成）。音を鳴らす仕組みには依存しない。クラスライブラリ |
+| `Shos.Minesweeper.Presentation` | UI の技術に依存しない、アプリで共有する表示と入力の部品（表示の文言、押し方からの操作の割り当て、入力された文字列の整え方 `InputText`、1 回のゲームの進め方 `GameSession`、効果音の種類・鳴らす音を決める表・波形の合成）。音を鳴らす仕組みには依存しない。クラスライブラリ |
 | `Shos.Minesweeper` | Blazor WebAssembly アプリ |
 | `Shos.Minesweeper.GameLogic.Tests` | GameLogic のテスト（xUnit v3）。Web アプリに依存しない |
 | `Shos.Minesweeper.Presentation.Tests` | Presentation のテスト（xUnit v3）。Web アプリに依存しない。`GameSession` のテストで盤面を決めるため、TestSupport を参照する |
