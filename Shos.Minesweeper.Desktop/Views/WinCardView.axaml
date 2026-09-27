@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="using:Shos.Minesweeper.Desktop.Views"
+             xmlns:vm="using:Shos.Minesweeper.Desktop.ViewModels"
+             xmlns:p="using:Shos.Minesweeper.Presentation"
+             x:Class="Shos.Minesweeper.Desktop.Views.WinCardView"
+             x:DataType="vm:WinCardViewModel">
+    <!--
+      勝利カード（UI デザイン 2.6、Web 版の UI デザイン 2.4、10.5。Components/WinCard.razor）。モードレスで、盤面の領域に重ねる。
+      ボタンは、ウィンドウのビューモデル（GameViewModel）の操作を呼ぶ
+    -->
+    <Border Classes="win-card" AutomationProperties.Name="{x:Static p:WinCardTexts.Title}">
+        <StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <v:IconView Kind="FaceWon" Width="36" Height="36" />
+                <!-- 出したときは、ボタンでなく見出しにフォーカスを置く。Tab の移動先にはしない（Web 版の tabindex="-1"） -->
+                <TextBlock x:Name="Heading" Classes="win-title" Text="{x:Static p:WinCardTexts.Title}"
+                           Focusable="True" KeyboardNavigation.IsTabStop="False" AutomationProperties.HeadingLevel="2" />
+            </StackPanel>
+            <TextBlock Classes="win-line" Text="{Binding TimeText}" />
+            <!-- カスタムは記録しないので、ベストタイムの行を出さない（文が null） -->
+            <StackPanel Classes="win-line" Orientation="Horizontal" Spacing="6"
+                        IsVisible="{Binding BestTimeText, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <v:IconView Kind="Star" Width="20" Height="20" IsVisible="{Binding IsNewBest}" />
+                <TextBlock Text="{Binding BestTimeText}" Classes.new-best="{Binding IsNewBest}" VerticalAlignment="Center" />
+            </StackPanel>
+            <StackPanel Classes="win-actions" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Content="{x:Static p:WinCardTexts.PlayAgain}"
+                        Command="{Binding $parent[Window].((vm:GameViewModel)DataContext).NewGame}" />
+                <Button Content="{x:Static p:WinCardTexts.Close}"
+                        Command="{Binding $parent[Window].((vm:GameViewModel)DataContext).CloseWinCard}" />
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</UserControl>

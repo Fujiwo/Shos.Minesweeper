@@ -1,0 +1,76 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="using:Shos.Minesweeper.Desktop.Views"
+             xmlns:vm="using:Shos.Minesweeper.Desktop.ViewModels"
+             xmlns:p="using:Shos.Minesweeper.Presentation"
+             x:Class="Shos.Minesweeper.Desktop.Views.DifficultyDialogView"
+             x:DataType="vm:DifficultyDialogViewModel">
+    <!--
+      難易度ダイアログ（UI デザイン 2.5、Web 版の UI デザイン 2.3。Components/DifficultyDialog.razor）。
+      別のウィンドウにはせず、ウィンドウの中身の中央に重ね、盤面の上に半透明の幕をかける
+    -->
+    <UserControl.Resources>
+        <!-- カスタムの入力欄 1 つ。名前、入力欄、範囲の行と、誤りがあるときの誤りの行 -->
+        <DataTemplate x:Key="CustomFieldTemplate" x:DataType="vm:CustomFieldViewModel">
+            <Grid Classes="custom-field" ColumnDefinitions="64,80,*" RowDefinitions="Auto,Auto">
+                <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
+                <TextBox Grid.Column="1" Classes="custom" Classes.invalid="{Binding IsInvalid}" Text="{Binding Text}"
+                         AutomationProperties.Name="{Binding Label}" AutomationProperties.HelpText="{Binding HelpText}" />
+                <TextBlock Grid.Column="2" Classes="sub" Text="{Binding RangeText}" VerticalAlignment="Center" />
+                <!-- 誤りは、枠の色だけでなく、警告のアイコンと文で示す（色だけに頼らない） -->
+                <DockPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Classes="error" IsVisible="{Binding IsInvalid}">
+                    <v:IconView DockPanel.Dock="Left" Kind="Warning" Width="16" Height="16" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding ErrorText}" TextWrapping="Wrap" />
+                </DockPanel>
+            </Grid>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Panel>
+        <Border x:Name="Backdrop" Classes="backdrop" />
+        <Border Classes="dialog" AutomationProperties.Name="{x:Static p:DifficultyDialogTexts.Title}"
+                KeyboardNavigation.TabNavigation="Cycle">
+            <!-- 中身の領域に収まらないときは、ダイアログの中をスクロールする -->
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="16">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Classes="close" Command="{Binding Close}"
+                                AutomationProperties.Name="{x:Static p:DifficultyDialogTexts.Close}" ToolTip.Tip="{x:Static p:DifficultyDialogTexts.Close}">
+                            <v:IconView Kind="Close" Width="22" Height="22" />
+                        </Button>
+                        <TextBlock Classes="dialog-title" Text="{x:Static p:DifficultyDialogTexts.Title}" AutomationProperties.HeadingLevel="2" />
+                    </DockPanel>
+
+                    <ItemsControl x:Name="RowsControl" Classes="presets" ItemsSource="{Binding Rows}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Spacing="8" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:DifficultyRowViewModel">
+                                <Button Classes="preset"
+                                        Command="{Binding $parent[ItemsControl].((vm:DifficultyDialogViewModel)DataContext).Select}" CommandParameter="{Binding}"
+                                        AutomationProperties.Name="{Binding AccessibleName}" AutomationProperties.ItemStatus="{Binding ItemStatus}">
+                                    <Grid ColumnDefinitions="Auto,*,Auto,24" ColumnSpacing="8">
+                                        <TextBlock Classes="name" Text="{Binding Name}" />
+                                        <TextBlock Grid.Column="1" Classes="sub" Text="{Binding SizeText}" HorizontalAlignment="Right" />
+                                        <TextBlock Grid.Column="2" Classes="sub" Text="{Binding BestTimeText}" />
+                                        <!-- 現在の難易度は、色だけでなくチェックの印でも示す -->
+                                        <v:IconView Grid.Column="3" Kind="Check" Width="24" Height="24" IsVisible="{Binding IsCurrent}" />
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Classes="section-title" Text="{x:Static v:DifficultyDialogView.CustomTitle}" AutomationProperties.HeadingLevel="3" />
+                    <ContentControl Content="{Binding Width}" ContentTemplate="{StaticResource CustomFieldTemplate}" />
+                    <ContentControl Content="{Binding Height}" ContentTemplate="{StaticResource CustomFieldTemplate}" />
+                    <ContentControl Content="{Binding MineCount}" ContentTemplate="{StaticResource CustomFieldTemplate}" />
+                    <Button Classes="start-custom" Content="{x:Static p:DifficultyDialogTexts.StartCustom}" Click="OnStartCustomClick" />
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+    </Panel>
+</UserControl>

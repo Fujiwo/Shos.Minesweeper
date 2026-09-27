@@ -59,6 +59,27 @@ public class WindowSizingTests
     public void WindowAboveTheWorkAreaIsMovedDown()
         => Assert.Equal(new PixelRect(0, 0, 400, 420), WindowSizing.KeepWithin(new PixelRect(-50, -20, 400, 420), WorkArea));
 
+    // 勝利カードの幅は、盤面の領域の幅 − 16px と 360px の小さいほう（Web 版の UI デザイン 10.5）
+    [Theory]
+    [InlineData(500, 360)]
+    [InlineData(368, 352)]
+    public void WinCardIsNarrowerThanTheArea(double areaWidth, double expected)
+        => Assert.Equal(expected, WindowSizing.WinCardWidthOf(areaWidth));
+
+    // 盤面の下に余白があれば、カードは盤面の下端の 8px 下に置く（盤面は領域の縦の中央にある）
+    [Fact]
+    public void WinCardGoesBelowTheBoardWhenThereIsRoom()
+        => Assert.Equal(508, WindowSizing.WinCardTopOf(areaHeight: 700, boardHeight: 300, cardHeight: 150));
+
+    // 余白がなければ、カードは領域の下端の 8px 上に寄り、盤面の下の段に重なる（デスクトップ版の UI デザイン 2.6）
+    [Fact]
+    public void WinCardOverlapsTheBoardWhenThereIsNoRoom()
+        => Assert.Equal(142, WindowSizing.WinCardTopOf(areaHeight: 300, boardHeight: 294, cardHeight: 150));
+
+    [Fact]
+    public void WinCardDoesNotGoAboveTheArea()
+        => Assert.Equal(0, WindowSizing.WinCardTopOf(areaHeight: 100, boardHeight: 100, cardHeight: 150));
+
     static Difficulty DifficultyNamed(string name)
         => name switch {
             "Beginner"     => Difficulty.Beginner,

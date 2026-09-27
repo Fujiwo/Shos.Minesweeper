@@ -120,14 +120,15 @@
         </Setter>
         <Setter Property="FocusAdorner" Value="{x:Null}" />
     </Style>
-    <Style Selector="Button:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
-        <Setter Property="BorderBrush" Value="{DynamicResource focus}" />
-        <Setter Property="BorderThickness" Value="3" />
-    </Style>
     <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource button-hover}" />
         <Setter Property="BorderBrush" Value="{DynamicResource border}" />
         <Setter Property="Foreground" Value="{DynamicResource text}" />
+    </Style>
+    <!-- 指したときのスタイルより後に書き、指したままでもフォーカスの色を保つ（後に書いたスタイルが勝つ） -->
+    <Style Selector="Button:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="BorderBrush" Value="{DynamicResource focus}" />
+        <Setter Property="BorderThickness" Value="3" />
     </Style>
     <Style Selector="Button:pressed">
         <Setter Property="RenderTransform" Value="scale(0.95)" />
@@ -159,6 +160,142 @@
         <Setter Property="FontFeatures" Value="+tnum" />
         <Setter Property="HorizontalAlignment" Value="Right" />
         <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- 補足の文（難易度の行の大きさとベストタイム、入力欄の範囲）。本文より小さく、薄い色にする（UI デザイン 2.8） -->
+    <Style Selector="TextBlock.sub">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Foreground" Value="{DynamicResource text-sub}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- 難易度ダイアログ（Web 版の DifficultyDialog.razor.css）。盤面の上に、黒の不透明度 45% の幕をかける -->
+    <Style Selector="Border.backdrop">
+        <Setter Property="Background" Value="#73000000" />
+    </Style>
+
+    <!-- 幅は「中身の領域の幅 − 32px」と 400px の小さいほう（UI デザイン 2.5）。中身の領域に収まらないときは、中をスクロールする -->
+    <Style Selector="Border.dialog">
+        <Setter Property="Margin" Value="16" />
+        <Setter Property="MaxWidth" Value="400" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Background" Value="{DynamicResource surface}" />
+        <Setter Property="BoxShadow" Value="0 8 24 0 #4d000000" />
+    </Style>
+
+    <Style Selector="TextBlock.dialog-title">
+        <Setter Property="FontSize" Value="20" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="TextBlock.section-title">
+        <Setter Property="Margin" Value="0,16,0,8" />
+        <Setter Property="FontWeight" Value="Bold" />
+    </Style>
+
+    <Style Selector="Button.close">
+        <Setter Property="Width" Value="44" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+
+    <Style Selector="ItemsControl.presets">
+        <Setter Property="Margin" Value="0,12,0,0" />
+    </Style>
+
+    <!-- 難易度の行は、1 行ずつの大きなボタン（高さ 56px 以上）。名前、大きさ、ベストタイム、チェックの印を並べる -->
+    <Style Selector="Button.preset">
+        <Setter Property="Height" Value="NaN" />
+        <Setter Property="MinHeight" Value="56" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Button.preset TextBlock.name">
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="Grid.custom-field">
+        <Setter Property="ColumnSpacing" Value="8" />
+        <Setter Property="RowSpacing" Value="4" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+
+    <!-- 誤りの文は、警告のアイコンと文で示す（色だけに頼らない） -->
+    <Style Selector="DockPanel.error v|IconView">
+        <Setter Property="Margin" Value="0,0,4,0" />
+    </Style>
+    <Style Selector="DockPanel.error TextBlock">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Foreground" Value="{DynamicResource danger-text}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="Button.start-custom">
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="Padding" Value="16,0" />
+    </Style>
+
+    <!--
+      入力欄（Web 版の DifficultyDialog.razor.css の input）。面は surface、1px の枠、角の半径 8px。数字の幅をそろえる。
+      誤りのある欄は、枠を 2px の danger の色にする。フォーカスのある欄は、枠を focus の色の 3px にする
+      （Web 版は枠の外に描く。ボタンと同じく、Avalonia では枠を太くして示す。誤りの枠より後に書き、フォーカスを優先する）
+    -->
+    <Style Selector="TextBox.custom">
+        <Setter Property="Height" Value="44" />
+        <Setter Property="Padding" Value="8,0" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{DynamicResource text}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource text}" />
+        <Setter Property="FontFeatures" Value="+tnum" />
+        <Setter Property="FocusAdorner" Value="{x:Null}" />
+    </Style>
+    <Style Selector="TextBox.custom /template/ Border#PART_BorderElement, TextBox.custom:pointerover /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="{DynamicResource surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+    </Style>
+    <Style Selector="TextBox.custom:pointerover, TextBox.custom:focus">
+        <Setter Property="Foreground" Value="{DynamicResource text}" />
+    </Style>
+    <Style Selector="TextBox.custom.invalid /template/ Border#PART_BorderElement">
+        <Setter Property="BorderBrush" Value="{DynamicResource danger}" />
+        <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="TextBox.custom:focus /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="{DynamicResource surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource focus}" />
+        <Setter Property="BorderThickness" Value="3" />
+    </Style>
+
+    <!-- 勝利カード（Web 版の WinCard.razor.css）。幅と置き場所は WinCardArea が決める -->
+    <Style Selector="Border.win-card">
+        <Setter Property="Padding" Value="16,12" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Background" Value="{DynamicResource surface}" />
+        <Setter Property="BoxShadow" Value="0 8 24 0 #4d000000" />
+    </Style>
+    <Style Selector="TextBlock.win-title">
+        <Setter Property="FontSize" Value="22" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="FocusAdorner" Value="{x:Null}" />
+    </Style>
+    <Style Selector="TextBlock.win-line, StackPanel.win-line">
+        <Setter Property="Margin" Value="0,6,0,0" />
+    </Style>
+    <Style Selector="TextBlock.new-best">
+        <Setter Property="FontWeight" Value="Bold" />
+    </Style>
+    <Style Selector="StackPanel.win-actions">
+        <Setter Property="Margin" Value="0,10,0,0" />
+    </Style>
+    <Style Selector="StackPanel.win-actions > Button">
+        <Setter Property="MinWidth" Value="88" />
+        <Setter Property="Padding" Value="12,0" />
     </Style>
 
     <!-- 読み上げの領域。画面には見せないが、UI オートメーションの木には残す（仕様書 4.8） -->

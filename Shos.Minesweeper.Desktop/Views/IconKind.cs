@@ -12,5 +12,9 @@ public enum IconKind
     FaceWon,
     FaceLost,
     Clock,
-    Chevron
+    Chevron,
+    Close,
+    Check,
+    Warning,
+    Star
 }

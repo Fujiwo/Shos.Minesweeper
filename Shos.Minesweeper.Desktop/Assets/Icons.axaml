@@ -157,4 +157,58 @@
             </ControlTemplate>
         </Setter>
     </Style>
+
+    <!-- 難易度ダイアログを閉じる × -->
+    <Style Selector="v|IconView[Kind=Close]">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Viewbox>
+                    <Canvas Width="24" Height="24">
+                        <Path Data="M6 6 L18 18 M18 6 L6 18" Stroke="{TemplateBinding Foreground}" StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round" />
+                    </Canvas>
+                </Viewbox>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <!-- 難易度ダイアログの、現在の難易度の印 -->
+    <Style Selector="v|IconView[Kind=Check]">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Viewbox>
+                    <Canvas Width="24" Height="24">
+                        <Path Data="M5 12.5 L10 17.5 L19 7" Stroke="{TemplateBinding Foreground}" StrokeThickness="2.6" StrokeLineCap="Round" StrokeJoin="Round" />
+                    </Canvas>
+                </Viewbox>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <!-- 入力の誤りの警告。三角は誤りの文と同じ色、「!」は背景の色で抜く -->
+    <Style Selector="v|IconView[Kind=Warning]">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Viewbox>
+                    <Canvas Width="24" Height="24">
+                        <Path Data="M12 3 L22 20.5 H2 Z" Fill="{DynamicResource danger-text}" />
+                        <Line StartPoint="12,9.5" EndPoint="12,14.5" Stroke="{DynamicResource surface}" StrokeThickness="2.2" StrokeLineCap="Round" />
+                        <Ellipse Canvas.Left="10.8" Canvas.Top="16.3" Width="2.4" Height="2.4" Fill="{DynamicResource surface}" />
+                    </Canvas>
+                </Viewbox>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <!-- 勝利カードの、ベストタイムを更新・記録した行の星 -->
+    <Style Selector="v|IconView[Kind=Star]">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Viewbox>
+                    <Canvas Width="24" Height="24">
+                        <Polygon Points="12,2.5 14.9,8.6 21.5,9.3 16.5,13.8 17.9,20.3 12,17 6.1,20.3 7.5,13.8 2.5,9.3 9.1,8.6" Fill="{DynamicResource accent}" />
+                    </Canvas>
+                </Viewbox>
+            </ControlTemplate>
+        </Setter>
+    </Style>
 </Styles>

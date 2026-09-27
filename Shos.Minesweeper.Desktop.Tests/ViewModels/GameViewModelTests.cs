@@ -178,6 +178,203 @@ public sealed class GameViewModelTests : IDisposable
         Assert.Equal(3, game.ElapsedSeconds);
     }
 
+    [Fact]
+    public void WinningShowsTheWinCard()
+    {
+        var changed = Watch();
+
+        Win(afterSeconds: 45);
+
+        Assert.NotNull(game.WinCard);
+        Assert.Equal("タイム 45 秒", game.WinCard.TimeText);
+        Assert.Equal("ベストタイムを記録しました", game.WinCard.BestTimeText);
+        Assert.True(game.WinCard.IsNewBest);
+        Assert.Contains(nameof(GameViewModel.WinCard), changed);
+    }
+
+    [Fact]
+    public void WinCardTellsTheBestTimeThatWasNotBeaten()
+    {
+        Win(afterSeconds: 45);
+        game.NewGame();
+
+        Win(afterSeconds: 60);
+
+        Assert.Equal("ベスト 45 秒", game.WinCard!.BestTimeText);
+        Assert.False(game.WinCard.IsNewBest);
+    }
+
+    [Fact]
+    public void LosingShowsNoWinCard()
+    {
+        Open(new CellPosition(0, 0));
+
+        Open(new CellPosition(0, 4));
+
+        Assert.Null(game.WinCard);
+    }
+
+    [Fact]
+    public void NewGameClosesTheWinCard()
+    {
+        Win(afterSeconds: 45);
+
+        game.NewGame();
+
+        Assert.Null(game.WinCard);
+    }
+
+    // カードを出していないときは、カードが閉じたとは知らせない（Views は、閉じたと知らされたときにフォーカスを移すかを決める）
+    [Fact]
+    public void NewGameWithoutTheWinCardDoesNotTellThatItClosed()
+    {
+        var changed = Watch();
+
+        game.NewGame();
+
+        Assert.DoesNotContain(nameof(GameViewModel.WinCard), changed);
+    }
+
+    // 閉じても、勝った盤面はそのまま残る
+    [Fact]
+    public void ClosingTheWinCardKeepsTheBoard()
+    {
+        Win(afterSeconds: 45);
+
+        game.CloseWinCard();
+
+        Assert.Null(game.WinCard);
+        Assert.Equal(FaceKind.Won, game.Face);
+    }
+
+    [Fact]
+    public void F2ClosesTheWinCard()
+    {
+        Win(afterSeconds: 45);
+
+        game.HandleKey(Key.F2);
+
+        Assert.Null(game.WinCard);
+    }
+
+    [Fact]
+    public void OpeningTheDifficultyDialogShowsTheCurrentGame()
+    {
+        var changed = Watch();
+
+        game.OpenDifficultyDialog();
+
+        Assert.NotNull(game.DifficultyDialog);
+        Assert.True(game.DifficultyDialog.Rows[0].IsCurrent);
+        Assert.Contains(nameof(GameViewModel.DifficultyDialog), changed);
+    }
+
+    [Fact]
+    public void DifficultyDialogTellsTheBestTimes()
+    {
+        Win(afterSeconds: 45);
+
+        game.OpenDifficultyDialog();
+
+        Assert.Equal("ベスト 45 秒", game.DifficultyDialog!.Rows[0].BestTimeText);
+    }
+
+    // F2 は、ダイアログの中にフォーカスを閉じ込めている間は効かない（UI デザイン 2.11）
+    [Fact]
+    public void F2DoesNothingWhileTheDifficultyDialogIsOpen()
+    {
+        Open(new CellPosition(0, 0));
+        game.OpenDifficultyDialog();
+
+        Assert.False(game.HandleKey(Key.F2));
+
+        Assert.Equal(CellAppearance.Opened, game.Board.Cells[0].Appearance);
+    }
+
+    [Fact]
+    public void SelectingADifficultyStartsItsGame()
+    {
+        var selectedCount = 0;
+        game.DifficultySelected += () => selectedCount++;
+        game.OpenDifficultyDialog();
+
+        game.DifficultyDialog!.Select(game.DifficultyDialog.Rows[1]);
+
+        Assert.Equal(Difficulty.Intermediate, game.Difficulty);
+        Assert.Equal("中級", game.DifficultyName);
+        Assert.Equal(16 * 16, game.Board.Cells.Count);
+        Assert.Equal("新しいゲーム、中級、16×16、地雷 40。", game.Announcement);
+        Assert.Null(game.DifficultyDialog);
+        Assert.Equal(1, selectedCount);
+    }
+
+    // 今と同じ難易度を選んでも、新しいゲームを始め、ウィンドウを盤面に合わせ直す（Web 版の UI デザイン 8 章の決定 7）
+    [Fact]
+    public void SelectingTheSameDifficultyStartsANewGame()
+    {
+        var selectedCount = 0;
+        game.DifficultySelected += () => selectedCount++;
+        Open(new CellPosition(0, 0));
+        game.OpenDifficultyDialog();
+
+        game.DifficultyDialog!.Select(game.DifficultyDialog.Rows[0]);
+
+        Assert.Equal(CellAppearance.Closed, game.Board.Cells[0].Appearance);
+        Assert.Equal(1, selectedCount);
+    }
+
+    [Fact]
+    public void StartingACustomGameUsesTheEnteredSize()
+    {
+        game.OpenDifficultyDialog();
+        var dialog = game.DifficultyDialog!;
+        dialog.Width.Text = "12";
+        dialog.Height.Text = "6";
+        dialog.MineCount.Text = "10";
+
+        dialog.StartCustom();
+
+        Assert.Equal(Difficulty.Custom(12, 6, 10), game.Difficulty);
+        Assert.Equal(6, game.Board.RowCount);
+        Assert.Equal(12, game.Board.ColumnCount);
+    }
+
+    // 閉じても、プレイ中のゲームはそのまま続く
+    [Fact]
+    public void ClosingTheDifficultyDialogKeepsTheGame()
+    {
+        Open(new CellPosition(0, 0));
+        game.OpenDifficultyDialog();
+
+        game.DifficultyDialog!.Close();
+
+        Assert.Null(game.DifficultyDialog);
+        Assert.Equal(CellAppearance.Opened, game.Board.Cells[0].Appearance);
+    }
+
+    // 勝利カードを出したまま難易度を選ぶと、カードも閉じる。
+    // ダイアログを先に閉じたと知らせる。Views は、フォーカスを難易度 ボタンに戻してから、カードが消えたことを受けるので、
+    // フォーカスをリセット ボタンに移さずに済む（クラス設計書 4.10）
+    [Fact]
+    public void SelectingADifficultyClosesTheDialogAndThenTheWinCard()
+    {
+        Win(afterSeconds: 45);
+        game.OpenDifficultyDialog();
+        var changed = Watch();
+
+        game.DifficultyDialog!.Select(game.DifficultyDialog.Rows[0]);
+
+        Assert.Null(game.WinCard);
+        Assert.True(changed.IndexOf(nameof(GameViewModel.DifficultyDialog)) < changed.IndexOf(nameof(GameViewModel.WinCard)));
+    }
+
+    void Win(int afterSeconds)
+    {
+        Open(new CellPosition(0, 0));
+        time.Advance(TimeSpan.FromSeconds(afterSeconds));
+        Open(new CellPosition(0, 8));
+    }
+
     void Open(CellPosition position)
     {
         game.Board.Press(position);

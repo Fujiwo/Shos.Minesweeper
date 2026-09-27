@@ -286,6 +286,7 @@ public sealed class BestTimesFile(string path)
 | | `AnimationEffects` | static class | OS の「アニメーション効果」がオンかを読む |
 | | `DataFilePaths` | static class | 保存するファイルのパス |
 | Views | `MainWindow`、`ToolbarView`、`BoardView`、`CellView`、`DifficultyDialogView`、`WinCardView` | XAML と code-behind | 4.10 |
+| | `WinCardArea`（区切り 6 で加えた） | class（`Panel`） | 勝利カードの置き場（4.10） |
 | | `CellAnimationTimings` | static class | 演出の長さと遅れの最大（Web 版の CSS と同じ値） |
 | （直下） | `App`、`Program` | class | 起動、テーマ、組み立て（4.12） |
 
@@ -391,7 +392,8 @@ public sealed class GameViewModel : INotifyPropertyChanged
 public enum FaceKind { Normal, Surprised, Won, Lost }
 ```
 
-- **区切りごとに育てる**（区切り 5 で決めた）: 区切り 5 のコンストラクターは（時刻、ベストタイムのファイル、地雷の置き方）で、音の出口、効果音の設定のファイル、アニメーション効果の設定は区切り 7 で加えて、上の形にする。難易度ダイアログと勝利カードは区切り 6 で加える。
+- **区切りごとに育てる**（区切り 5 で決めた）: 区切り 5 のコンストラクターは（時刻、ベストタイムのファイル、地雷の置き方）で、音の出口、効果音の設定のファイル、アニメーション効果の設定は区切り 7 で加えて、上の形にする。難易度ダイアログと勝利カードは区切り 6 で加えた。
+- `WinCard` だけは、値が変わったときだけ知らせる（区切り 6 で決めた。4.2 の例外）。Views が「カードが閉じた」と知らされたときにフォーカスを移すかを決めるので、カードのない新しいゲームで知らせると、移す必要のないときに判定が走るためである（code-review.md の区切り 6 の指摘 1）。
 
 #### 作るときにすること
 
@@ -492,7 +494,7 @@ public sealed class CellViewModel : INotifyPropertyChanged
 Web 版の `DifficultyDialog` に当たる（UI 2.5、Web 版 UI 2.3）。
 
 ```csharp
-public sealed class DifficultyDialogViewModel : INotifyPropertyChanged
+public sealed class DifficultyDialogViewModel   // 区切り 6: 開いている間に自分のプロパティが変わらないので、変化の通知を実装しない
 {
     public DifficultyDialogViewModel(Difficulty current, BestTimes bestTimes, Action<Difficulty> select, Action close);
 
@@ -514,6 +516,8 @@ public sealed class DifficultyRowViewModel
     public string SizeText { get; }       // 「9×9・地雷 10」
     public string BestTimeText { get; }   // 「ベスト 23 秒」「記録なし」
     public bool IsCurrent { get; }        // チェックの印
+    public string AccessibleName { get; } // 「初級、9×9・地雷 10、ベスト 23 秒」（区切り 6 で加えた。Web 版のボタンの中身の文に当たる）
+    public string? ItemStatus { get; }    // 今の難易度だけ「現在の難易度」（区切り 6 で加えた。Web 版の aria-current に当たる）
 }
 
 public sealed class CustomFieldViewModel : INotifyPropertyChanged
@@ -526,6 +530,7 @@ public sealed class CustomFieldViewModel : INotifyPropertyChanged
     public string RangeText { get; }     // 「5〜30」。地雷数は、幅と高さの値から
     public bool IsInvalid { get; }
     public string? ErrorText { get; }    // 誤りのときだけ「5〜30 の整数を入力してください」
+    public string HelpText { get; }      // 読み上げの補足。範囲か、誤りがあれば誤りの文（区切り 6 で加えた。Web 版の aria-describedby に当たる）
 }
 ```
 
@@ -533,7 +538,8 @@ public sealed class CustomFieldViewModel : INotifyPropertyChanged
 - `StartCustom` は、`Difficulty.ValidateCustom(Width.Value, Height.Value, MineCount.Value)` で確かめ、各欄の `IsInvalid` を決める。正しければ `select(Difficulty.Custom(...))` を呼ぶ。誤った欄へのフォーカスの移動は Views が行う（戻り値の欄）。フォーカスは画面の部品の仕事だからである。
 - 地雷数の範囲の文は、幅と高さの `Value` から `CustomDifficultyTexts.MineCountRangeOf` で求める。幅か高さの `Text` が変わったら、ダイアログが地雷数の欄の `RangeText` と `ErrorText` を知らせ直す（幅と高さの欄の変化の通知を受ける）。
 - 入力は、Web 版と違い、C# の `InputText.Normalize` で整える。デスクトップ版はブラウザーではない .NET で動き、ICU を使う（CLAUDE.md の「設計方針」。11 章 #6 は、発行した実行ファイルで確かめる）。
-- `DifficultyRowViewModel` は、開いている間に値が変わらないので、通知を実装しない。
+- `DifficultyRowViewModel` は、開いている間に値が変わらないので、通知を実装しない。`DifficultyDialogViewModel` も同じ理由で実装しない（区切り 6 で改めた。変わるのは入力欄で、欄が知らせる）。
+- `IsInvalid` は「カスタムで始める」を押したときに決め、欄を直しても次に押すまでは残す（Web 版と同じ）。
 - `DifficultyDialogViewModel` のコンストラクターの引数は 4 つある。ダイアログに要る値（今の難易度、ベストタイム）と、結果の返し先（選んだ、閉じた）で、呼ぶのは `GameViewModel` とテストだけである。Web 版の `DifficultyDialog` の引数とイベント（`Current`、`BestTimes`、`OnSelect`、`OnClose`）と同じ組である。
 - ボタンは、Avalonia のメソッドへのバインディング（`Command="{Binding Close}"` のように、`ICommand` を実装せずにメソッドを指す）で呼ぶ。コンパイル済みのバインディングでも使えるかは、区切り 5 で確かめる。
 
@@ -579,6 +585,12 @@ public static class WindowSizing
     public static Size ContentSizeOf(Difficulty difficulty);                  // 既定のマスの大きさで、盤面とツールバーが収まる中身の大きさ
     public static int CellSizeToFit(Size boardArea, Difficulty difficulty);   // 盤面の領域に収まる最大の整数の大きさ（20〜48）
     public static PixelRect KeepWithin(PixelRect window, PixelRect workArea); // 左上を保ち、はみ出すなら動かす。大きすぎれば縮める
+
+    // 区切り 6 で加えた（勝利カードの置き方。Web 版 UI 10.5）
+    public const double WinCardMaxWidth = 360;
+    public const double WinCardGap = 8;                                          // カードと、盤面の下端・領域の端との間
+    public static double WinCardWidthOf(double areaWidth);                       // 領域の幅 − 16 と 360 の小さいほう
+    public static double WinCardTopOf(double areaHeight, double boardHeight, double cardHeight);   // 盤面の下端 + 8 と、領域の下端 − 8 − カードの高さの小さいほう（0 より上に出さない）
 }
 ```
 
@@ -639,7 +651,8 @@ public static class DataFilePaths
 | `BoardView` | 盤面の枠と、マスの並び（`ItemsControl` と `UniformGrid`）。下限のマスでも収まらなければスクロール | 盤面の領域の大きさの変化を `SetAreaSize` に、キーを `HandleKey` に渡す。矢印キーでカーソルが動いたら、`FocusCursorCell` で `CursorPosition` のマスへ、キーボードの移動として（`NavigationMethod.Directional`）フォーカスを移す（下の段落） |
 | `CellView` | 1 つのマス（タイル、数字、アイコン、フォーカスの枠） | ポインターの押す・離す・失うを `BoardViewModel` に渡す（離したときは、押したマスの上かを求めて渡す）。`Animation` と `IsFlagJustPlaced` が変わったら演出を始める |
 | `DifficultyDialogView` | 幕とダイアログ | 開いたときのフォーカス、Esc と幕のクリックで `Close`、`StartCustom` が返した欄へのフォーカス |
-| `WinCardView` | 勝利カード | 出したときに見出しにフォーカスを移す（Web 版 UI 2.4）。Esc で `CloseWinCard` |
+| `WinCardView` | 勝利カード | 出したときに見出しにフォーカスを移す口（`FocusHeading`。Web 版 UI 2.4）。Esc は、カードの中にフォーカスがあるときに `MainWindow` が受けて `CloseWinCard` を呼ぶ（区切り 6 で改めた。フォーカスの移動と同じ場所に置く） |
+| `WinCardArea`（区切り 6 で加えた） | 勝利カードの置き場（Web 版の `win-card-area`）。盤面の領域に重ねる `Panel` で、背景がないので、カードの外は盤面を押せる | 並べ方（`WindowSizing.WinCardWidthOf`、`WinCardTopOf`）。Web 版は CSS の詰め物で置き場所を決めていたが、Avalonia のパネルには同じ規則がないので、式にしてテストした |
 
 **フォーカス**（UI 2.11、Web 版 UI 2.4、6.3）
 
@@ -651,6 +664,9 @@ public static class DataFilePaths
 | 難易度ダイアログを開いたとき | 今の難易度の行。カスタムのゲーム中なら「幅」の欄（Web 版 クラス 9.1 の決定 4） |
 | 難易度ダイアログを閉じたとき（選んだとき、閉じたとき） | 難易度 ボタン |
 
+- **フォーカスを移す仕組み**（区切り 6 で決めた）: `MainWindow` が `GameViewModel` の `DifficultyDialog` と `WinCard` の変化を受け、表示が変わった後（`DispatcherPriority.Loaded`）に、上の表の場所へ移す。隠れていた要素や、使えなかった要素には、フォーカスが入らないためである。
+  - 勝利カードが閉じたときは、フォーカスがカードと一緒になくなったときだけリセット ボタンへ移す（9.1 の決定 3 の「行き先がなくなる」を、そのまま判定にした）。F2 を盤面で押したときはフォーカスが盤面に残り、難易度を選んだときはダイアログが先に閉じて難易度 ボタンに移る（`GameViewModel` はダイアログを先に閉じ、カードが変わったときだけ知らせる）。
+  - 移し方は、最後の操作がキーボードなら `NavigationMethod.Tab`（枠を出す）、マウスなら `Unspecified`（枠を出さない）にする。ブラウザーの `:focus-visible` と同じ考え方で、`MainWindow` がキーとポインターのイベントを先に（トンネルで）見て覚える。
 - 盤面は Tab の移動先を 1 つにし（`KeyboardNavigation.TabNavigation="Once"`）、盤面に入ったときにカーソルのマスへフォーカスが行くようにする（アーキ 7.4）。
 - **カーソルのマスへフォーカスを移す処理は、`BoardView` の 1 つのメソッド（`FocusCursorCell`）だけ**にする（クラス設計書レビューの指摘 1）。キーでカーソルが動いたときは、このメソッドでキーボードの移動としてフォーカスを移し、フォーカスの枠（`:focus-visible`）を出す。マウスで押したときは、押したことによるフォーカスに任せ、枠を出さない（UI 2.11）。どちらの操作で動いたかを知っているのは、キーを受けた View とポインターを受けた `CellView` だからである。呼ぶのは、矢印キーを受けた `BoardView` と、F2 で新しいゲームを始めたときに盤面にフォーカスがあった場合の `MainWindow`（カーソルは左上に戻る）の 2 か所である。Avalonia の `:focus-visible` が、この移し方で付くかは区切り 5 で確かめる。
 - 難易度ダイアログを開いている間は、ツールバーと盤面を `IsEnabled="False"` にして、フォーカスもクリックも届かないようにする。ダイアログの中は Tab を循環させる。Web 版の `inert` と違い、読み上げの木からは消えない。これで足りるかは、ナレーターで確かめる（11 章 #3）。
@@ -1123,7 +1139,7 @@ GameLoop.Run(terminal, new ScreenNavigator(game), new FrameWriter(terminal.Outpu
 | Desktop.Tests | `GameViewModelTests` | 勝ったら記録して保存し、勝利カードと読み上げ。負けの読み上げ。効果音: 盤面の操作で出口に渡る、オフなら渡らない、切り替えを保存する。F2: 新しいゲーム、勝利カードを閉じる、ダイアログの間は効かない。経過時間: 秒が変わったときだけ知らせる。難易度の選択で `DifficultySelected`。顔の表情 |
 | | `BoardViewModelTests` | 押下中の範囲（未開放、コード）、押したマスの上で離すと開く、外で離すと取り消し、右ボタンで旗、勝敗の後は押下中にならない、カーソルの移動とマウスで押したマスへの移動、新しいゲームでカーソルが左上に戻る、キー、変わったマスだけ知らせる、演出の付け方（設定がオフなら付けない、何も起きない操作では前の演出を消さない）、旗を立てた演出、マスの大きさ |
 | | `DifficultyDialogViewModelTests` | 行の中身（ベストタイム、今の難易度）、カスタムの検証（全角の数字と前後の空白を含む）、地雷数の範囲の文の追従、最初の誤った欄 |
-| | `WindowSizingTests` | 初級 400×382、中級 550×606、上級 998×606、マスの大きさ（上限、下限、切り捨て）、作業領域に収める（動かす、縮める） |
+| | `WindowSizingTests` | 初級 400×382、中級 550×606、上級 998×606、マスの大きさ（上限、下限、切り捨て）、作業領域に収める（動かす、縮める）、勝利カードの幅と上端（盤面の下、領域の下端、上端より上に出さない） |
 | | `KeyboardMappingTests` | キーの表 |
 | | `SoundSettingFileTests` | `"off"` で偽、ない・壊れている・ほかの値で真、書いて読む |
 | | `WebStyleConsistencyTests` | 配色のトークン（ライト、ダーク）と演出の時間が Web 版と同じ（アーキ 7.5） |

@@ -18,6 +18,10 @@ public static class WindowSizing
     public const double ToolbarGap = 4;
     public const double MinToolbarWidth = 368;
     public const double MaxToolbarWidth = 480;
+    public const double WinCardMaxWidth = 360;
+
+    /// <summary>勝利カードと、盤面の下端・盤面の領域の端との間。</summary>
+    public const double WinCardGap = 8;
 
     /// <summary>ツールバーと盤面のまとまりの周りの余白（XAML の Margin に使う）。</summary>
     public static Thickness ContentPadding { get; } = new(ContentMargin);
@@ -54,6 +58,20 @@ public static class WindowSizing
         var x = Math.Clamp(window.X, workArea.X, workArea.Right - width);
         var y = Math.Clamp(window.Y, workArea.Y, workArea.Bottom - height);
         return new(x, y, width, height);
+    }
+
+    /// <summary>勝利カードの幅。盤面の領域の幅 − 16px と 360px の小さいほう（Web 版の UI デザイン 10.5）。</summary>
+    public static double WinCardWidthOf(double areaWidth) => Math.Min(areaWidth - WinCardGap * 2, WinCardMaxWidth);
+
+    /// <summary>
+    /// 盤面の領域の中での、勝利カードの上端（Web 版の UI デザイン 10.5）。盤面は領域の縦の中央にある。
+    /// 盤面の下に余白があれば、盤面の下端の 8px 下。なければ、領域の下端の 8px 上に寄せ、盤面に重ねる。領域の上端より上には出さない。
+    /// </summary>
+    public static double WinCardTopOf(double areaHeight, double boardHeight, double cardHeight)
+    {
+        var belowBoard = (areaHeight + boardHeight) / 2 + WinCardGap;
+        var atBottom = areaHeight - WinCardGap - cardHeight;
+        return Math.Max(0, Math.Min(belowBoard, atBottom));
     }
 
     static double BoardLengthOf(int cellCount) => cellCount * DefaultCellSize + BoardDimensions.FrameWidth * 2;

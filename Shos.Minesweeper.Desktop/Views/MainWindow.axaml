@@ -12,21 +12,30 @@
         FontSize="16">
     <!--
       ウィンドウの中身（UI デザイン 2.2）。ツールバーと盤面のまとまりを中央に置き、周りに 16px の余白を置く。
-      盤面の領域（BoardArea）は、中身から余白とツールバーと間を引いた場所で、その大きさからマスの大きさを決める
+      盤面の領域（BoardArea）は、中身から余白とツールバーと間を引いた場所で、その大きさからマスの大きさを決める。
+      勝利カードは盤面の領域に、難易度ダイアログはウィンドウの中身全体に重ねる
     -->
     <Panel>
-        <Grid Margin="{x:Static s:WindowSizing.ContentPadding}">
+        <!-- 難易度ダイアログを開いている間は、ツールバー、盤面、勝利カードにフォーカスもクリックも届かないようにする（クラス設計書 4.10） -->
+        <Grid Margin="{x:Static s:WindowSizing.ContentPadding}"
+              IsEnabled="{Binding DifficultyDialog, Converter={x:Static ObjectConverters.IsNull}}">
             <Border x:Name="BoardArea" Margin="{x:Static v:MainWindow.BoardAreaMargin}" />
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="{x:Static s:WindowSizing.ToolbarGap}">
-                <v:ToolbarView Height="{x:Static s:WindowSizing.ToolbarHeight}" MaxWidth="{x:Static s:WindowSizing.MaxToolbarWidth}"
+                <v:ToolbarView x:Name="Toolbar" Height="{x:Static s:WindowSizing.ToolbarHeight}" MaxWidth="{x:Static s:WindowSizing.MaxToolbarWidth}"
                                Width="{Binding #BoardArea.Bounds.Width}" HorizontalAlignment="Center" />
                 <!-- 下限のマスでも収まらないときは、盤面の領域をスクロールする（仕様書 4.4） -->
-                <ScrollViewer MaxWidth="{Binding #BoardArea.Bounds.Width}" MaxHeight="{Binding #BoardArea.Bounds.Height}"
+                <ScrollViewer x:Name="BoardScroll" MaxWidth="{Binding #BoardArea.Bounds.Width}" MaxHeight="{Binding #BoardArea.Bounds.Height}"
                               HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                     <v:BoardView x:Name="Board" DataContext="{Binding Board}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </ScrollViewer>
             </StackPanel>
+            <v:WinCardArea Margin="{x:Static v:MainWindow.BoardAreaMargin}" BoardHeight="{Binding #BoardScroll.Bounds.Height}">
+                <v:WinCardView x:Name="WinCard" DataContext="{Binding WinCard}"
+                               IsVisible="{Binding $self.DataContext, Converter={x:Static ObjectConverters.IsNotNull}}" />
+            </v:WinCardArea>
         </Grid>
+        <v:DifficultyDialogView x:Name="DifficultyDialog" DataContext="{Binding DifficultyDialog}"
+                                IsVisible="{Binding $self.DataContext, Converter={x:Static ObjectConverters.IsNotNull}}" />
         <TextBlock Classes="live-region" Text="{Binding Announcement}" AutomationProperties.LiveSetting="Polite" />
     </Panel>
 </Window>
