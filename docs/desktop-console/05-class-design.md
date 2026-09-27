@@ -187,6 +187,7 @@ public static class CustomDifficultyTexts
     public const string Width = "幅";
     public const string Height = "高さ";
     public const string MineCount = "地雷数";
+    // 範囲の式「1〜（幅×高さ − 9）」は、MineCountRangeOf の中だけで使うので公開しない（区切り 2 で決めた）
     public static string RangeOf(AllowedRange range);                   // 「5〜30」
     public static string MineCountRangeOf(int? width, int? height);     // 範囲が決まれば「1〜71」、決まらなければ「1〜（幅×高さ − 9）」
     public static string InvalidValueOf(string rangeText);              // 「5〜30 の整数を入力してください」

@@ -113,7 +113,8 @@ public sealed class Board
                 states[index] = CellState.Flagged;
     }
 
-    bool Contains(CellPosition position)
+    /// <summary>盤面の中の位置か。盤面を変える操作ではないので公開している（カーソルが端で止まる判定に使う）。</summary>
+    public bool Contains(CellPosition position)
         => 0 <= position.Row && position.Row < Height && 0 <= position.Column && position.Column < Width;
 
     CellState StateAt(CellPosition position) => states[IndexOf(position)];

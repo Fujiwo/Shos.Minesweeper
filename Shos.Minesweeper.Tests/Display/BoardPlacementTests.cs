@@ -1,5 +1,6 @@
 using Shos.Minesweeper.Display;
 using Shos.Minesweeper.GameLogic;
+using Shos.Minesweeper.Presentation;
 
 namespace Shos.Minesweeper.Tests.Display;
 
@@ -106,21 +107,11 @@ public class BoardPlacementTests
 
     [Fact]
     public void PositionsAreTheSameWhenNotTransposed()
-    {
-        var placement = BoardPlacement.Calculate(1280, 594, Difficulty.Expert);
-
-        Assert.Equal(new DisplayPosition(3, 7), placement.ToDisplay(new CellPosition(3, 7)));
-        Assert.Equal(new CellPosition(3, 7), placement.ToBoard(new DisplayPosition(3, 7)));
-    }
+        => Assert.Equal(new CellPosition(3, 7), BoardPlacement.Calculate(1280, 594, Difficulty.Expert).ToBoard(new DisplayPosition(3, 7)));
 
     [Fact]
     public void RowAndColumnAreSwappedWhenTransposed()
-    {
-        var placement = TransposedExpert();
-
-        Assert.Equal(new DisplayPosition(7, 3), placement.ToDisplay(new CellPosition(3, 7)));
-        Assert.Equal(new CellPosition(7, 3), placement.ToBoard(new DisplayPosition(3, 7)));
-    }
+        => Assert.Equal(new CellPosition(7, 3), TransposedExpert().ToBoard(new DisplayPosition(3, 7)));
 
     // 上級を 30 列×16 行、マス 36px で表示する: 16 × 36 + 3 × 2
     [Fact]
@@ -132,15 +123,23 @@ public class BoardPlacementTests
     public void BoardHeightUsesTheDisplayedRowsWhenTransposed()
         => Assert.Equal(636, TransposedExpert().BoardHeight);
 
+    // 矢印キーの方向（表示の向き）を、カーソルが動く盤面の向きに変える（デスクトップ版・コンソール版のクラス設計書 3.8）
     [Theory]
-    [InlineData(0, 0, true)]
-    [InlineData(29, 15, true)]
-    [InlineData(30, 15, false)]
-    [InlineData(29, 16, false)]
-    [InlineData(-1, 0, false)]
-    [InlineData(0, -1, false)]
-    public void ContainsOnlyDisplayedPositions(int row, int column, bool isContained)
-        => Assert.Equal(isContained, TransposedExpert().Contains(new DisplayPosition(row, column)));
+    [InlineData(Direction.Up)]
+    [InlineData(Direction.Down)]
+    [InlineData(Direction.Left)]
+    [InlineData(Direction.Right)]
+    public void DirectionIsTheSameWhenNotTransposed(Direction direction)
+        => Assert.Equal(direction, BoardPlacement.Calculate(1280, 594, Difficulty.Expert).ToBoard(direction));
+
+    // 表示の (行, 列) は盤面の (列, 行) なので、表示で上（行 − 1）は盤面で左（列 − 1）、表示で右（列 + 1）は盤面で下（行 + 1）
+    [Theory]
+    [InlineData(Direction.Up,    Direction.Left)]
+    [InlineData(Direction.Down,  Direction.Right)]
+    [InlineData(Direction.Left,  Direction.Up)]
+    [InlineData(Direction.Right, Direction.Down)]
+    public void DirectionIsSwappedWhenTransposed(Direction displayed, Direction onBoard)
+        => Assert.Equal(onBoard, TransposedExpert().ToBoard(displayed));
 
     // スマートフォンの縦画面（390×700）の上級。16 列×30 行で表示する
     static BoardPlacement TransposedExpert() => BoardPlacement.Calculate(382, 636, Difficulty.Expert);

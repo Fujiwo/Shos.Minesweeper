@@ -2,6 +2,7 @@ using Bunit;
 using Shos.Minesweeper.Components;
 using Shos.Minesweeper.Display;
 using Shos.Minesweeper.GameLogic;
+using Shos.Minesweeper.Presentation;
 using Shos.Minesweeper.TestSupport;
 
 namespace Shos.Minesweeper.Tests.Components;

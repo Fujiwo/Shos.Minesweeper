@@ -1,9 +1,10 @@
 using Shos.Minesweeper.Display;
 using Shos.Minesweeper.GameLogic;
+using Shos.Minesweeper.Presentation;
 
 namespace Shos.Minesweeper.Tests.Display;
 
-/// <summary>マスの見た目と読み上げの名前（クラス設計書 4.3 の表、UI デザイン 4.2、6.4）。</summary>
+/// <summary>マスの見た目（クラス設計書 4.3 の表、UI デザイン 4.2）。読み上げの名前は Presentation.Tests の BoardNamesTests で確かめる。</summary>
 public class CellPresentationTests
 {
     [Theory]
@@ -39,17 +40,6 @@ public class CellPresentationTests
     [InlineData(CellAppearance.ExplodedMine, 2, "")]    // 踏んだ地雷は開いたマスでも数字を出さない
     public void NumberIsShownOnlyOnOpenedNumberCells(CellAppearance appearance, int adjacentMineCount, string text)
         => Assert.Equal(text, CellPresentation.NumberTextOf(appearance, adjacentMineCount));
-
-    [Theory]
-    [InlineData(CellAppearance.Closed,       0, "3 行 5 列、未開放")]
-    [InlineData(CellAppearance.Flagged,      0, "3 行 5 列、旗")]
-    [InlineData(CellAppearance.Opened,       0, "3 行 5 列、空白")]
-    [InlineData(CellAppearance.Opened,       2, "3 行 5 列、2")]
-    [InlineData(CellAppearance.Mine,         0, "3 行 5 列、地雷")]
-    [InlineData(CellAppearance.ExplodedMine, 0, "3 行 5 列、踏んだ地雷")]
-    [InlineData(CellAppearance.WrongFlag,    0, "3 行 5 列、誤った旗")]
-    public void AccessibleNameTellsThePositionFromOneAndTheState(CellAppearance appearance, int adjacentMineCount, string name)
-        => Assert.Equal(name, CellPresentation.AccessibleNameOf(new DisplayPosition(2, 4), appearance, adjacentMineCount));
 
     // 演出の CSS のクラス（クラス設計書 12.5。1.1.0）
     [Theory]

@@ -1,6 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- UI の技術（Blazor、WPF、コンソール）に依存しない、アプリで共有する表示と入力の部品（表示の文言、押し方からの操作の割り当て） -->
+  <!--
+    UI の技術（Blazor、Avalonia、コンソール）に依存しない、アプリで共有する表示と入力の部品。
+    表示の文言と読み上げの名前、押し方からの操作の割り当て、入力の整え方、1 回のゲームの進め方、効果音の部品、
+    カーソル、演出の順序、盤面の寸法の決まり。共有するのは、2 つ目のアプリが同じ意図で使うものだけである
+    （docs/desktop-console/04-architecture.md の 6 章）
+  -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

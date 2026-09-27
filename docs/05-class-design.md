@@ -4,7 +4,7 @@
 |------|------|
 | 工程 | 9. クラス設計書作成 |
 | 作成日 | 2026-09-25 |
-| 状態 | レビュー指摘を反映済み（docs/reviews/05-class-design-review.md）。工程 12 で、WPF 版・コンソール版と共有する部品を Presentation に移した（docs/reviews/code-review.md の工程 12 の R5）。この変更を含めてレビューをやり直し、指摘を反映した（docs/reviews/05-class-design-review.md の「再レビュー」）。リファクタリングのやり直し（docs/reviews/code-review.md の RR1〜RR4）で、`BestTimesJson` を GameLogic に移し、`InputMapping` の名前を `PressMapping` に改めた。1.1.0 の改訂（操作の結果、効果音、`GameSession`、演出、置き方）を 12 章に書き（2026-09-26）、1.1.0 のレビューの指摘を反映した（docs/reviews/05-class-design-review.md の「1.1.0 のレビュー」） |
+| 状態 | レビュー指摘を反映済み（docs/reviews/05-class-design-review.md）。工程 12 で、WPF 版・コンソール版と共有する部品を Presentation に移した（docs/reviews/code-review.md の工程 12 の R5）。この変更を含めてレビューをやり直し、指摘を反映した（docs/reviews/05-class-design-review.md の「再レビュー」）。リファクタリングのやり直し（docs/reviews/code-review.md の RR1〜RR4）で、`BestTimesJson` を GameLogic に移し、`InputMapping` の名前を `PressMapping` に改めた。1.1.0 の改訂（操作の結果、効果音、`GameSession`、演出、置き方）を 12 章に書き（2026-09-26）、1.1.0 のレビューの指摘を反映した（docs/reviews/05-class-design-review.md の「1.1.0 のレビュー」）。デスクトップ版・コンソール版の一巡で、カーソル、演出、読み上げの名前、画面の文言、盤面の寸法を Presentation に移した（2026-09-27。4.2、4.3、12.5 の「改訂」と docs/desktop-console/05-class-design.md の 3 章） |
 | 入力 | docs/04-architecture.md（アーキテクチャー設計書）、docs/02-spec.md（仕様書）、docs/03-ui-design.md（UI デザイン）。1.1.0 では、アーキテクチャー設計書の 1.1.0 の改訂と、UI デザイン 10 章 |
 
 ## 1. 概要
@@ -568,10 +568,13 @@ public sealed class BoardCursor
 - `Move` は、位置を表示の座標に変え、表示の向きで 1 マス動かし、盤面の座標に戻す。表示の端では動かない（9 章の決定 2）。
 - 位置を盤面の座標で持つのは、画面の向きが変わっても同じマスを選んだままにするためである（アーキテクチャー設計書 6.2）。
 - 新しいゲームになったら、`BoardView` が新しい `BoardCursor` を作る。選択中のマスは左上に戻る（9 章の決定 3）。
+- **改訂（デスクトップ版・コンソール版の一巡、2026-09-27）**: `Direction` と `BoardCursor` を Presentation に移した。`Move(Direction, Board)` は盤面の向きで動かし、端の判定は `Board.Contains`（公開した）で行う。表示の向きの矢印キーの方向は、`BoardView` が `BoardPlacement.ToBoard(Direction)` で盤面の向きに変えてから渡す。マウスで押したマスへ移す `MoveTo(CellPosition, Board)` を加えた（デスクトップ版で使う）。Web 版の振る舞いは変えていない。詳しくは docs/desktop-console/05-class-design.md の 3.2、3.8。
 
 ### 4.3 Display
 
 #### `DisplayPosition`、`BoardPlacement`
+
+**改訂（デスクトップ版・コンソール版の一巡、2026-09-27）**: 定数 `MinCellSize`・`MaxCellSize`・`FrameWidth` を Presentation の `BoardDimensions` に移した。`ToBoard(Direction)`（表示の向きの方向を盤面の向きに変える）を加え、前の `BoardCursor` だけが使っていた `ToDisplay` と `Contains` を消した。詳しくは docs/desktop-console/05-class-design.md の 3.6、3.8。
 
 ```csharp
 public readonly record struct DisplayPosition(int Row, int Column);
@@ -603,6 +606,8 @@ public sealed record BoardPlacement
 - 枠の太さ 3px は、`BoardView` が CSS の変数（`--frame-width`）で CSS に渡す。計算と見た目で値が食い違わないように、C# の定数を元にする。
 
 #### `IconKind`、`CellPresentation`
+
+**改訂（デスクトップ版・コンソール版の一巡、2026-09-27）**: 読み上げの名前（`AccessibleNameOf` と状態の名前の表）を、Presentation の `BoardNames.CellOf` に移した。盤面の名前（「盤面、9 行 9 列」）も `BoardNames.Of` にした。Razor に直接書いていたツールバー、難易度ダイアログ、勝利カードの文言も、Presentation の `ToolbarTexts`、`DifficultyDialogTexts`、`CustomDifficultyTexts`、`WinCardTexts` に移した（旗モードの文言は Web 版に残る）。描かれる HTML は変えていない。詳しくは docs/desktop-console/05-class-design.md の 3.4、3.5、3.8。
 
 ```csharp
 public enum IconKind
@@ -1300,6 +1305,8 @@ public sealed class GameSession
 - 名前の Session は「難易度を選んでから、何回も新しいゲームを始めながら遊び続ける、ひと続きの遊び」を表す。1 回の `Game` より長く、ページを開いている間ずっと 1 つである。
 
 ### 12.5 Display
+
+**改訂（デスクトップ版・コンソール版の一巡、2026-09-27）**: `CellAnimationKind`、`CellAnimation`、`BoardAnimation` を、名前とメンバーを変えずに Presentation に移した（デスクトップ版でも使うため）。docs/desktop-console/05-class-design.md の 3.3。
 
 ```csharp
 public readonly record struct BoardAreaSize(double Width, double Height);

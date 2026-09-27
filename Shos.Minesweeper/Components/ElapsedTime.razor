@@ -1,7 +1,7 @@
 @implements IDisposable
 @inject TimeProvider TimeProvider
 
-<ToolbarCounter Class="elapsed-time" Icon="IconKind.Clock" Value="shownSeconds" AccessibleName="@($"経過時間 {shownSeconds} 秒")" />
+<ToolbarCounter Class="elapsed-time" Icon="IconKind.Clock" Value="shownSeconds" AccessibleName="@ToolbarTexts.ElapsedTimeOf(shownSeconds)" />
 
 @code {
     // 1 秒ごとのタイマーでは、秒の変わり目とタイマーの周期がずれて、表示が最大 1 秒遅れる。

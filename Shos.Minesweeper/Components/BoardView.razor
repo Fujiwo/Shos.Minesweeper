@@ -3,8 +3,8 @@
 @inject TimeProvider TimeProvider
 @inject BrowserFeatures Browser
 
-<div class="board @(IsFlagMode ? "flag-mode" : "")" role="grid" aria-label="盤面、@Placement.RowCount 行 @Placement.ColumnCount 列"
-     style="--cell-size: @(Placement.CellSize)px; --frame-width: @(BoardPlacement.FrameWidth)px; --column-count: @Placement.ColumnCount"
+<div class="board @(IsFlagMode ? "flag-mode" : "")" role="grid" aria-label="@BoardNames.Of(Placement.RowCount, Placement.ColumnCount)"
+     style="--cell-size: @(Placement.CellSize)px; --frame-width: @(BoardDimensions.FrameWidth)px; --column-count: @Placement.ColumnCount"
      tabindex="0" aria-activedescendant="@CellIdOf(cursor.Position)" @ref="board" @onkeydown="HandleKeyDownAsync"
      @onpointermove="HandlePointerMoveAsync" @onpointerup="HandlePointerUpAsync"
      @onpointercancel="HandlePointerCancelAsync" @onpointerleave="HandlePointerCancelAsync"
@@ -25,7 +25,7 @@
                 <div id="@CellIdOf(position)" role="gridcell"
                      class="@CellClassOf(appearance, adjacentMineCount, animation, isPressed: pressedCells.Contains(position), isSelected: position == cursor.Position)"
                      style="@DelayStyleOf(animation)"
-                     aria-label="@CellPresentation.AccessibleNameOf(displayPosition, appearance, adjacentMineCount)"
+                     aria-label="@BoardNames.CellOf(displayPosition.Row, displayPosition.Column, appearance, adjacentMineCount)"
                      @onpointerdown="pointer => HandlePointerDownAsync(position, pointer)">
                     @if (CellPresentation.IconOf(appearance) is IconKind icon)
                     {
@@ -105,7 +105,7 @@
     {
         if (KeyboardMapping.DirectionFor(key.Key) is { } direction) {
             // 勝敗が決まった後も動かせる。敗北した盤面をスクリーンリーダーで確かめられるようにするため
-            cursor.Move(direction, Placement);
+            cursor.Move(Placement.ToBoard(direction), Game.Board);
             shouldRender = true;
             return;
         }

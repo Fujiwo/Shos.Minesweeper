@@ -212,4 +212,21 @@ public class BoardTests
             """, game);
         return game;
     }
+
+    // 盤面の中の位置か（デスクトップ版・コンソール版のクラス設計書 3.2。カーソルが端で止まる判定に使う）。初級は 9×9
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(8, 8)]
+    [InlineData(0, 8)]
+    [InlineData(8, 0)]
+    public void CornersAreInsideTheBoard(int row, int column)
+        => Assert.True(new Game(Difficulty.Beginner, TimeProvider.System).Board.Contains(new CellPosition(row, column)));
+
+    [Theory]
+    [InlineData(-1, 0)]
+    [InlineData(0, -1)]
+    [InlineData(9, 0)]
+    [InlineData(0, 9)]
+    public void PositionsJustOutsideTheCornersAreOutsideTheBoard(int row, int column)
+        => Assert.False(new Game(Difficulty.Beginner, TimeProvider.System).Board.Contains(new CellPosition(row, column)));
 }

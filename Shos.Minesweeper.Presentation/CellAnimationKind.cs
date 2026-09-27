@@ -1,4 +1,4 @@
-namespace Shos.Minesweeper.Display;
+namespace Shos.Minesweeper.Presentation;
 
 /// <summary>マスの演出の種類（UI デザイン 10.7）。</summary>
 public enum CellAnimationKind

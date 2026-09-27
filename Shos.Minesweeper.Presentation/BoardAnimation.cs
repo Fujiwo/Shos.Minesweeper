@@ -1,8 +1,11 @@
 using Shos.Minesweeper.GameLogic;
 
-namespace Shos.Minesweeper.Display;
+namespace Shos.Minesweeper.Presentation;
 
-/// <summary>直前の操作から、マスごとの演出を決める（クラス設計書 12.5 の表、UI デザイン 10.7）。</summary>
+/// <summary>
+/// 直前の操作から、マスごとの演出を決める（Web 版のクラス設計書 12.5 の表、UI デザイン 10.7）。
+/// Web 版とデスクトップ版で使う（docs/desktop-console/05-class-design.md の 3.3）。
+/// </summary>
 public static class BoardAnimation
 {
     /// <summary>演出するマスと、その演出。演出しないマスは含めない。旗の操作では空。</summary>

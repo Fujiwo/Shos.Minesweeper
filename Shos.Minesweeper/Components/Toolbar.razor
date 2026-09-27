@@ -1,12 +1,12 @@
 @* ツールバー。左（横バーでは上）から、難易度、残り地雷数、リセット、経過時間、旗モード、効果音の順に並べる（UI デザイン 2.1、10.3） *@
 <div class="toolbar">
-    <button type="button" class="difficulty" aria-label="難易度、@DifficultyName" title="難易度を変える" @ref="difficultyButton" @onclick="OnDifficultyClick">
+    <button type="button" class="difficulty" aria-label="@ToolbarTexts.DifficultyButtonNameOf(Game.Difficulty.Kind)" title="@ToolbarTexts.DifficultyToolTip" @ref="difficultyButton" @onclick="OnDifficultyClick">
         <span class="difficulty-name">@DifficultyName</span>
         <span class="chevron"><Icon Kind="IconKind.Chevron" /></span>
     </button>
     <ToolbarCounter Class="remaining-mines" Icon="IconKind.Mine" Value="Game.RemainingMineCount"
-                    AccessibleName="@($"残り地雷 {Game.RemainingMineCount}")" />
-    <button type="button" class="reset" aria-label="新しいゲーム" title="新しいゲーム" @ref="resetButton" @onclick="OnResetClick">
+                    AccessibleName="@ToolbarTexts.RemainingMinesOf(Game.RemainingMineCount)" />
+    <button type="button" class="reset" aria-label="@ToolbarTexts.NewGame" title="@ToolbarTexts.NewGame" @ref="resetButton" @onclick="OnResetClick">
         <span class="face-icon"><Icon Kind="Face" /></span>
     </button>
     <ElapsedTime Game="Game" />
@@ -16,8 +16,8 @@
         <span class="flag-mode-label">旗モード</span>
     </button>
     @* 効果音のオンとオフは、アイコンの形だけで示し、背景は塗らない（UI デザイン 10.3、10.8 の決定 9） *@
-    <button type="button" class="sound" aria-label="効果音" aria-pressed="@(IsSoundEnabled ? "true" : "false")"
-            title="@(IsSoundEnabled ? "効果音（オン）" : "効果音（オフ）")" @onclick="OnSoundClick">
+    <button type="button" class="sound" aria-label="@ToolbarTexts.SoundEffects" aria-pressed="@(IsSoundEnabled ? "true" : "false")"
+            title="@ToolbarTexts.SoundEffectsToolTipOf(IsSoundEnabled)" @onclick="OnSoundClick">
         <span class="sound-icon"><Icon Kind="@(IsSoundEnabled ? IconKind.SoundOn : IconKind.SoundOff)" /></span>
     </button>
 </div>

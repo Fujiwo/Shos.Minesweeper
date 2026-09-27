@@ -72,3 +72,48 @@
   - 日本語の入力（IME）をオンにして「２」を打ったとき、`KeyChar=U+FF12` と出るか
   - 速く打っても、画面に余計な文字が残らないか
 - デスクトップ版のウィンドウは、区切り 5 で中身を作ってから、見た目（題名の帯の明暗、書体、DPI）を確かめる（#8）。
+- **上のユーザーの確認は、行われないまま区切り 2 に進んだ**（ユーザーの指示「区切り 2（共有の部品の移動）に進め」、2026-09-27）。#5 は、コンソール版の画面を作る区切り 3 で、同じ端末でまとめて確かめる。
+
+## 区切り 2: 共有の部品の移動（2026-09-27）
+
+### 手順
+
+CLAUDE.md の「開発手順」とアーキテクチャー設計書 6.1 のとおり、移すだけの手順（A）と、機能を足す手順（B、C）を分け、手順ごとに全テストを Green にした。
+
+| 手順 | 中身 | テスト |
+|------|------|--------|
+| A1 | `CellAnimationKind`、`CellAnimation`、`BoardAnimation` を、名前とメンバーを変えずに Presentation に移した（`git mv`）。テストも Presentation.Tests に移した | 499 件 Green |
+| A2 | GameLogic の `Board.Contains` を公開した（テストを先に書いた）。Web 版の `BoardPlacement` に `ToBoard(Direction)` を加えた（テストを先に書いた）。`Direction` と `BoardCursor` を Presentation に移し、カーソルを盤面の座標で動かす形（`Move(Direction, Board)`）にした。`BoardView` は `Placement.ToBoard(direction)` で変えてから渡す。前の `BoardCursor` だけが使っていた `BoardPlacement.ToDisplay` と `Contains` を消した | 507 件 Green。縦と横を入れ替えた盤面での矢印キーの bUnit のテスト（`ArrowKeysFollowTheDisplayedDirectionOfATransposedBoard`）が通る |
+| A3 | 読み上げの名前を `BoardNames`（`Of`、`CellOf`）に、盤面の寸法の定数を `BoardDimensions` に移した。`CellPresentation` から名前の部分を消した | 508 件 Green。盤面とマスの `aria-label` を確かめる bUnit のテストが通る |
+| A4 | Razor に直接書いていたツールバー、難易度ダイアログ、勝利カードの文言を、`ToolbarTexts`、`DifficultyDialogTexts`、`CustomDifficultyTexts`、`WinCardTexts` に移した（テストを先に書いた）。地雷数の範囲の出し分けも `CustomDifficultyTexts.MineCountRangeOf` に移した | 527 件 Green。文言を確かめる bUnit のテスト（ツールバー、難易度ダイアログ、勝利カード）が通る |
+| B | GameLogic に `BestTimesFile` を加えた（テストファースト。書いて読む、ない・壊れている・フォルダーがない・パスがフォルダー、フォルダーを作る、書けない） | 538 件 Green |
+| C | `BoardCursor.MoveTo(CellPosition, Board)` を加えた（テストファースト。盤面の外は `ArgumentOutOfRangeException`） | 539 件 Green |
+
+- 仕上げに、Presentation のプロジェクト ファイルのコメントを今の中身に合わせ、Web 版の設計書（docs/04-architecture.md、docs/05-class-design.md）の該当する箇所と状態の行に、移したことと参照先を書き足した。
+- **Windows と WSL の Linux の両方で、ビルドは警告なしで通り、全テスト 539 件が Green**（Linux では、`BestTimesFile` のフォルダーを読むテストも通った。例外の種類の違いを `IOException` と `UnauthorizedAccessException` の両方で受けている）。
+- 区切りの最後（テストのクラスを分け直した後）に、Windows の全体のビルドが、Web 版の `obj/Debug/net10.0/tmp-webcil` を消せずに何度も失敗した（MSB4018。CLAUDE.md の「コマンド」にある失敗）。ビルドのプロセスは残っておらず、フォルダーそのものを別のプロセス（Dropbox の同期か VS Code のファイルの監視の見込み。特定できなかった）が開いていた。コードの変更をすべて含むビルドは、分け直しの前に Windows と Linux で通っている。分け直しの後の状態は、Windows では Presentation.Tests のビルドとテスト（134 件）で、全体は WSL の Linux のビルドと全テスト（539 件 Green）で確かめた。
+
+### 実行環境の確認
+
+| 確かめたこと | 結果 |
+|--------------|------|
+| Web 版をブラウザーで動かし、キーボードの操作と読み上げの名前が変わらないこと（クラス設計書 8 章の区切り 2） | **確かめられていない。** 画面なしの Edge（`--headless`、`--dump-dom`）で描いた DOM を取り出そうとしたが、どの指定でも出力が空だった。深追いせず、ユーザーに確かめてもらう（下の「残ること」）。自動のテストでは、bUnit のテスト（HTML と `aria-label`、縦と横を入れ替えた盤面での矢印キー）がすべて通っている |
+
+### 指摘
+
+| # | 観点 | 指摘 | 対応 |
+|---|------|------|------|
+| 1 | ルールの統一 | `ScreenTextsTests`: 4 つの型のテストを 1 つのクラスにまとめていた（このリポジトリのテストは、型ごとに 1 つのテストクラス。クラス設計書 7.2 も 4 つのクラスとしている）→ 型ごとの 4 つのテストクラスに分けた → 14 件のまま、Presentation.Tests 134 件 Green | 直した |
+| 2 | 引き算 | `BoardPlacement.ToDisplay`、`Contains`: 前の `BoardCursor` だけが使っていたので、カーソルが盤面の座標で動くようになって、テストからしか呼ばれなくなった → 消し、テストも `ToBoard(DisplayPosition)` の確かめだけを残した | 直した（手順 A2） |
+| 3 | 引き算 | `CustomDifficultyTexts` の範囲の式の文: クラス設計書 3.5 では公開の定数にしていたが、`MineCountRangeOf` の中だけで使うので、非公開にした。クラス設計書を合わせた | 直した |
+| 4 | Once And Only Once | 「ベスト {n} 秒」の形の文が、`DifficultyDialogTexts.BestTimeOf`（難易度の行）、`WinCardTexts.BestTimeOf`（更新しなかったときのこれまでのベスト）、既存の `Announcements.Won`（「ベスト {n} 秒。」）の 3 か所にある。どれも「ベストタイムが n 秒」の意図だが、画面の要素ごとに句点や置き方が違い、要素ごとに変わりうる。1 つにまとめると、要素の文言の型が互いに依存する | 直さない（クラス設計書 3.5 の「要素ごとに変わる理由が違う」に従う） |
+| 5 | 正しさ | `BestTimesFile`: 受け止めるのは `IOException`（派生を含む）と `UnauthorizedAccessException` だけで、パスの誤り（`ArgumentException` など）はプログラムの誤りとして受け止めない（アーキ 10 章）。`Path.GetDirectoryName` がルートで null を返すと `ArgumentNullException` になるが、アプリが渡すパスはいつもフォルダーの中のファイルなので、プログラムの誤りとして扱う | 問題なし |
+
+七箇条で見て問題がなかった点: 移した型の名前とメンバーは、クラス設計書 3 章のとおり。`BoardCursor` の端の判定は `Board.Contains` の 1 か所にあり、`MoveTo` のガード節もそれを使う。Web 版の Razor に残る文言は、Web 版だけのもの（旗モード）だけである。
+
+### 残ること
+
+- **ユーザーに確かめてもらうこと**: Web 版（`dotnet run --project Shos.Minesweeper`）をブラウザーで開き、次が前と同じであること。
+  - 矢印キーでカーソルが動く（スマートフォンの縦の幅にして、縦と横を入れ替えた上級でも、見たとおりの方向に動く）
+  - ツールバーのツールチップ（「難易度を変える」「新しいゲーム」「効果音（オン）」）、難易度ダイアログ（各行の大きさとベストタイム、カスタムの範囲と誤りの文）、勝利カードの文言
+- 区切り 1 の #5（コンソール版を実際の端末で確かめる）は、区切り 3 でまとめて確かめる。

@@ -8,27 +8,24 @@
     <div class="win-card" role="dialog" aria-labelledby="win-card-title" @onkeydown="HandleKeyDownAsync">
         <div class="heading">
             <span class="face"><Icon Kind="IconKind.FaceWon" /></span>
-            <h2 id="win-card-title" tabindex="-1" @ref="heading">クリア！</h2>
+            <h2 id="win-card-title" tabindex="-1" @ref="heading">@WinCardTexts.Title</h2>
         </div>
-        <p class="time">タイム @Seconds 秒</p>
-        @switch (BestTime.Outcome)
+        <p class="time">@WinCardTexts.TimeOf(Seconds)</p>
+        @* カスタムは記録しないので、ベストタイムの行を出さない（文が null） *@
+        @if (WinCardTexts.BestTimeOf(BestTime) is { } bestTimeText)
         {
-            case BestTimeOutcome.Updated:
-                <p class="best-time new"><span class="star"><Icon Kind="IconKind.Star" /></span>ベストタイム更新！（これまで @BestTime.PreviousSeconds 秒）</p>
-                break;
-            case BestTimeOutcome.FirstRecord:
-                <p class="best-time new"><span class="star"><Icon Kind="IconKind.Star" /></span>ベストタイムを記録しました</p>
-                break;
-            case BestTimeOutcome.NotUpdated:
-                <p class="best-time">ベスト @BestTime.PreviousSeconds 秒</p>
-                break;
-            case BestTimeOutcome.NotEligible:
-                @* カスタムは記録しないので、ベストタイムの行を出さない *@
-                break;
+            if (BestTime.IsNewBest)
+            {
+                <p class="best-time new"><span class="star"><Icon Kind="IconKind.Star" /></span>@bestTimeText</p>
+            }
+            else
+            {
+                <p class="best-time">@bestTimeText</p>
+            }
         }
         <div class="actions">
-            <button type="button" class="play-again" @onclick="OnPlayAgain">もう一度</button>
-            <button type="button" class="close" @onclick="OnClose">閉じる</button>
+            <button type="button" class="play-again" @onclick="OnPlayAgain">@WinCardTexts.PlayAgain</button>
+            <button type="button" class="close" @onclick="OnClose">@WinCardTexts.Close</button>
         </div>
     </div>
 </div>

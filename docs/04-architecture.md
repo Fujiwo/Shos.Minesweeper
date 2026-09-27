@@ -4,7 +4,7 @@
 |------|------|
 | 工程 | 7. アーキテクチャー設計書作成 |
 | 作成日 | 2026-09-25 |
-| 状態 | レビュー指摘を反映済み（docs/reviews/04-architecture-review.md）。クラス設計で改めた点を反映済み（docs/reviews/05-class-design-review.md）。工程 12 で、WPF 版・コンソール版と共有する部品のプロジェクトを加えた（docs/reviews/code-review.md の工程 12 の R5）。この変更を含めてレビューをやり直し、指摘を反映した（docs/reviews/04-architecture-review.md の「再レビュー」）。リファクタリングのやり直し（docs/reviews/code-review.md の RR4）で、`InputMapping` の名前を `PressMapping` に改めた。1.1.0 の改訂（効果音、演出、ツールバーと勝利カードの置き方）を行い（2026-09-26）、1.1.0 のレビューの指摘（効果音の部品を Presentation に置くというユーザーの指示を含む）を反映した（docs/reviews/04-architecture-review.md の「1.1.0 のレビュー」） |
+| 状態 | レビュー指摘を反映済み（docs/reviews/04-architecture-review.md）。クラス設計で改めた点を反映済み（docs/reviews/05-class-design-review.md）。工程 12 で、WPF 版・コンソール版と共有する部品のプロジェクトを加えた（docs/reviews/code-review.md の工程 12 の R5）。この変更を含めてレビューをやり直し、指摘を反映した（docs/reviews/04-architecture-review.md の「再レビュー」）。リファクタリングのやり直し（docs/reviews/code-review.md の RR4）で、`InputMapping` の名前を `PressMapping` に改めた。1.1.0 の改訂（効果音、演出、ツールバーと勝利カードの置き方）を行い（2026-09-26）、1.1.0 のレビューの指摘（効果音の部品を Presentation に置くというユーザーの指示を含む）を反映した（docs/reviews/04-architecture-review.md の「1.1.0 のレビュー」）。デスクトップ版・コンソール版の一巡で、`BoardCursor`、`BoardAnimation` などを Presentation に移した（2026-09-27。3 章、4 章、6 章の「改訂」と docs/desktop-console/04-architecture.md の 6 章） |
 | 入力 | docs/02-spec.md（仕様書）、docs/03-ui-design.md（UI デザイン）、CLAUDE.md（開発環境・設計方針）。1.1.0 では、調査書の追補（docs/01-research.md の 8.7、8.8）、仕様書 5.6・5.7、UI デザイン 10 章 |
 
 ## 1. 概要
@@ -63,7 +63,7 @@ flowchart LR
 | 5 | ベストタイムの保存 | 保存の形式（JSON）、localStorage への読み書き、保存できないときはメモリーだけ | 仕様 3.8、6.4 | GameLogic: `BestTimesJson`（形式）。アプリ: `BestTimeStorage`（保存先） |
 | 6 | 押す操作の判定 | タップ・長押し・取り消しの判定（400 ミリ秒、10px）、マウスとタッチの違い | 仕様 4.1、4.4 | アプリ: `PressGesture` |
 | 7 | 操作の割り当て | 押し方（タップ・長押し・右クリック）と旗モードとマスの状態から、「開く」「旗」「何もしない」を決める。キーボードのキーから操作と方向を決める | 仕様 4.1、4.3、4.5、UI 5.2 | Presentation: `PressMapping`（押し方）。アプリ: `KeyboardMapping`（DOM のキー名） |
-| 8 | キーボードの選択中のマス | 矢印キーでの移動、盤面に入ったときの位置 | 仕様 4.5 | アプリ: `BoardCursor` |
+| 8 | キーボードの選択中のマス | 矢印キーでの移動、盤面に入ったときの位置 | 仕様 4.5 | Presentation: `BoardCursor`（改訂: デスクトップ版・コンソール版の一巡で移した。6 章の最後の段落） |
 | 9 | 盤面の置き方 | 盤面の向き（入れ替えるか）、マスの大きさ、表示の座標と盤面の座標の変換 | 仕様 5.2、UI 3.2 | アプリ: `BoardPlacement`（スクロールは CSS） |
 | 10 | ブラウザーの機能 | 領域の大きさの監視、振動、localStorage、キーでのスクロールの抑止 | 仕様 4.4、4.5、5.3 | アプリ: `BrowserFeatures` と `browser.js` |
 | 11 | 画面の描画と画面の部品 | ツールバー、盤面、ダイアログ、勝利カード、読み上げ | UI 2 章、4〜6 章 | アプリ: Razor コンポーネント |
@@ -78,7 +78,7 @@ flowchart LR
 | 15 | 効果音の規則 | 操作の結果から、鳴らす音を決める（1 回の操作で 1 つだけ、勝敗が決まったら勝ちか負けの音だけ、何も起きなければ鳴らさない） | 仕様 5.6 | Presentation: `SoundEffectMapping` |
 | 16 | 効果音の合成 | 6 つの音の波形を作る | 仕様 5.6、UI 10.6 | Presentation: `SoundEffectSynthesizer` |
 | 17 | 効果音の再生と設定 | ブラウザーで鳴らす、利用者の最初の操作で鳴らせる状態にする、オンとオフの切り替えと保存 | 仕様 5.6、6.4、UI 10.3 | アプリ: `SoundEffectPlayer`、`SoundSettingStorage`、`browser.js` |
-| 18 | 演出 | 直前の操作から、演出するマスと、その種類と、開始の遅れ（操作したマスからの距離の比）を決める。動きと時間は CSS | 仕様 5.7、UI 10.7 | アプリ: `BoardAnimation` と CSS |
+| 18 | 演出 | 直前の操作から、演出するマスと、その種類と、開始の遅れ（操作したマスからの距離の比）を決める。動きと時間は CSS | 仕様 5.7、UI 10.7 | Presentation: `BoardAnimation`（改訂: デスクトップ版・コンソール版の一巡で移した）。アプリ: CSS |
 | 19 | ツールバーと勝利カードの置き場所 | 盤面の大きさに合わせて、ツールバーを盤面のすぐ上に、勝利カードを盤面の下の余白に置く | UI 10.4、10.5 | アプリ: `GamePage` が大きさを CSS の変数で渡し、CSS が置く |
 | 20 | 1 回のゲームの進め方 | 新しいゲームを始める、盤面の操作を `Game` に伝える、操作の結果から鳴らす効果音を決めて音の出口に渡す、直前の操作を覚える。どの版かを知らない | 仕様 3.2、5.6、5.7 | Presentation: `GameSession` と音の出口 |
 
@@ -103,8 +103,8 @@ Shos.Minesweeper.slnx
 ├─ Shos.Minesweeper/                  Blazor WebAssembly アプリ（既存）
 │   ├─ Pages/GamePage.razor           唯一のページ（ルートは "/"）。ゲームの画面。テンプレートの Home.razor の名前を変える
 │   ├─ Components/                    画面の部品（6.3）
-│   ├─ Input/                         PressGesture, KeyboardMapping, BoardCursor
-│   ├─ Display/                       BoardPlacement, CellPresentation, BoardAnimation（1.1.0）
+│   ├─ Input/                         PressGesture, KeyboardMapping（BoardCursor は Presentation に移した。改訂）
+│   ├─ Display/                       BoardPlacement, CellPresentation（BoardAnimation は Presentation に移した。改訂）
 │   ├─ Browser/                       BrowserFeatures, BestTimeStorage, SoundEffectPlayer・SoundSettingStorage（1.1.0）
 │   ├─ Layout/MainLayout.razor        既存。@Body だけを描く
 │   └─ wwwroot/
@@ -289,6 +289,7 @@ flowchart TB
 - `CellPresentation`、`DifficultyNames`、`Announcements` はクラス設計で加えた。公開メンバーと、ほかの小さな型はクラス設計書（docs/05-class-design.md）にある。
 - `SoundEffectMapping` と `SoundEffectPlayer` を分けたのは（1.1.0）、変更理由が違うからである。鳴らす場面を変えるときは `SoundEffectMapping` だけを直し、Web 版と WPF 版の両方に効く。ブラウザーでの鳴らし方を変えるときは `SoundEffectPlayer` と `browser.js` だけを直す。
 - `BoardAnimation` は、Web アプリに置く（1.1.0）。演出の形（どのマスに、どの種類を、遅れの比で渡す）が、CSS のアニメーションで描く Web 版の描き方に合わせたものだからである。WPF 版で要る形が見えてから、共有するかを決める（CLAUDE.md の「目的」の前提）。
+- **改訂（デスクトップ版・コンソール版の一巡、2026-09-27）**: デスクトップ版の設計で、2 つ目のアプリが同じ意図で使うと分かった部品を Presentation に移した。`BoardCursor`・`Direction`（カーソルは盤面の座標で動き、表示の向きの方向は `BoardPlacement` が盤面の向きに変える）、`BoardAnimation` など（演出の形はデスクトップ版でも同じだった）、読み上げの名前（`BoardNames`）、画面の文言（`ToolbarTexts` など）、盤面の寸法の決まり（`BoardDimensions`）である。そのため、上の表の `BoardCursor` と `BoardAnimation` の置き場所は Presentation になり、Input は Display に依存しなくなった。Web 版の振る舞いは変えていない。詳しくは docs/desktop-console/04-architecture.md の 6 章と docs/desktop-console/05-class-design.md の 3 章。
 
 ### 6.3 コンポーネント
 

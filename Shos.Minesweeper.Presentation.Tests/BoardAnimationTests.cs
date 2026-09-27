@@ -1,8 +1,7 @@
-using Shos.Minesweeper.Display;
 using Shos.Minesweeper.GameLogic;
 using Shos.Minesweeper.TestSupport;
 
-namespace Shos.Minesweeper.Tests.Display;
+namespace Shos.Minesweeper.Presentation.Tests;
 
 /// <summary>直前の操作から決めるマスごとの演出（クラス設計書 12.5 の表、UI デザイン 10.7）。</summary>
 public class BoardAnimationTests
