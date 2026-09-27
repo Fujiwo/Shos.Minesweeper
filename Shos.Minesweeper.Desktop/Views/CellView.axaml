@@ -1,0 +1,21 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="using:Shos.Minesweeper.Desktop.Views"
+             xmlns:vm="using:Shos.Minesweeper.Desktop.ViewModels"
+             x:Class="Shos.Minesweeper.Desktop.Views.CellView"
+             x:DataType="vm:CellViewModel"
+             Classes.pressed="{Binding IsPressed}"
+             AutomationProperties.Name="{Binding AccessibleName}">
+    <!-- 1 つのマス。見せ方（未開放、旗、数字、地雷など）のクラスと数字とアイコンは、code-behind が見せ方から決める -->
+    <Panel>
+        <Border Classes="tile">
+            <Panel>
+                <TextBlock x:Name="NumberText" Classes="number" />
+                <v:IconView x:Name="Icon" IsVisible="False" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Panel>
+        </Border>
+        <Border Classes="focus-frame">
+            <Border />
+        </Border>
+    </Panel>
+</UserControl>

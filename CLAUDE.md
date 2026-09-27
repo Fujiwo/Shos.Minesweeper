@@ -18,7 +18,7 @@ Web ブラウザーで遊べるマインスイーパーを作る。
 - この節は Web 版の動作環境である。デスクトップ版・コンソール版の動作環境は、docs/desktop-console/02-spec.md の 4.1、5.1 にある（デスクトップ版は Windows 11、コンソール版は Windows 11 と Linux）
 
 ## 開発手順
-現在の工程: デスクトップ版・コンソール版の一巡の工程 11（実装）。区切り 4（コンソール版のヘルプと難易度。docs/desktop-console/05-class-design.md の 8 章）まで終え、ユーザーの確認を待っている（2026-09-27）（工程が承認されたら、Claude がこの行を次の工程に更新する）
+現在の工程: デスクトップ版・コンソール版の一巡の工程 11（実装）。区切り 5（デスクトップ版の盤面とツールバー。docs/desktop-console/05-class-design.md の 8 章）まで終え、ユーザーの確認を待っている（2026-09-28）（工程が承認されたら、Claude がこの行を次の工程に更新する）
 
 Web 版 1.0.0 は工程 1〜16 をすべて終えた（2026-09-26 に公開）。1.1.0（UI の洗練と効果音）も同じ工程をたどり、すべて終えた（2026-09-27 に公開）。1.1.0 では、次のように進めた。
 - 成果物は新しいファイルにせず、既存の文書に「改訂（1.1.0）」の節を足すか、該当する箇所を書き換えて、冒頭の状態に改訂したことを書く。レビューは、既存のレビューのファイルに「1.1.0 のレビュー」の節を追記する。コードレビュー・リファクタリング・結合テストは docs/reviews/code-review.md に 1.1.0 の節を足す。リリースノートは docs/release-notes.md の先頭に 1.1.0 を足す
@@ -125,11 +125,11 @@ Web 版 1.1.0（UI の洗練と効果音）を `https://fujiwo.github.io/Shos.Mi
 
 - 実装（工程 11）は、クラス設計書（docs/05-class-design.md）の 8 章の区切り 1〜7 で行った。区切りごとのレビュー、リファクタリング（工程 12。R1〜R5 と、R5 の後のやり直しの RR1〜RR4）、結合テスト（工程 13）の記録は docs/reviews/code-review.md にある。
 - 1.1.0 の実装は、クラス設計書の 12.10 の区切り 1〜7 で行った。区切りごとのレビュー、リファクタリング（R1〜R3）、結合テスト（見つけた不具合 B1、B2）の記録は、docs/reviews/code-review.md の「1.1.0」の節にある。
-- デスクトップ版・コンソール版は、工程 11 の区切り 3 まで作った。区切り 1 で骨組み（空のウィンドウと、端末の準備と後始末）を作り、区切り 2 で共有の部品（カーソル、演出、読み上げの名前、画面の文言、盤面の寸法、ベストタイムのファイル `BestTimesFile`）を GameLogic と Presentation に移した・足した。区切り 3、4 で、コンソール版はすべての難易度で遊べるようになった（ヘルプ、難易度の選択、カスタムの入力を含む）。デスクトップ版は、まだ空のウィンドウである。実装の区切りはクラス設計書（docs/desktop-console/05-class-design.md）の 8 章、レビューの記録は docs/desktop-console/reviews/code-review.md にある。
+- デスクトップ版・コンソール版は、工程 11 の区切り 3 まで作った。区切り 1 で骨組み（空のウィンドウと、端末の準備と後始末）を作り、区切り 2 で共有の部品（カーソル、演出、読み上げの名前、画面の文言、盤面の寸法、ベストタイムのファイル `BestTimesFile`）を GameLogic と Presentation に移した・足した。区切り 3、4 で、コンソール版はすべての難易度で遊べるようになった（ヘルプ、難易度の選択、カスタムの入力を含む）。区切り 5 で、デスクトップ版は初級を遊べるようになった（難易度ダイアログと勝利カードは区切り 6、効果音と演出は区切り 7）。実装の区切りはクラス設計書（docs/desktop-console/05-class-design.md）の 8 章、レビューの記録は docs/desktop-console/reviews/code-review.md にある。
 - デスクトップ版・コンソール版と共有する部品は、`Shos.Minesweeper.GameLogic`（ゲームのルールとベストタイムの保存の形式。1.1.0 で操作の結果 `MoveResult`）と `Shos.Minesweeper.Presentation`（表示の文言、押し方からの操作の割り当て。1.1.0 で 1 回のゲームの進め方 `GameSession`、効果音の部品、入力された文字列の整え方 `InputText`）に切り出してある（1.0.0 の工程 12 の R5、1.1.0 のアーキテクチャー設計）。
 
 ## コマンド
-ソリューションは新しい XML 形式の `Shos.Minesweeper.slnx` で、次の 10 のプロジェクトがある（デスクトップ版のテストの `Shos.Minesweeper.Desktop.Tests` は、クラス設計書 8 章の区切り 5 で加える）。
+ソリューションは新しい XML 形式の `Shos.Minesweeper.slnx` で、次の 11 のプロジェクトがある。
 
 | プロジェクト | 内容 |
 |--------------|------|
@@ -143,6 +143,7 @@ Web 版 1.1.0（UI の洗練と効果音）を `https://fujiwo.github.io/Shos.Mi
 | `Shos.Minesweeper.Desktop` | デスクトップ版（Avalonia のアプリ。Windows 11 向け） |
 | `Shos.Minesweeper.ConsoleApp` | コンソール版（Windows 11 と Linux 向け）。`Console` という名前にしないのは、名前空間が `System.Console` を隠すため |
 | `Shos.Minesweeper.ConsoleApp.Tests` | コンソール版のテスト（xUnit v3） |
+| `Shos.Minesweeper.Desktop.Tests` | デスクトップ版のテスト（xUnit v3）。ビューモデルと計算を、Avalonia を起動せずに確かめる |
 
 ```bash
 dotnet build Shos.Minesweeper.slnx
@@ -159,6 +160,7 @@ dotnet test                                                                     
 dotnet test --project Shos.Minesweeper.GameLogic.Tests                                               # GameLogic のテストだけ（Web アプリをビルドしない）
 dotnet test --project Shos.Minesweeper.Presentation.Tests                                            # Presentation のテストだけ（Web アプリをビルドしない）
 dotnet test --project Shos.Minesweeper.ConsoleApp.Tests                                              # コンソール版のテストだけ
+dotnet test --project Shos.Minesweeper.Desktop.Tests                                                 # デスクトップ版のテストだけ
 dotnet test --project Shos.Minesweeper.GameLogic.Tests --filter-class "Shos.Minesweeper.GameLogic.Tests.BoardTests"  # 1 つのテストクラス
 dotnet test --project Shos.Minesweeper.Tests --filter-method "*ClickingACellOpensIt"                 # 1 件（ワイルドカード可）
 ```

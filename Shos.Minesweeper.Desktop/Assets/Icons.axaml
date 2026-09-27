@@ -1,0 +1,160 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:v="using:Shos.Minesweeper.Desktop.Views">
+    <!--
+      アイコンの形（Web 版の UI デザイン 4.4、Components/Icon.razor と Icon.razor.css）。Web 版の SVG と同じ 24×24 の座標で描く。
+      Foreground が Web 版の currentColor に当たる。顔は配色によらず黄色の円に濃い色で描く（Web 版と同じ）
+    -->
+    <Style Selector="v|IconView">
+        <Setter Property="Foreground" Value="{DynamicResource text}" />
+    </Style>
+
+    <Style Selector="v|IconView[Kind=Mine]">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Viewbox>
+                    <Canvas Width="24" Height="24">
+                        <Line StartPoint="20.5,12" EndPoint="3.5,12" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.8" StrokeLineCap="Round" />
+                        <Line StartPoint="12,20.5" EndPoint="12,3.5" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.8" StrokeLineCap="Round" />
+                        <Line StartPoint="18.01,18.01" EndPoint="5.99,5.99" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.8" StrokeLineCap="Round" />
+                        <Line StartPoint="18.01,5.99" EndPoint="5.99,18.01" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.8" StrokeLineCap="Round" />
+                        <Ellipse Canvas.Left="6.4" Canvas.Top="6.4" Width="11.2" Height="11.2" Fill="{TemplateBinding Foreground}" />
+                        <Ellipse Canvas.Left="8.7" Canvas.Top="8.7" Width="3" Height="3" Fill="#ffffff" Opacity="0.85" />
+                    </Canvas>
+                </Viewbox>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <!-- 踏んだ地雷は、配色によらず爆発の形の上に黒で描く（Web 版の UI デザイン 4.2 の G） -->
+    <Style Selector="v|IconView[Kind=ExplodedMine]">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Panel>
+                    <Viewbox>
+                        <Canvas Width="24" Height="24">
+                            <Polygon Fill="#fff3bf"
+                                     Points="23,12 18.28,13.68 21.53,17.5 16.6,16.6 17.5,21.53 13.68,18.28 12,23 10.32,18.28 6.5,21.53 7.4,16.6 2.47,17.5 5.72,13.68 1,12 5.72,10.32 2.47,6.5 7.4,7.4 6.5,2.47 10.32,5.72 12,1 13.68,5.72 17.5,2.47 16.6,7.4 21.53,6.5 18.28,10.32" />
+                        </Canvas>
+                    </Viewbox>
+                    <v:IconView Kind="Mine" Foreground="#111111" />
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <!-- 旗の布と未開放のマスの色の比は 3:1 に届かないので、白で縁取って形を見せる（Web 版の UI デザイン 4.1） -->
+    <Style Selector="v|IconView[Kind=Flag]">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Viewbox>
+                    <Canvas Width="24" Height="24">
+                        <Line StartPoint="9,5" EndPoint="9,18" Stroke="{DynamicResource flag-pole}" StrokeThickness="1.8" />
+                        <Rectangle Canvas.Left="5.5" Canvas.Top="17.5" Width="9" Height="2.2" RadiusX="0.6" RadiusY="0.6" Fill="{DynamicResource flag-pole}" />
+                        <Polygon Points="9.9,4.6 18.6,8.5 9.9,12.4" Fill="{DynamicResource flag}" Stroke="#ffffff" StrokeThickness="1.1" StrokeJoin="Round" />
+                    </Canvas>
+                </Viewbox>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="v|IconView[Kind=WrongFlag]">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Panel>
+                    <v:IconView Kind="Flag" />
+                    <Viewbox>
+                        <Canvas Width="24" Height="24">
+                            <Path Classes="cross" Data="M5 5 L19 19 M19 5 L5 19" Stroke="{DynamicResource text}" StrokeThickness="2.6" StrokeLineCap="Round" />
+                        </Canvas>
+                    </Viewbox>
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="v|IconView[Kind=FaceNormal]">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Viewbox>
+                    <Canvas Width="24" Height="24">
+                        <Ellipse Canvas.Left="2" Canvas.Top="2" Width="20" Height="20" Fill="#ffd43b" Stroke="#1f2937" StrokeThickness="1.4" />
+                        <Ellipse Canvas.Left="7.5" Canvas.Top="8.7" Width="2.6" Height="2.6" Fill="#1f2937" />
+                        <Ellipse Canvas.Left="13.9" Canvas.Top="8.7" Width="2.6" Height="2.6" Fill="#1f2937" />
+                        <Path Data="M8 14.2 Q12 17.8 16 14.2" Stroke="#1f2937" StrokeThickness="1.6" StrokeLineCap="Round" />
+                    </Canvas>
+                </Viewbox>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="v|IconView[Kind=FaceSurprised]">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Viewbox>
+                    <Canvas Width="24" Height="24">
+                        <Ellipse Canvas.Left="2" Canvas.Top="2" Width="20" Height="20" Fill="#ffd43b" Stroke="#1f2937" StrokeThickness="1.4" />
+                        <Ellipse Canvas.Left="7.5" Canvas.Top="8.7" Width="2.6" Height="2.6" Fill="#1f2937" />
+                        <Ellipse Canvas.Left="13.9" Canvas.Top="8.7" Width="2.6" Height="2.6" Fill="#1f2937" />
+                        <Ellipse Canvas.Left="9.7" Canvas.Top="13.3" Width="4.6" Height="4.6" Fill="#1f2937" />
+                    </Canvas>
+                </Viewbox>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="v|IconView[Kind=FaceWon]">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Viewbox>
+                    <Canvas Width="24" Height="24">
+                        <Ellipse Canvas.Left="2" Canvas.Top="2" Width="20" Height="20" Fill="#ffd43b" Stroke="#1f2937" StrokeThickness="1.4" />
+                        <Path Data="M5.8 8.6 H11 V10.4 A2.4 2.4 0 0 1 8.6 12.8 H8.2 A2.4 2.4 0 0 1 5.8 10.4 Z" Fill="#1f2937" />
+                        <Path Data="M13 8.6 H18.2 V10.4 A2.4 2.4 0 0 1 15.8 12.8 H15.4 A2.4 2.4 0 0 1 13 10.4 Z" Fill="#1f2937" />
+                        <Line StartPoint="11,9.3" EndPoint="13,9.3" Stroke="#1f2937" StrokeThickness="1.6" StrokeLineCap="Round" />
+                        <Path Data="M8 15 Q12 18.4 16 15" Stroke="#1f2937" StrokeThickness="1.6" StrokeLineCap="Round" />
+                    </Canvas>
+                </Viewbox>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="v|IconView[Kind=FaceLost]">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Viewbox>
+                    <Canvas Width="24" Height="24">
+                        <Ellipse Canvas.Left="2" Canvas.Top="2" Width="20" Height="20" Fill="#ffd43b" Stroke="#1f2937" StrokeThickness="1.4" />
+                        <Path Data="M7.4 8.4 L10.2 11.2 M10.2 8.4 L7.4 11.2 M13.8 8.4 L16.6 11.2 M16.6 8.4 L13.8 11.2" Stroke="#1f2937" StrokeThickness="1.6" StrokeLineCap="Round" />
+                        <Path Data="M8.4 16.6 Q12 13.6 15.6 16.6" Stroke="#1f2937" StrokeThickness="1.6" StrokeLineCap="Round" />
+                    </Canvas>
+                </Viewbox>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="v|IconView[Kind=Clock]">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Viewbox>
+                    <Canvas Width="24" Height="24">
+                        <Ellipse Canvas.Left="3" Canvas.Top="3" Width="18" Height="18" Stroke="{TemplateBinding Foreground}" StrokeThickness="2" />
+                        <Path Data="M12 7 V12 L15.5 14" Stroke="{TemplateBinding Foreground}" StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round" />
+                    </Canvas>
+                </Viewbox>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="v|IconView[Kind=Chevron]">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Viewbox>
+                    <Canvas Width="24" Height="24">
+                        <Path Data="M7 10 L12 15 L17 10" Stroke="{TemplateBinding Foreground}" StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round" />
+                    </Canvas>
+                </Viewbox>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+</Styles>

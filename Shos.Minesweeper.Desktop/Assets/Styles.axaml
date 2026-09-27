@@ -1,0 +1,173 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:v="using:Shos.Minesweeper.Desktop.Views">
+    <!--
+      見た目（Web 版の UI デザイン 4.2、4.3、10.2、10.3。Components/BoardView.razor.css、Toolbar.razor.css、ToolbarCounter.razor.css）。
+      配色は Assets/Colors.axaml のトークンを DynamicResource で指し、OS のライト・ダークに合わせて切り替わる
+    -->
+    <StyleInclude Source="avares://Shos.Minesweeper.Desktop/Assets/Icons.axaml" />
+
+    <!-- 盤面を 1 枚の板にし、未開放のマスをその上に並べたタイルにする（Web 版の UI デザイン 10.2） -->
+    <Style Selector="Border.board">
+        <Setter Property="Background" Value="{DynamicResource board}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource board}" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="BoxShadow" Value="{DynamicResource board-shadow}" />
+    </Style>
+
+    <!-- マスのフォーカスの枠は、下の focus-frame で描くので、Avalonia の標準の枠（黒と白）は出さない -->
+    <Style Selector="v|CellView">
+        <Setter Property="Focusable" Value="True" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="FocusAdorner" Value="{x:Null}" />
+    </Style>
+
+    <!-- 開いたマス、地雷、踏んだ地雷、誤った旗は、白い平面に格子の線を引く -->
+    <Style Selector="v|CellView Border.tile">
+        <Setter Property="Background" Value="{DynamicResource cell-open}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource grid}" />
+        <Setter Property="BorderThickness" Value="0,0,1,1" />
+    </Style>
+
+    <!-- 未開放と旗は、四辺を 1px ずつ内側に縮めた角の丸いタイルにし、間に板の色を見せる。縁は上を明るく、下を暗くする -->
+    <Style Selector="v|CellView.closed Border.tile, v|CellView.flagged Border.tile">
+        <Setter Property="Margin" Value="1" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Background" Value="{DynamicResource closed-tile-face}" />
+        <Setter Property="BoxShadow" Value="inset 0 2 0 0 #47ffffff, inset 0 -2 0 0 #47000000" />
+    </Style>
+
+    <Style Selector="v|CellView.closed:pointerover Border.tile, v|CellView.flagged:pointerover Border.tile">
+        <Setter Property="Background" Value="{DynamicResource cell-closed-hover}" />
+    </Style>
+
+    <!-- 押下中は、グラデーションをなくし、上端に暗い線を引いてくぼんで見せる（Web 版の UI デザイン 10.2 の B） -->
+    <Style Selector="v|CellView.closed.pressed Border.tile">
+        <Setter Property="Background" Value="{DynamicResource cell-pressed}" />
+        <Setter Property="BoxShadow" Value="inset 0 2 0 0 #4d000000" />
+    </Style>
+
+    <Style Selector="v|CellView.exploded Border.tile">
+        <Setter Property="Background" Value="{DynamicResource danger}" />
+    </Style>
+
+    <Style Selector="v|CellView.mine v|IconView">
+        <Setter Property="Foreground" Value="{DynamicResource mine}" />
+    </Style>
+
+    <Style Selector="v|CellView TextBlock.number">
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.number.n1"><Setter Property="Foreground" Value="{DynamicResource number-1}" /></Style>
+    <Style Selector="TextBlock.number.n2"><Setter Property="Foreground" Value="{DynamicResource number-2}" /></Style>
+    <Style Selector="TextBlock.number.n3"><Setter Property="Foreground" Value="{DynamicResource number-3}" /></Style>
+    <Style Selector="TextBlock.number.n4"><Setter Property="Foreground" Value="{DynamicResource number-4}" /></Style>
+    <Style Selector="TextBlock.number.n5"><Setter Property="Foreground" Value="{DynamicResource number-5}" /></Style>
+    <Style Selector="TextBlock.number.n6"><Setter Property="Foreground" Value="{DynamicResource number-6}" /></Style>
+    <Style Selector="TextBlock.number.n7"><Setter Property="Foreground" Value="{DynamicResource number-7}" /></Style>
+    <Style Selector="TextBlock.number.n8"><Setter Property="Foreground" Value="{DynamicResource number-8}" /></Style>
+
+    <!--
+      カーソルのマスのフォーカスの枠（Web 版の UI デザイン 6.3）。キーボードでフォーカスを移したときだけ出す（:focus-visible）。
+      外側は focus の 3px、内側は focus-inner の 2px。Web 版と違い、枠はマスの内側に描く（隣のマスに重ねて描く手段がないため）
+    -->
+    <Style Selector="v|CellView Border.focus-frame">
+        <Setter Property="IsVisible" Value="False" />
+        <Setter Property="BorderBrush" Value="{DynamicResource focus}" />
+        <Setter Property="BorderThickness" Value="3" />
+    </Style>
+    <Style Selector="v|CellView Border.focus-frame > Border">
+        <Setter Property="BorderBrush" Value="{DynamicResource focus-inner}" />
+        <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="v|CellView:focus-visible Border.focus-frame">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+
+    <!-- ツールバー全体を、影の付いた 1 本の帯にする（Web 版の UI デザイン 10.2） -->
+    <Style Selector="Border.toolbar">
+        <Setter Property="Background" Value="{DynamicResource surface}" />
+        <Setter Property="CornerRadius" Value="14" />
+        <Setter Property="Padding" Value="6,4" />
+        <Setter Property="BoxShadow" Value="{DynamicResource toolbar-shadow}" />
+    </Style>
+
+    <!--
+      押せる要素（ボタン）の見た目（Web 版の app.css の button）。面は surface、1px の枠、角の半径 10px。
+      指したときは少し暗くし、押している間は 95% に縮める。
+      フォーカスの枠は、ボタンの縁を focus の色の 3px にして示す（Web 版の UI デザイン 6.3 は、ボタンの外に 2px 離して描く。
+      Avalonia のフォーカスの adorner でボタンの外に描くと、枠が切り取られて角しか見えなかったため）
+    -->
+    <Style Selector="Button">
+        <Setter Property="Height" Value="44" />
+        <Setter Property="MinWidth" Value="44" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Background" Value="{DynamicResource surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Foreground" Value="{DynamicResource text}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="RenderTransformOrigin" Value="50%,50%" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.08" Easing="QuadraticEaseOut" />
+            </Transitions>
+        </Setter>
+        <Setter Property="FocusAdorner" Value="{x:Null}" />
+    </Style>
+    <Style Selector="Button:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="BorderBrush" Value="{DynamicResource focus}" />
+        <Setter Property="BorderThickness" Value="3" />
+    </Style>
+    <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource button-hover}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource border}" />
+        <Setter Property="Foreground" Value="{DynamicResource text}" />
+    </Style>
+    <Style Selector="Button:pressed">
+        <Setter Property="RenderTransform" Value="scale(0.95)" />
+    </Style>
+
+    <Style Selector="Button.difficulty">
+        <Setter Property="MinWidth" Value="72" />
+    </Style>
+
+    <Style Selector="Button.reset">
+        <Setter Property="Width" Value="44" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+
+    <!-- 押せない要素（残り地雷数、経過時間）は、枠のない、沈んだ小さな面にする -->
+    <Style Selector="Border.counter">
+        <Setter Property="Width" Value="64" />
+        <Setter Property="Height" Value="44" />
+        <Setter Property="Padding" Value="4,0" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Background" Value="{DynamicResource page}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- 値が変わっても位置がずれないように、数字の幅をそろえて右に寄せる（Web 版の UI デザイン 4.5） -->
+    <Style Selector="Border.counter TextBlock">
+        <Setter Property="FontSize" Value="20" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="FontFeatures" Value="+tnum" />
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- 読み上げの領域。画面には見せないが、UI オートメーションの木には残す（仕様書 4.8） -->
+    <Style Selector="TextBlock.live-region">
+        <Setter Property="Width" Value="1" />
+        <Setter Property="Height" Value="1" />
+        <Setter Property="Opacity" Value="0" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+    </Style>
+</Styles>

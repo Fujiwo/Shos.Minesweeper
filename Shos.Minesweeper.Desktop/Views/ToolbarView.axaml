@@ -1,0 +1,39 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="using:Shos.Minesweeper.Desktop.Views"
+             xmlns:vm="using:Shos.Minesweeper.Desktop.ViewModels"
+             xmlns:p="using:Shos.Minesweeper.Presentation"
+             x:Class="Shos.Minesweeper.Desktop.Views.ToolbarView"
+             x:DataType="vm:GameViewModel">
+    <!--
+      ツールバー。左から、難易度、残り地雷数、リセット、経過時間の順に、均等の間隔で並べる（UI デザイン 2.4）。
+      効果音 ボタンは区切り 7 で、難易度 ボタンで開くダイアログは区切り 6 で加える
+    -->
+    <Border Classes="toolbar">
+        <Grid ColumnDefinitions="Auto,*,Auto,*,Auto,*,Auto">
+            <Button Grid.Column="0" Classes="difficulty"
+                    AutomationProperties.Name="{Binding DifficultyButtonName}" ToolTip.Tip="{x:Static p:ToolbarTexts.DifficultyToolTip}">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <TextBlock Text="{Binding DifficultyName}" VerticalAlignment="Center" />
+                    <v:IconView Kind="Chevron" Width="16" Height="16" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
+            <Border Grid.Column="2" Classes="counter" AutomationProperties.Name="{Binding RemainingMinesName}">
+                <DockPanel>
+                    <v:IconView DockPanel.Dock="Left" Kind="Mine" Width="16" Height="16" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding RemainingMineCount}" />
+                </DockPanel>
+            </Border>
+            <Button Grid.Column="4" Classes="reset" Command="{Binding NewGame}"
+                    AutomationProperties.Name="{x:Static p:ToolbarTexts.NewGame}" ToolTip.Tip="{x:Static p:ToolbarTexts.NewGame}">
+                <v:IconView Kind="{Binding Face, Converter={x:Static v:ViewConverters.FaceIcon}}" Width="28" Height="28" />
+            </Button>
+            <Border Grid.Column="6" Classes="counter" AutomationProperties.Name="{Binding ElapsedTimeName}">
+                <DockPanel>
+                    <v:IconView DockPanel.Dock="Left" Kind="Clock" Width="16" Height="16" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding ElapsedSeconds}" />
+                </DockPanel>
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>

@@ -1,7 +1,32 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:v="using:Shos.Minesweeper.Desktop.Views"
+        xmlns:vm="using:Shos.Minesweeper.Desktop.ViewModels"
+        xmlns:s="using:Shos.Minesweeper.Desktop.Sizing"
         x:Class="Shos.Minesweeper.Desktop.Views.MainWindow"
+        x:DataType="vm:GameViewModel"
         Title="マインスイーパー"
-        Width="400" Height="382">
-    <!-- 区切り 1 では空のウィンドウ。大きさは初級の中身の大きさ（UI デザイン 2.2）で、区切り 5 で計算に置き換える -->
+        Background="{DynamicResource page}"
+        Foreground="{DynamicResource text}"
+        FontFamily="Yu Gothic UI, Meiryo UI"
+        FontSize="16">
+    <!--
+      ウィンドウの中身（UI デザイン 2.2）。ツールバーと盤面のまとまりを中央に置き、周りに 16px の余白を置く。
+      盤面の領域（BoardArea）は、中身から余白とツールバーと間を引いた場所で、その大きさからマスの大きさを決める
+    -->
+    <Panel>
+        <Grid Margin="{x:Static s:WindowSizing.ContentPadding}">
+            <Border x:Name="BoardArea" Margin="{x:Static v:MainWindow.BoardAreaMargin}" />
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="{x:Static s:WindowSizing.ToolbarGap}">
+                <v:ToolbarView Height="{x:Static s:WindowSizing.ToolbarHeight}" MaxWidth="{x:Static s:WindowSizing.MaxToolbarWidth}"
+                               Width="{Binding #BoardArea.Bounds.Width}" HorizontalAlignment="Center" />
+                <!-- 下限のマスでも収まらないときは、盤面の領域をスクロールする（仕様書 4.4） -->
+                <ScrollViewer MaxWidth="{Binding #BoardArea.Bounds.Width}" MaxHeight="{Binding #BoardArea.Bounds.Height}"
+                              HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                    <v:BoardView x:Name="Board" DataContext="{Binding Board}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </ScrollViewer>
+            </StackPanel>
+        </Grid>
+        <TextBlock Classes="live-region" Text="{Binding Announcement}" AutomationProperties.LiveSetting="Polite" />
+    </Panel>
 </Window>

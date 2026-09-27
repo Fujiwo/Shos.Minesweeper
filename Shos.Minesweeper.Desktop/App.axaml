@@ -3,7 +3,15 @@
              x:Class="Shos.Minesweeper.Desktop.App"
              RequestedThemeVariant="Default">
     <!-- ライト・ダークは OS の設定に従う（仕様書 4.5）。RequestedThemeVariant の Default が、OS の設定に従う指定である -->
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Shos.Minesweeper.Desktop/Assets/Colors.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
     <Application.Styles>
         <FluentTheme />
+        <StyleInclude Source="avares://Shos.Minesweeper.Desktop/Assets/Styles.axaml" />
     </Application.Styles>
 </Application>

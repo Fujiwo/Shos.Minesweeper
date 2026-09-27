@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- デスクトップ版のテスト。画面のテスト（Avalonia.Headless.XUnit）は xUnit v3 の 4 系で動かないので使わず、
+       ビューモデルと計算を Avalonia を起動せずに確かめる（docs/desktop-console/reviews/code-review.md の区切り 1） -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.10.0" />
+    <PackageReference Include="xunit.v3" Version="4.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Shos.Minesweeper.Desktop\Shos.Minesweeper.Desktop.csproj" />
+    <ProjectReference Include="..\Shos.Minesweeper.TestSupport\Shos.Minesweeper.TestSupport.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

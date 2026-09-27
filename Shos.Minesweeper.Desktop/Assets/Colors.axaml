@@ -1,0 +1,89 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+      配色のトークン（Web 版の UI デザイン 4.1、4.3、10.2）。Web 版の wwwroot/css/app.css と同じ名前と値にする（アーキテクチャー設計書 7.5）。
+      値が一致することは、区切り 7 のテスト（WebStyleConsistencyTests）で確かめる。
+      名前がトークンにないもの（cell-closed-top、closed-tile-face、*-shadow）は、CSS が color-mix や box-shadow の式で作っていた値を、
+      Avalonia の資源として計算しておいたものである
+    -->
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+            <SolidColorBrush x:Key="page" Color="#eef1f5" />
+            <SolidColorBrush x:Key="surface" Color="#ffffff" />
+            <SolidColorBrush x:Key="border" Color="#7b8794" />
+            <SolidColorBrush x:Key="text" Color="#1f2937" />
+            <SolidColorBrush x:Key="text-sub" Color="#4b5563" />
+            <SolidColorBrush x:Key="cell-closed" Color="#7d8fa3" />
+            <SolidColorBrush x:Key="cell-closed-hover" Color="#8a9bb0" />
+            <SolidColorBrush x:Key="cell-pressed" Color="#6c7d90" />
+            <SolidColorBrush x:Key="cell-open" Color="#ffffff" />
+            <SolidColorBrush x:Key="grid" Color="#c3cbd4" />
+            <SolidColorBrush x:Key="board" Color="#526072" />
+            <SolidColorBrush x:Key="shadow" Color="#290f172a" />
+            <SolidColorBrush x:Key="flag" Color="#e0321f" />
+            <SolidColorBrush x:Key="flag-pole" Color="#1f2937" />
+            <SolidColorBrush x:Key="mine" Color="#1f2937" />
+            <SolidColorBrush x:Key="danger" Color="#e5484d" />
+            <SolidColorBrush x:Key="danger-text" Color="#c62828" />
+            <SolidColorBrush x:Key="accent" Color="#e8590c" />
+            <SolidColorBrush x:Key="on-accent" Color="#111111" />
+            <SolidColorBrush x:Key="focus" Color="#0b57d0" />
+            <SolidColorBrush x:Key="focus-inner" Color="#ffffff" />
+            <SolidColorBrush x:Key="number-1" Color="#1d4ed8" />
+            <SolidColorBrush x:Key="number-2" Color="#15803d" />
+            <SolidColorBrush x:Key="number-3" Color="#c62828" />
+            <SolidColorBrush x:Key="number-4" Color="#1e3a8a" />
+            <SolidColorBrush x:Key="number-5" Color="#8b1a1a" />
+            <SolidColorBrush x:Key="number-6" Color="#0f766e" />
+            <SolidColorBrush x:Key="number-7" Color="#1f2937" />
+            <SolidColorBrush x:Key="number-8" Color="#57606a" />
+            <!-- cell-closed を 6% 白に寄せた色（Web 版の CSS の closed-tile-face の上端） -->
+            <LinearGradientBrush x:Key="closed-tile-face" StartPoint="0%,0%" EndPoint="0%,100%">
+                <GradientStop Offset="0" Color="#8596a9" />
+                <GradientStop Offset="1" Color="#7d8fa3" />
+            </LinearGradientBrush>
+            <!-- ボタンを指したときの面。surface に text を 8% 混ぜた色（Web 版の button:hover の color-mix） -->
+            <SolidColorBrush x:Key="button-hover" Color="#edeeef" />
+            <BoxShadows x:Key="toolbar-shadow">0 2 10 0 #290f172a</BoxShadows>
+            <BoxShadows x:Key="board-shadow">0 8 24 0 #290f172a</BoxShadows>
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+            <SolidColorBrush x:Key="page" Color="#101216" />
+            <SolidColorBrush x:Key="surface" Color="#1f242b" />
+            <SolidColorBrush x:Key="border" Color="#6b7682" />
+            <SolidColorBrush x:Key="text" Color="#e6e9ed" />
+            <SolidColorBrush x:Key="text-sub" Color="#aab3bd" />
+            <SolidColorBrush x:Key="cell-closed" Color="#6b7a8c" />
+            <SolidColorBrush x:Key="cell-closed-hover" Color="#78879a" />
+            <SolidColorBrush x:Key="cell-pressed" Color="#5d6b7c" />
+            <SolidColorBrush x:Key="cell-open" Color="#1b1f24" />
+            <SolidColorBrush x:Key="grid" Color="#2c323a" />
+            <SolidColorBrush x:Key="board" Color="#5a6674" />
+            <SolidColorBrush x:Key="shadow" Color="#80000000" />
+            <SolidColorBrush x:Key="flag" Color="#ff6b5a" />
+            <SolidColorBrush x:Key="flag-pole" Color="#e6e9ed" />
+            <SolidColorBrush x:Key="mine" Color="#e6e9ed" />
+            <SolidColorBrush x:Key="danger" Color="#e5484d" />
+            <SolidColorBrush x:Key="danger-text" Color="#ff8787" />
+            <SolidColorBrush x:Key="accent" Color="#ff922b" />
+            <SolidColorBrush x:Key="on-accent" Color="#111111" />
+            <SolidColorBrush x:Key="focus" Color="#ffd43b" />
+            <SolidColorBrush x:Key="focus-inner" Color="#101216" />
+            <SolidColorBrush x:Key="number-1" Color="#6ea8ff" />
+            <SolidColorBrush x:Key="number-2" Color="#5fd07a" />
+            <SolidColorBrush x:Key="number-3" Color="#ff7070" />
+            <SolidColorBrush x:Key="number-4" Color="#b4a7ff" />
+            <SolidColorBrush x:Key="number-5" Color="#f59ab0" />
+            <SolidColorBrush x:Key="number-6" Color="#3dd6c6" />
+            <SolidColorBrush x:Key="number-7" Color="#f1f3f5" />
+            <SolidColorBrush x:Key="number-8" Color="#aab3bd" />
+            <LinearGradientBrush x:Key="closed-tile-face" StartPoint="0%,0%" EndPoint="0%,100%">
+                <GradientStop Offset="0" Color="#748293" />
+                <GradientStop Offset="1" Color="#6b7a8c" />
+            </LinearGradientBrush>
+            <SolidColorBrush x:Key="button-hover" Color="#2f343b" />
+            <BoxShadows x:Key="toolbar-shadow">0 2 10 0 #80000000</BoxShadows>
+            <BoxShadows x:Key="board-shadow">0 8 24 0 #80000000</BoxShadows>
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

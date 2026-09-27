@@ -19,6 +19,7 @@
   </Folder>
   <Project Path="Shos.Minesweeper.ConsoleApp.Tests/Shos.Minesweeper.ConsoleApp.Tests.csproj" />
   <Project Path="Shos.Minesweeper.ConsoleApp/Shos.Minesweeper.ConsoleApp.csproj" />
+  <Project Path="Shos.Minesweeper.Desktop.Tests/Shos.Minesweeper.Desktop.Tests.csproj" />
   <Project Path="Shos.Minesweeper.Desktop/Shos.Minesweeper.Desktop.csproj" />
   <Project Path="Shos.Minesweeper.GameLogic.Tests/Shos.Minesweeper.GameLogic.Tests.csproj" />
   <Project Path="Shos.Minesweeper.GameLogic/Shos.Minesweeper.GameLogic.csproj" />

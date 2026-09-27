@@ -391,6 +391,8 @@ public sealed class GameViewModel : INotifyPropertyChanged
 public enum FaceKind { Normal, Surprised, Won, Lost }
 ```
 
+- **区切りごとに育てる**（区切り 5 で決めた）: 区切り 5 のコンストラクターは（時刻、ベストタイムのファイル、地雷の置き方）で、音の出口、効果音の設定のファイル、アニメーション効果の設定は区切り 7 で加えて、上の形にする。難易度ダイアログと勝利カードは区切り 6 で加える。
+
 #### 作るときにすること
 
 1. `bestTimesFile.Load()` でベストタイムを、`soundSettingFile.Load()` で効果音のオンとオフを読む（小さいファイルなので、その場で読む）。
