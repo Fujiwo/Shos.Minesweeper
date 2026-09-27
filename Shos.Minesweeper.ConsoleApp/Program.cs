@@ -1,28 +1,16 @@
+using Shos.Minesweeper.ConsoleApp;
 using Shos.Minesweeper.ConsoleApp.Rendering;
+using Shos.Minesweeper.ConsoleApp.Screens;
 using Shos.Minesweeper.ConsoleApp.Terminal;
+using Shos.Minesweeper.GameLogic;
 
-// 区切り 1 の骨組み（docs/desktop-console/05-class-design.md の 8 章）。端末の準備と後始末、キーの届き方を実機で確かめるため、
-// 押したキーの中身を画面に出す。Q か Ctrl+C で終わる。ゲームの画面は区切り 3 で作り、この中身は置き換える
+// コンソール版の組み立て（クラス設計書 5.9）。ベストタイムは版ごとのフォルダーに置き、デスクトップ版と共有しない（仕様書 6.2）
+var bestTimesPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                                 "Shos.Minesweeper", "ConsoleApp", "best-times.json");
+// 環境変数 NO_COLOR が空でない値で設定されていたら、色を付けない（仕様書 5.6）
+var usesColor = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("NO_COLOR"));
+
+// 例外で終わるときも、Dispose が端末を元に戻してから、例外が元の画面に出る（アーキテクチャー設計書 10 章）
 using var terminal = TerminalSession.Open();
-
-WriteLine(0, "端末の確認（区切り 1）。キーを押すと、その中身を出します。Q か Ctrl+C で終わります。");
-var row = 2;
-while (true) {
-    foreach (var key in terminal.ReadAvailableKeys()) {
-        if (key.Key == ConsoleKey.Q || IsInterrupt(key))
-            return;
-        WriteLine(row, $"Key={key.Key} KeyChar=U+{(int)key.KeyChar:X4} Modifiers={key.Modifiers}");
-        row = row + 1 < terminal.Size.Rows ? row + 1 : 2;
-    }
-    Thread.Sleep(30);
-}
-
-void WriteLine(int row, string text)
-{
-    terminal.Output.Write(VirtualTerminalSequences.MoveCursorTo(row, column: 0) + text + VirtualTerminalSequences.ClearToEndOfLine);
-    terminal.Output.Flush();
-}
-
-// Ctrl+C の届き方は Windows と Linux で違いうるので、両方を見る（クラス設計書 5.5）
-static bool IsInterrupt(ConsoleKeyInfo key)
-    => (key.Key == ConsoleKey.C && key.Modifiers.HasFlag(ConsoleModifiers.Control)) || key.KeyChar == '\u0003';
+var game = new GameScreen(TimeProvider.System, new BestTimesFile(bestTimesPath));
+GameLoop.Run(terminal, new ScreenNavigator(game), new FrameWriter(terminal.Output, usesColor));
