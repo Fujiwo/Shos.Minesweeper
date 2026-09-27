@@ -4,7 +4,7 @@
 |------|------|
 | 工程 | 7. アーキテクチャー設計書作成（デスクトップ版・コンソール版の一巡） |
 | 作成日 | 2026-09-27 |
-| 状態 | 工程 7 をユーザーが承認した（2026-09-27）。アーキテクチャー設計書レビュー（docs/desktop-console/reviews/04-architecture-review.md）の指摘を反映した |
+| 状態 | 工程 7 をユーザーが承認した（2026-09-27）。アーキテクチャー設計書レビュー（docs/desktop-console/reviews/04-architecture-review.md）の指摘を反映し、工程 8 をユーザーが承認した（2026-09-27） |
 | 入力 | docs/desktop-console/02-spec.md（仕様書）、docs/desktop-console/03-ui-design.md（UI デザイン）、docs/desktop-console/01-research.md（調査書）、Web 版のアーキテクチャー設計書（docs/04-architecture.md）、CLAUDE.md |
 
 ## 1. 概要
