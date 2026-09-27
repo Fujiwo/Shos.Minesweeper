@@ -1,3 +1,4 @@
+using System.Globalization;
 using AngleSharp.Dom;
 using Bunit;
 using Microsoft.AspNetCore.Components;
@@ -6,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
 using Microsoft.JSInterop;
 using Shos.Minesweeper.Browser;
+using Shos.Minesweeper.Pages;
 
 namespace Shos.Minesweeper.Tests;
 
@@ -25,6 +27,15 @@ public abstract class AppTestContext : BunitContext
         Services.AddScoped<BestTimeStorage>();
         Services.AddScoped<SoundEffectPlayer>();
         Services.AddScoped<SoundSettingStorage>();
+    }
+
+    /// <summary>ゲームのページを開き、盤面の領域の大きさ（352×576。初級のマスは 38px）を知らせて、盤面が描かれるまで待つ。</summary>
+    protected async Task<IRenderedComponent<GamePage>> RenderGamePageWithBoardAsync()
+    {
+        var cut = Render<GamePage>();
+        await NotifyBoardAreaResizedAsync(352, 576);
+        cut.WaitForElement("[role=grid]");
+        return cut;
     }
 
     /// <summary>盤面の領域の大きさが変わったことを、ブラウザーの代わりに知らせる。</summary>
@@ -58,4 +69,20 @@ public abstract class AppTestContext : BunitContext
     /// <summary>最後にフォーカスを移した要素の参照の ID。</summary>
     protected string LastFocusedId()
         => ((ElementReference)JSInterop.Invocations.Last(invocation => invocation.Identifier.EndsWith("focus")).Arguments[0]!).Id;
+
+    /// <summary>
+    /// 現在の言語を差し替える。戻り値を破棄すると、元の言語に戻す（using で使う）。
+    /// 小数点に「,」を使う言語の端末でも、CSS に書く数が「.」になることを確かめるのに使う。
+    /// </summary>
+    protected static IDisposable UseCulture(string name)
+    {
+        var restoring = new CultureRestoring(CultureInfo.CurrentCulture);
+        CultureInfo.CurrentCulture = new CultureInfo(name);
+        return restoring;
+    }
+
+    sealed class CultureRestoring(CultureInfo original) : IDisposable
+    {
+        public void Dispose() => CultureInfo.CurrentCulture = original;
+    }
 }

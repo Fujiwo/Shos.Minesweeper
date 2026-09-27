@@ -971,7 +971,7 @@ builder.Services.AddScoped<BestTimeStorage>();
 | プロジェクト | 中身 | 参照 |
 |--------------|------|------|
 | `Shos.Minesweeper.GameLogic.Tests` | GameLogic のテスト（xUnit） | GameLogic、TestSupport |
-| `Shos.Minesweeper.Presentation.Tests` | Presentation のテスト（xUnit） | Presentation |
+| `Shos.Minesweeper.Presentation.Tests` | Presentation のテスト（xUnit） | Presentation、TestSupport（1.1.0。12.9） |
 | `Shos.Minesweeper.Tests` | Web アプリの C# クラスとコンポーネントのテスト（xUnit ＋ bUnit） | Web アプリ、TestSupport |
 | `Shos.Minesweeper.TestSupport` | テストの共通の補助（`TestGames`。クラスライブラリ。比べるために xUnit の `Assert` だけを使う） | GameLogic |
 
@@ -980,17 +980,21 @@ builder.Services.AddScoped<BestTimeStorage>();
 - 工程 11 の時点の最新の安定版は xUnit v3（`xunit.v3` 4.0.1）で、.NET 10 の SDK では Microsoft.Testing.Platform で動かす必要がある。そこで、リポジトリ直下に `global.json` を置いてこのモードを選び、VSTest 用のパッケージ（`Microsoft.NET.Test.Sdk`、`xunit.runner.visualstudio`）は入れない（docs/reviews/code-review.md の区切り 1）。
 
 ```text
-Shos.Minesweeper.GameLogic.Tests/      DifficultyTests, BoardTests, GameTests, BestTimesTests, BestTimesJsonTests
-Shos.Minesweeper.Presentation.Tests/   DifficultyNamesTests, AnnouncementsTests, PressMappingTests
+Shos.Minesweeper.GameLogic.Tests/      DifficultyTests, BoardTests, GameTests, MoveResultTests, BestTimesTests, BestTimesJsonTests
+Shos.Minesweeper.Presentation.Tests/   DifficultyNamesTests, AnnouncementsTests, PressMappingTests,
+                                       SoundEffectMappingTests, SoundEffectSynthesizerTests, GameSessionTests
 Shos.Minesweeper.TestSupport/          TestGames（補助）
 Shos.Minesweeper.Tests/
-├─ AppTestContext.cs  Web アプリのテストの共通の準備（DI、時刻の偽物、JavaScript の偽物、ポインターのイベントを作る補助など）
+├─ AppTestContext.cs  Web アプリのテストの共通の準備（DI、時刻の偽物、JavaScript の偽物、ポインターのイベントを作る補助、
+│                     盤面が描かれたゲームのページを開く補助、端末の言語を差し替える補助など）
 ├─ Input/        PressGestureTests, KeyboardMappingTests, BoardCursorTests
-├─ Display/      BoardPlacementTests, CellPresentationTests
-├─ Browser/      BestTimeStorageTests
-└─ Components/   GamePageTests, ToolbarTests, ElapsedTimeTests, BoardAreaTests, BoardViewTests, BoardViewPointerTests,
-                 BoardViewKeyboardTests, DifficultyDialogTests, WinCardTests, HostPageTests
+├─ Display/      BoardPlacementTests, CellPresentationTests, BoardAnimationTests
+├─ Browser/      BestTimeStorageTests, SoundEffectPlayerTests, SoundSettingStorageTests
+└─ Components/   GamePageTests, GamePageSoundTests, ToolbarTests, ElapsedTimeTests, BoardAreaTests, BoardViewTests,
+                 BoardViewPointerTests, BoardViewKeyboardTests, DifficultyDialogTests, WinCardTests, HostPageTests
 ```
+
+- 1.1.0 で加えたテストクラスは、12.9 にある。1.1.0 の工程 12（リファクタリング）で、`GameTests` から操作の結果のテストを `MoveResultTests` に、`GamePageTests` から効果音のテストを `GamePageSoundTests` に分けた（docs/reviews/code-review.md の 1.1.0 工程 12 の R1、R2）。
 
 ### 7.2 盤面を絵で書く補助
 
@@ -1289,7 +1293,7 @@ public sealed class GameSession
 - `chooseMines` は、新しいゲームを始めるたびに `Game` に渡す。本番では省略し（乱数）、テストでは盤面の絵から作った選び方を渡す（12.9）。
 - 勝敗が決まった後に `Open` や `ToggleFlag` を呼ぶと、`Game` が `InvalidOperationException` を投げる（3.5）。`GameSession` は、それをそのまま伝える。
 - 持たないもの（ベストタイム、読み上げの文、効果音のオンとオフ、旗モード、盤面の置き方）は、アーキテクチャー設計書 6.2 のとおりである。
-- **UI は、`Game` の `Open` と `ToggleFlag` を直接呼ばない。** 直接呼ぶと、効果音と直前の操作が抜ける。`Game` の操作は公開のままなので、コンパイラーでは守れない。`Game` を読み取り専用の型で包めば守れるが、表示に使う `Game` のメンバー（状態、残り地雷数、経過時間、マスの見せ方、盤面）をすべて写すことになり、同じものが 2 か所に並ぶ。盤面の操作を呼ぶのは `GamePage` の 2 か所だけなので、包まずに、`GamePageTests`（盤面の操作で効果音が鳴ること）で確かめる。
+- **UI は、`Game` の `Open` と `ToggleFlag` を直接呼ばない。** 直接呼ぶと、効果音と直前の操作が抜ける。`Game` の操作は公開のままなので、コンパイラーでは守れない。`Game` を読み取り専用の型で包めば守れるが、表示に使う `Game` のメンバー（状態、残り地雷数、経過時間、マスの見せ方、盤面）をすべて写すことになり、同じものが 2 か所に並ぶ。盤面の操作を呼ぶのは `GamePage` の 2 か所だけなので、包まずに、`GamePageSoundTests`（盤面の操作で効果音が鳴ること）で確かめる。
 - 名前の Session は「難易度を選んでから、何回も新しいゲームを始めながら遊び続ける、ひと続きの遊び」を表す。1 回の `Game` より長く、ページを開いている間ずっと 1 つである。
 
 ### 12.5 Display
@@ -1384,7 +1388,7 @@ public sealed class SoundSettingStorage(BrowserFeatures browser)
 - `SoundEffectPlayer.PrepareAsync` は、合成の前に `Task.Yield()` で処理をいったん返す。盤面の最初の描画は、ブラウザーの領域の大きさの知らせの処理の中で行われる。その中で合成（WebAssembly で 20〜30 ミリ秒）まで続けると、盤面が画面に出るのがその分遅れるからである（工程 11 の区切り 6 で改めた。アーキテクチャー設計書 8.7）。
 - `SoundEffectPlayer.Play` は、`PlaySoundAsync` の完了を待たない（音の出口の約束。12.4）。Blazor WebAssembly では、JavaScript の関数はこの呼び出しの中で動き始めるので、音は描き直しの前に鳴り始める。
   - 戻り値の `ValueTask` は、`AsTask()` で `Task` にしてから捨てる。`ValueTask` を待たずに捨てることを、書き手の意図として明示し、その理由（待たない約束）をコメントに書く。
-  - 鳴らすときの失敗（Web Audio がない、再生に失敗した）は、JavaScript の側で受け止める（アーキテクチャー設計書 11 章）。それでも .NET に届く例外は、関数の名前の誤りのようなプログラムの誤りだけで、`SoundEffectPlayerTests` と `GamePageTests` で呼び出しを確かめて防ぐ。
+  - 鳴らすときの失敗（Web Audio がない、再生に失敗した）は、JavaScript の側で受け止める（アーキテクチャー設計書 11 章）。それでも .NET に届く例外は、関数の名前の誤りのようなプログラムの誤りだけで、`SoundEffectPlayerTests` と `GamePageSoundTests` で呼び出しを確かめて防ぐ。
 - `PrepareAsync` の 2 回目を何もしないのは、`GamePage` が作り直されることがあるからである。見つからないページ（`NotFound`）からゲームに戻ると `GamePage` が新しく作られ、盤面を描いた後にまた `PrepareAsync` を呼ぶ。`SoundEffectPlayer` はスコープの有効期間（アプリの実行中ずっと 1 つ）なので、合成と受け渡しを 2 回しないようにする。
 - `SoundEffectPlayer.IsEnabled` の初期値は真（仕様書 5.6 の既定）で、`GamePage` がページを開いたときに `SoundSettingStorage.LoadAsync` の値を入れる。
 - `SoundSettingStorage` は、`BestTimeStorage`（4.4）と同じ形にした。値を `"on"`・`"off"` の文字にしたのは、localStorage を開いて読んだときに意味が分かるからである（9.1 の決定 14）。
@@ -1503,7 +1507,7 @@ builder.Services.AddScoped<SoundSettingStorage>();
 
 | テストクラス | 主な観点 |
 |--------------|----------|
-| `GameTests`（足す） | 12.2 の表のすべての行。最初の一手、0 の連鎖、コード、負け（コードで 2 つの地雷を開く場合を含む）、勝ち（自動の旗は `OpenedPositions` に含まない）、未開始の旗 |
+| `MoveResultTests`（加える。はじめは `GameTests` に足し、1.1.0 の工程 12 で分けた） | 12.2 の表のすべての行。最初の一手、0 の連鎖、コード、負け（コードで 2 つの地雷を開く場合を含む）、勝ち（自動の旗は `OpenedPositions` に含まない）、未開始の旗 |
 | `SoundEffectMappingTests` | 12.3 の表のすべての行 |
 | `SoundEffectSynthesizerTests` | 6 つの効果音の長さ（UI デザイン 10.6 の長さ × `SampleRate`）、最大の振幅（0 より大きく、最大振幅 × 0.8 以下）、最初と最後のサンプルが 0 に近い、同じ効果音から同じ波形 |
 | `GameSessionTests` | 操作ごとに出口に渡った効果音、何も起きなかった操作では渡らず `LastMove` も変わらない、勝敗が決まった操作では勝ちか負けだけ、新しいゲームで `LastMove` が `null`、出口を渡さなくても同じ操作が進む |
@@ -1512,7 +1516,8 @@ builder.Services.AddScoped<SoundSettingStorage>();
 | `CellPresentationTests`（足す） | 演出の種類ごとの CSS のクラス |
 | `SoundEffectPlayerTests` | `PrepareAsync` で、6 つの効果音が名前、サンプリング周波数、バイト数（サンプル数 × 4）とともに渡る。2 回目は渡らない。`Play` で `playSound` が呼ばれる。`IsEnabled` が偽なら呼ばれない |
 | `SoundSettingStorageTests` | 読み書きのキー。`"off"` で偽、値がない・ほかの値で真。書く値 |
-| `GamePageTests`（足す） | 盤面の操作で `playSound` が呼ばれる。効果音 ボタンで切り替わり、保存される。保存した設定がボタンに出る。大きさが分かると CSS の変数が付く |
+| `GamePageSoundTests`（加える。はじめは `GamePageTests` に足し、1.1.0 の工程 12 で分けた） | 盤面を描いた後に効果音を用意する。盤面の操作で `playSound` が呼ばれる。効果音 ボタンで切り替わり、保存される。保存した設定がボタンに出る |
+| `GamePageTests`（足す） | 大きさが分かると盤面を描き、CSS の変数が付く。難易度を変えると置き方を求め直す。マスを開くと演出のクラスが付き、新しいゲームで消える |
 | `ToolbarTests`（足す） | 効果音 ボタンの `aria-pressed`、`title`、アイコン。押すと `OnSoundClick` |
 | `BoardViewTests`（足す） | 直前の操作に応じた演出のクラスと `--delay-ratio`。押下中の描き直しでは変わらない。新しいゲームで消える |
 | `BoardAreaTests`（改める） | 大きさの変化を `OnResized` で知らせる |

@@ -1,4 +1,3 @@
-using System.Globalization;
 using Bunit;
 using Shos.Minesweeper.Components;
 using Shos.Minesweeper.Display;
@@ -92,18 +91,13 @@ public class BoardViewTests : AppTestContext
     [Fact]
     public void DelayRatioIsWrittenWithAPeriodInAnyCulture()
     {
-        var culture = CultureInfo.CurrentCulture;
-        CultureInfo.CurrentCulture = new CultureInfo("de-DE");
-        try {
-            var game = TestGames.FromPicture(TestGames.WallPicture);
-            var move = game.Open(new CellPosition(2, 0));
+        using var culture = UseCulture("de-DE");
+        var game = TestGames.FromPicture(TestGames.WallPicture);
+        var move = game.Open(new CellPosition(2, 0));
 
-            var cut = RenderBoard(game, WallPlacement, move);
+        var cut = RenderBoard(game, WallPlacement, move);
 
-            Assert.StartsWith("--delay-ratio: 0.447", cut.Find("#cell-2-1").GetAttribute("style"));
-        } finally {
-            CultureInfo.CurrentCulture = culture;
-        }
+        Assert.StartsWith("--delay-ratio: 0.447", cut.Find("#cell-2-1").GetAttribute("style"));
     }
 
     // 押下中の表示のために描き直しても、演出のクラスと変数は変わらないので、アニメーションは続く（アーキテクチャー設計書 8.6）

@@ -1160,7 +1160,7 @@ CSS だけの変更なので、自動のテストは書いていない（アー�
 | 項目 | 内容 |
 |------|------|
 | 作成日 | 2026-09-27 |
-| 状態 | 対象の一覧（案）を作った。ユーザーの承認を待っている |
+| 状態 | 対象の一覧をユーザーが承認した（2026-09-27）。R1〜R3 を反映した。工程 12 の完了の承認を待っている |
 | 対象 | 1.1.0 で変えたコード全体（v1.0.0 からの差分の 52 ファイル）と、そのテスト |
 | 観点 | 機能のまとまり（区切り）をまたぐ見直し（CLAUDE.md の「各工程で扱う内容」）。sustainable-code-jp スキルの「リファクタリング」と、臭いと技法の名前。工程 11 のレビューで工程 12 に送った指摘を含める |
 
@@ -1202,3 +1202,28 @@ CSS だけの変更なので、自動のテストは書いていない（アー�
 | # | 場所 | 症状 | 起きる条件 |
 |---|------|------|------------|
 | B1 | `wwwroot/js/browser.js` の `loadSound` | 例外の受け止め漏れ（`AudioContext` がすでにあるとき、`loadSound` はその場で `createSoundBuffer` を呼ぶが、`try` の外である。`createBuffer` が例外を投げると、C# の `PrepareAsync` に届き、Blazor のエラーの表示になる。アーキテクチャー設計書 9.1 は、効果音の例外を `browser.js` の中で受け止めると決めている） | 6 つの効果音を渡している途中（30 ミリ秒ほど）に利用者が操作し、かつ、ブラウザーが 44100 のサンプリング周波数の `AudioBuffer` を作れないとき。通常のブラウザーでは起きにくい |
+
+### 結果
+
+一覧の順（R1 → R3 → R2）に、一手ごとにビルドと全テストを流して Green を保った。本番のコードは変えていない（テストの件数は 483 件のまま、すべて成功）。
+
+| # | 結果 | 検証 |
+|---|------|------|
+| R1 | `GameTests` の「操作の結果」の節（12 件）と、それだけが使う盤面の絵 `FencedPocketPicture`、補助 `LeftTwoColumnsOfWall` を、新しい `MoveResultTests` に移した。テストの中身は変えていない。`GameTests` は 523 行・39 件から 343 行・27 件になった | GameLogic.Tests は 123 件のまま成功 |
+| R3 | `AppTestContext` に、端末の言語を差し替えて、破棄すると元に戻す補助 `UseCulture(name)` を置き、`BoardViewTests` と `GamePageTests` の小数点のテストの `try`〜`finally` を `using var culture = UseCulture("de-DE");` の 1 行にした | 483 件成功。補助が本当に言語を差し替えていることを、本番のコードの書式（インバリアント カルチャー）を一時的に外して確かめた（2 つのテストが失敗した。元に戻して 483 件成功） |
+| R2 | `GamePageTests` の効果音の節（7 件）と、それだけが使う補助 `PlayedSounds` を、新しい `GamePageSoundTests` に移した。両方が使う「盤面が描かれたページを開く」補助は、`AppTestContext` に `RenderGamePageWithBoardAsync` として移した（共通の土台に置くので、どのページかが分かる名前にした）。`GamePageTests` は 427 行・31 件から 24 件になった | 483 件成功。ビルドの警告は 0。使っていない `using` はない（`dotnet format style --diagnostics IDE0005 --severity info --verify-no-changes` の終了コード 0） |
+
+反映した文書:
+
+| 文書 | 変更 |
+|------|------|
+| クラス設計書 | 7.1（テストクラスの一覧を 1.1.0 の今の姿にし、Presentation.Tests の参照に TestSupport を加え、分けたことを書いた）、12.4 と 12.6（効果音の呼び出しを確かめるテストクラスの名前）、12.9（`MoveResultTests`、`GamePageSoundTests`、`GamePageTests` の観点） |
+| アーキテクチャー設計書、CLAUDE.md | 変えていない（テストクラスの名前を書いていない） |
+
+作業の環境で起きたこと: ビルドの既知のロック（MSB4018、`tmp-webcil`）に 2 回当たった。`Shos.Minesweeper/obj/Debug/net10.0/tmp-webcil` を消してビルドし直すと通った。
+
+検証結果（最後）:
+
+- `dotnet build Shos.Minesweeper.slnx`: 警告 0、エラー 0
+- `dotnet test`: 483 件すべて成功（GameLogic 123、Presentation 81、Web アプリ 279）
+- ブラウザーでの確認は、続く工程 13 で行う（本番のコードは変えていない）

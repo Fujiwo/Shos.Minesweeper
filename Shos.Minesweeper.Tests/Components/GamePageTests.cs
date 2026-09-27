@@ -1,4 +1,3 @@
-using System.Globalization;
 using Bunit;
 using Microsoft.AspNetCore.Components.Web;
 using Shos.Minesweeper.Pages;
@@ -33,7 +32,7 @@ public class GamePageTests : AppTestContext
     [Fact]
     public async Task AreaAndBoardHeightsArePassedToTheCss()
     {
-        var cut = await RenderPageWithBoardAsync();
+        var cut = await RenderGamePageWithBoardAsync();
 
         Assert.Equal("--board-area-height: 576px; --board-height: 348px", cut.Find(".game").GetAttribute("style"));
     }
@@ -42,7 +41,7 @@ public class GamePageTests : AppTestContext
     [Fact]
     public async Task ChoosingADifficultyRecalculatesThePlacement()
     {
-        var cut = await RenderPageWithBoardAsync();
+        var cut = await RenderGamePageWithBoardAsync();
         cut.Find("button.difficulty").Click();
 
         cut.FindAll("button.preset")[2].Click();
@@ -55,23 +54,18 @@ public class GamePageTests : AppTestContext
     [Fact]
     public async Task AreaHeightIsWrittenWithAPeriodInAnyCulture()
     {
-        var culture = CultureInfo.CurrentCulture;
-        CultureInfo.CurrentCulture = new CultureInfo("de-DE");
-        try {
-            var cut = Render<GamePage>();
+        using var culture = UseCulture("de-DE");
+        var cut = Render<GamePage>();
 
-            await NotifyBoardAreaResizedAsync(352, 576.5);
+        await NotifyBoardAreaResizedAsync(352, 576.5);
 
-            cut.WaitForAssertion(() => Assert.StartsWith("--board-area-height: 576.5px;", cut.Find(".game").GetAttribute("style")));
-        } finally {
-            CultureInfo.CurrentCulture = culture;
-        }
+        cut.WaitForAssertion(() => Assert.StartsWith("--board-area-height: 576.5px;", cut.Find(".game").GetAttribute("style")));
     }
 
     [Fact]
     public async Task ClickingACellOpensIt()
     {
-        var cut = await RenderPageWithBoardAsync();
+        var cut = await RenderGamePageWithBoardAsync();
 
         Click(cut, "#cell-4-4", Mouse());
 
@@ -82,7 +76,7 @@ public class GamePageTests : AppTestContext
     [Fact]
     public async Task RightClickingACellFlagsIt()
     {
-        var cut = await RenderPageWithBoardAsync();
+        var cut = await RenderGamePageWithBoardAsync();
 
         cut.Find("#cell-4-4").PointerDown(Mouse(button: 2));
 
@@ -92,7 +86,7 @@ public class GamePageTests : AppTestContext
     [Fact]
     public async Task ResetStartsANewGameOfTheSameDifficulty()
     {
-        var cut = await RenderPageWithBoardAsync();
+        var cut = await RenderGamePageWithBoardAsync();
         cut.Find("#cell-4-4").PointerDown(Mouse(button: 2));
 
         cut.Find("button.reset").Click();
@@ -104,7 +98,7 @@ public class GamePageTests : AppTestContext
     [Fact]
     public async Task FlagModeMakesTapsFlagAndSurvivesReset()
     {
-        var cut = await RenderPageWithBoardAsync();
+        var cut = await RenderGamePageWithBoardAsync();
 
         cut.Find("button.flag-mode").Click();
         cut.Find("button.reset").Click();
@@ -118,7 +112,7 @@ public class GamePageTests : AppTestContext
     [Fact]
     public async Task FaceIsSurprisedWhileACellIsPressed()
     {
-        var cut = await RenderPageWithBoardAsync();
+        var cut = await RenderGamePageWithBoardAsync();
 
         cut.Find("#cell-4-4").PointerDown(Mouse());
         Assert.Equal("FaceSurprised", cut.Find("button.reset svg").GetAttribute("data-kind"));
@@ -130,7 +124,7 @@ public class GamePageTests : AppTestContext
     [Fact]
     public async Task NothingIsAnnouncedWhenThePageOpens()
     {
-        var cut = await RenderPageWithBoardAsync();
+        var cut = await RenderGamePageWithBoardAsync();
 
         Assert.Equal("", AnnouncementOf(cut));
     }
@@ -138,7 +132,7 @@ public class GamePageTests : AppTestContext
     [Fact]
     public async Task ResetAnnouncesTheNewGame()
     {
-        var cut = await RenderPageWithBoardAsync();
+        var cut = await RenderGamePageWithBoardAsync();
 
         cut.Find("button.reset").Click();
 
@@ -148,7 +142,7 @@ public class GamePageTests : AppTestContext
     [Fact]
     public async Task SameAnnouncementTwiceStillChangesTheLiveRegion()
     {
-        var cut = await RenderPageWithBoardAsync();
+        var cut = await RenderGamePageWithBoardAsync();
         cut.Find("button.reset").Click();
         var first = cut.Find("[aria-live=polite]").TextContent;
 
@@ -162,7 +156,7 @@ public class GamePageTests : AppTestContext
     [Fact]
     public async Task TheEndOfTheGameIsAnnounced()
     {
-        var cut = await RenderPageWithBoardAsync();
+        var cut = await RenderGamePageWithBoardAsync();
 
         // 乱数の盤面なので、勝敗が決まるまで未開放のマスを開き続ける
         while (cut.FindAll(".cell.closed").FirstOrDefault() is { } closed
@@ -178,7 +172,7 @@ public class GamePageTests : AppTestContext
     [Fact]
     public async Task KeyboardAloneCanOpenACell()
     {
-        var cut = await RenderPageWithBoardAsync();
+        var cut = await RenderGamePageWithBoardAsync();
 
         cut.Find("[role=grid]").KeyDown(new KeyboardEventArgs { Key = "ArrowDown" });
         cut.Find("[role=grid]").KeyDown(new KeyboardEventArgs { Key = "Enter" });
@@ -189,7 +183,7 @@ public class GamePageTests : AppTestContext
     [Fact]
     public async Task DifficultyButtonOpensTheDialogAndMakesTheRestInert()
     {
-        var cut = await RenderPageWithBoardAsync();
+        var cut = await RenderGamePageWithBoardAsync();
 
         cut.Find("button.difficulty").Click();
 
@@ -236,7 +230,7 @@ public class GamePageTests : AppTestContext
     public async Task SavedBestTimesAreShownInTheDialog()
     {
         JSInterop.SetupModule("./js/browser.js").Setup<string?>("readStorage", "Shos.Minesweeper.BestTimes").SetResult("""{"Beginner":23}""");
-        var cut = await RenderPageWithBoardAsync();
+        var cut = await RenderGamePageWithBoardAsync();
 
         cut.Find("button.difficulty").Click();
 
@@ -286,89 +280,9 @@ public class GamePageTests : AppTestContext
 
     async Task<IRenderedComponent<GamePage>> RenderPageWithWinningCustomBoardAsync()
     {
-        var cut = await RenderPageWithBoardAsync();
+        var cut = await RenderGamePageWithBoardAsync();
         StartWinningCustomGame(cut);
         return cut;
-    }
-
-    // 効果音（仕様書 5.6。1.1.0）
-
-    // 合成で盤面の最初の表示を遅らせないように、盤面を描いてから用意する
-    [Fact]
-    public void SoundsAreNotPreparedBeforeTheBoardIsShown()
-    {
-        Render<GamePage>();
-
-        Assert.DoesNotContain(JSInterop.Invocations, invocation => invocation.Identifier == "loadSound");
-    }
-
-    // 用意は、盤面の描画を画面に出してから（処理をいったん返してから）行うので、終わるのを待つ
-    [Fact]
-    public async Task SoundsArePreparedAfterTheBoardIsShown()
-    {
-        var cut = Render<GamePage>();
-
-        await NotifyBoardAreaResizedAsync(352, 576);
-
-        cut.WaitForAssertion(() => Assert.Equal(6, JSInterop.Invocations.Count(invocation => invocation.Identifier == "loadSound")));
-    }
-
-    [Fact]
-    public async Task OpeningACellPlaysItsSound()
-    {
-        var cut = await RenderPageWithBoardAsync();
-
-        Click(cut, "#cell-4-4", Mouse());
-
-        // 最初に開いたマスは必ず 0 なので、乱数の盤面でも連鎖になる（まれに、その一手で勝つ）
-        Assert.Contains(Assert.Single(PlayedSounds()), new[] { "Chain", "Won" });
-    }
-
-    [Fact]
-    public async Task FlaggingACellPlaysTheFlagSound()
-    {
-        var cut = await RenderPageWithBoardAsync();
-
-        cut.Find("#cell-4-4").PointerDown(Mouse(button: 2));
-
-        Assert.Equal(["FlagPlaced"], PlayedSounds());
-    }
-
-    [Fact]
-    public async Task SoundButtonTurnsSoundOffAndSavesIt()
-    {
-        var cut = await RenderPageWithBoardAsync();
-
-        cut.Find("button.sound").Click();
-        cut.Find("#cell-4-4").PointerDown(Mouse(button: 2));
-
-        Assert.Equal("false", cut.Find("button.sound").GetAttribute("aria-pressed"));
-        Assert.Empty(PlayedSounds());
-        var write = JSInterop.Invocations.Last(invocation => invocation.Identifier == "writeStorage");
-        Assert.Equal(("Shos.Minesweeper.SoundEffects", "off"), (write.Arguments[0], write.Arguments[1]));
-    }
-
-    // オンに戻しても、音は鳴らさない（UI デザイン 10.8 の決定 10）
-    [Fact]
-    public async Task TurningSoundBackOnPlaysNothing()
-    {
-        var cut = await RenderPageWithBoardAsync();
-
-        cut.Find("button.sound").Click();
-        cut.Find("button.sound").Click();
-
-        Assert.Equal("true", cut.Find("button.sound").GetAttribute("aria-pressed"));
-        Assert.Empty(PlayedSounds());
-    }
-
-    [Fact]
-    public async Task SavedSoundSettingIsShownOnTheSoundButton()
-    {
-        JSInterop.SetupModule("./js/browser.js").Setup<string?>("readStorage", "Shos.Minesweeper.SoundEffects").SetResult("off");
-
-        var cut = await RenderPageWithBoardAsync();
-
-        Assert.Equal("false", cut.Find("button.sound").GetAttribute("aria-pressed"));
     }
 
     // 演出（仕様書 5.7。1.1.0）
@@ -376,7 +290,7 @@ public class GamePageTests : AppTestContext
     [Fact]
     public async Task OpeningACellAnimatesIt()
     {
-        var cut = await RenderPageWithBoardAsync();
+        var cut = await RenderGamePageWithBoardAsync();
 
         Click(cut, "#cell-4-4", Mouse());
 
@@ -386,16 +300,13 @@ public class GamePageTests : AppTestContext
     [Fact]
     public async Task NewGameEndsTheAnimations()
     {
-        var cut = await RenderPageWithBoardAsync();
+        var cut = await RenderGamePageWithBoardAsync();
         Click(cut, "#cell-4-4", Mouse());
 
         cut.Find("button.reset").Click();
 
         Assert.Empty(cut.FindAll(".reveal"));
     }
-
-    string[] PlayedSounds()
-        => [.. JSInterop.Invocations.Where(invocation => invocation.Identifier == "playSound").Select(invocation => (string)invocation.Arguments[0]!)];
 
     async Task WinCustomGameAsync(IRenderedComponent<GamePage> cut)
     {
@@ -416,12 +327,4 @@ public class GamePageTests : AppTestContext
 
     static string AnnouncementOf(IRenderedComponent<GamePage> cut)
         => cut.Find("[aria-live=polite]").TextContent.Replace("\u200B", "").Trim();
-
-    async Task<IRenderedComponent<GamePage>> RenderPageWithBoardAsync()
-    {
-        var cut = Render<GamePage>();
-        await NotifyBoardAreaResizedAsync(352, 576);
-        cut.WaitForElement("[role=grid]");
-        return cut;
-    }
 }
