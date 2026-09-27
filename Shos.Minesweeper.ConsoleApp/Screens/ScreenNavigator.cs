@@ -19,15 +19,28 @@ public sealed class ScreenNavigator(GameScreen game)
             IsExitRequested = true;
             return;
         }
-        // 端末が小さい間は、盤面の操作を受けない。受けるのは終わる操作だけ（難易度の選択の D は、区切り 4 で加える）
+        // 端末が小さい間は、盤面の操作を受けない。受けるのは、難易度の選択と終わる操作だけ（仕様書 5.5）。
+        // 難易度の選択の画面は、ゲームの画面より行が少ないので、盤面が収まらない端末でも出せる。そこで小さい盤面を選べる
         if (!size.IsAtLeast(RequiredSizeOf(current.Render()))) {
-            IsExitRequested = KeyboardMapping.CommandFor(key) == GameCommand.Quit;
+            HandleKeyWhileTooSmall(key);
             return;
         }
         if (current.HandleKey(key) is { } next)
             current = next;
         else
             IsExitRequested = true;
+    }
+
+    void HandleKeyWhileTooSmall(ConsoleKeyInfo key)
+    {
+        switch (KeyboardMapping.CommandFor(key)) {
+            case GameCommand.SelectDifficulty:
+                current = new DifficultySelectionScreen(game);
+                break;
+            case GameCommand.Quit:
+                IsExitRequested = true;
+                break;
+        }
     }
 
     /// <summary>今の画面。端末が小さければ、端末を広げるよう知らせる画面。</summary>

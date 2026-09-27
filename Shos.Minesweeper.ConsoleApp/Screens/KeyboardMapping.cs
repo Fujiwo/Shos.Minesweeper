@@ -28,9 +28,14 @@ public static class KeyboardMapping
     public static GameCommand CommandFor(ConsoleKeyInfo key)
         => key.Key switch {
             ConsoleKey.N => GameCommand.NewGame,
+            ConsoleKey.D => GameCommand.SelectDifficulty,
             ConsoleKey.Q => GameCommand.Quit,
-            _            => GameCommand.None
+            _            => IsQuestionMark(key) ? GameCommand.ShowHelp : GameCommand.None
         };
+
+    // 「?」は、キーボードの配列によってキー（ConsoleKey）が違うので、文字で見る。
+    // IME がオンのままの全角の「？」も受けるように、文字を整えてから比べる（仕様書 3 章、5.3）
+    static bool IsQuestionMark(ConsoleKeyInfo key) => InputText.Normalize(key.KeyChar.ToString()) == "?";
 
     /// <summary>Ctrl+C。Windows と Linux で届き方が違いうるので、キーと修飾の組と、制御文字の両方を見る。</summary>
     public static bool IsInterrupt(ConsoleKeyInfo key)

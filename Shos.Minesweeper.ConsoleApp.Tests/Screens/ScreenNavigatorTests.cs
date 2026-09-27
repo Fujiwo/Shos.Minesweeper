@@ -80,6 +80,25 @@ public class ScreenNavigatorTests
         Assert.True(navigator.IsExitRequested);
     }
 
+    // 端末が小さい間も、D で難易度の選択を開ける。選択の画面はゲームの画面より行が少ないので、盤面が収まらない端末でも出せる（仕様書 5.5）
+    [Fact]
+    public void DifficultySelectionOpensWhileTheTerminalIsTooSmallForTheBoard()
+    {
+        navigator.HandleKey(Keys.Of(ConsoleKey.D), OneRowShort);
+
+        Assert.Equal("難易度を選んでください", navigator.Render(OneRowShort).Lines[0].Text);
+    }
+
+    // 小さい端末で上級を選ぶと、また端末を広げるよう知らせる。中級と上級は 22 行が要る
+    [Fact]
+    public void ChoosingABoardThatDoesNotFitShowsTheTooSmallScreenAgain()
+    {
+        navigator.HandleKey(Keys.Of(ConsoleKey.D), OneRowShort);
+        navigator.HandleKey(Keys.Of(ConsoleKey.D3), OneRowShort);
+
+        Assert.Contains("76 列 x 22 行 が要ります。", TextsOf(navigator.Render(OneRowShort)));
+    }
+
     [Fact]
     public void OtherKeysDoNotRequestExit()
     {

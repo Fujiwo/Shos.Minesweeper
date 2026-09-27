@@ -36,10 +36,19 @@ public class KeyboardMappingTests
 
     [Theory]
     [InlineData(ConsoleKey.N, GameCommand.NewGame)]
+    [InlineData(ConsoleKey.D, GameCommand.SelectDifficulty)]
     [InlineData(ConsoleKey.Q, GameCommand.Quit)]
     [InlineData(ConsoleKey.A, GameCommand.None)]
     public void LettersSelectScreenCommands(ConsoleKey key, GameCommand command)
         => Assert.Equal(command, KeyboardMapping.CommandFor(Keys.Of(key)));
+
+    // 「?」はキーボードの配列でキーが違うので、文字で見る。IME の全角の「？」も、整えてから読む（仕様書 3 章）
+    [Theory]
+    [InlineData('?')]
+    [InlineData('？')]
+    public void QuestionMarkShowsTheHelp(char character)
+        => Assert.Equal(GameCommand.ShowHelp,
+                        KeyboardMapping.CommandFor(new ConsoleKeyInfo(character, ConsoleKey.Oem2, shift: true, alt: false, control: false)));
 
     // Ctrl+C は、Windows では C と Ctrl の組で、端末によっては制御文字（U+0003）で届く
     [Fact]

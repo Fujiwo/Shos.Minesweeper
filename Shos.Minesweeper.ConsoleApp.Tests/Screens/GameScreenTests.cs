@@ -156,6 +156,14 @@ public sealed class GameScreenTests : IDisposable
     }
 
     [Fact]
+    public void DKeyOpensTheDifficultySelection()
+        => Assert.IsType<DifficultySelectionScreen>(screen.HandleKey(Keys.Of(ConsoleKey.D)));
+
+    [Fact]
+    public void QuestionMarkOpensTheHelp()
+        => Assert.IsType<HelpScreen>(screen.HandleKey(Keys.Of(ConsoleKey.Oem2, '?', shift: true)));
+
+    [Fact]
     public void QuitKeyEndsTheApplication()
         => Assert.Null(screen.HandleKey(Keys.Of(ConsoleKey.Q)));
 

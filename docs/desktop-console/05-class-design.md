@@ -959,7 +959,7 @@ public enum GameCommand { None, NewGame, SelectDifficulty, ShowHelp, Quit }
 
 **`KeyboardMapping`**（コンソール版）
 
-- 英字は `ConsoleKeyInfo.Key`（`ConsoleKey.H` など）で見る。大文字と小文字を区別しない（仕様書 5.3）。`?` は `ConsoleKey` に決まった値がない（キーボードの配列で違う）ので、`KeyChar` で見る。
+- 英字は `ConsoleKeyInfo.Key`（`ConsoleKey.H` など）で見る。大文字と小文字を区別しない（仕様書 5.3）。`?` は `ConsoleKey` に決まった値がない（キーボードの配列で違う）ので、`KeyChar` で見る。その文字は `InputText.Normalize` で整えてから比べ、IME がオンのままの全角の「？」も受ける（区切り 4 で決めた。CLAUDE.md の「設計方針」）。
 - Ctrl+C は、`Key` が `C` で修飾に Ctrl があるとき、または `KeyChar` が `\u0003` のときとする。Windows と Linux で届き方が違いうるので、両方を見る。Linux での届き方は区切り 1 で確かめる（アーキ 11 章 #5）。
 - 名前と形は、Web 版とデスクトップ版の `KeyboardMapping` にそろえ、コンソール版だけの画面の操作を `CommandFor` に分けた。
 
@@ -1013,6 +1013,7 @@ public sealed class LineEditor
 
 - 初級・中級・上級を選んだら、`game.StartNewGame` をして `game` に戻る。カスタムを選んだら、`new CustomDifficultyInput(game.Difficulty)` を始める。
 - 開いたときの選択の位置は今の難易度の行（カスタムなら 4 行目）で、その行の末尾に「（今の難易度）」を付ける。ベストタイムは `game.BestTimes` から、列をそろえて書く（UI 3.7）。
+- 1〜4 のキーの文字は `InputText.Normalize` で整えてから読み、IME がオンのままの全角の数字でも選べるようにする（区切り 4 で決めた）。
 
 **`CustomDifficultyInput.HandleKey`**（UI 3.7）
 

@@ -58,6 +58,10 @@ public sealed class GameScreen : IScreen
             case GameCommand.NewGame:
                 StartNewGame(Difficulty);
                 return this;
+            case GameCommand.SelectDifficulty:
+                return new DifficultySelectionScreen(this);
+            case GameCommand.ShowHelp:
+                return new HelpScreen(this);
             case GameCommand.Quit:
                 return null;
         }
