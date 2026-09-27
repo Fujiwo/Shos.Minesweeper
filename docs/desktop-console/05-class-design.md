@@ -4,7 +4,7 @@
 |------|------|
 | 工程 | 9. クラス設計書作成（デスクトップ版・コンソール版の一巡） |
 | 作成日 | 2026-09-27 |
-| 状態 | 作成した。ユーザーの承認を待っている |
+| 状態 | 工程 9 をユーザーが承認した（2026-09-27）。確認事項 1（カーソル）はユーザーが決めた（11 章）。クラス設計書レビュー（docs/desktop-console/reviews/05-class-design-review.md）の指摘を反映した |
 | 入力 | docs/desktop-console/04-architecture.md（アーキテクチャー設計書）、docs/desktop-console/02-spec.md（仕様書）、docs/desktop-console/03-ui-design.md（UI デザイン）、Web 版のクラス設計書（docs/05-class-design.md）、今のコード |
 
 ## 1. 概要
@@ -73,6 +73,7 @@ Web 版の対応（Web 版 クラス 1.2）に、この一巡の用語を加え�
 | 置き場所 | 型 | 種類 | 移す・加える・変える | ひとことで言うと |
 |----------|----|------|----------------------|------------------|
 | GameLogic | `BestTimesFile` | class | 加える | ベストタイムを、保存の形式のままファイルに読み書きする |
+| | `Board` | class | 変える | 盤面の中の位置かを答える `Contains` を公開する（3.2） |
 | Presentation | `Direction` | enum | 移す（Web: Input） | 盤面の向きでの、上下左右 |
 | | `BoardCursor` | class | 移して変える（Web: Input） | キーボードで選んでいるマス。盤面の座標で動く |
 | | `CellAnimationKind`、`CellAnimation`、`BoardAnimation` | enum、record struct、static class | 移す（Web: Display） | 直前の操作から、マスごとの演出を決める |
@@ -89,7 +90,7 @@ classDiagram
     class BoardCursor {
         +CellPosition Position
         +Move(Direction, Board)
-        +MoveTo(CellPosition)
+        +MoveTo(CellPosition, Board)
     }
     class BoardAnimation {
         <<static>>
@@ -121,14 +122,20 @@ public sealed class BoardCursor
     public CellPosition Position { get; private set; } = new(0, 0);
 
     public void Move(Direction direction, Board board);   // 盤面の向きで 1 マス動かす。盤面の端では動かない（回り込まない）
-    public void MoveTo(CellPosition position);            // そのマスに移す。マウスで押したマス（アーキ 14 章の決定 13）
+    public void MoveTo(CellPosition position, Board board);   // そのマスに移す。マウスで押したマス（アーキ 14 章の決定 13）
+}
+
+public sealed class Board   // GameLogic。変えるのは次の 1 つだけ
+{
+    public bool Contains(CellPosition position);   // 盤面の中の位置か（今は非公開）
 }
 ```
 
 - **盤面の座標で動かす**（アーキ 6.1）。Web 版では、表示の向きで動かしていた（引数が `BoardPlacement`）。縦と横を入れ替えるのは Web 版だけなので、表示の向きの方向を盤面の向きの方向に変えるのは、Web 版の `BoardPlacement.ToBoard(Direction)` が受け持つ（3.8）。
 - 盤面の大きさは `Board`（`Width`、`Height`）から読む。`Game.Board` を渡す。
-- `MoveTo` は盤面の外の位置を受け取らない（呼ぶ側はマスの位置だけを渡す）。確かめるガード節は置かない。受け取るのは盤面のマスの部品から来た位置だけだからである。
-- 新しいゲームでカーソルをどうするかは、11 章の確認事項 1 による。推す案（左上に戻す）では、3 つの版とも、新しいゲームで `BoardCursor` を作り直す（Web 版と同じ）。
+- `MoveTo` は、前提条件（盤面の中の位置）をガード節で確かめ、外なら `ArgumentOutOfRangeException` を投げる。`BoardCursor` は 3 つの版が使う公開の型で、外の位置を黙って受け取ると、離れた場所の `Board.CellAt` で例外になるからである（クラス設計書レビューの指摘 3）。
+- 盤面の中かの判定は、`Board.Contains` を公開して、`Move`（端で止まる）と `MoveTo`（ガード節）の両方で使う。規則が `Board` の 1 か所に残る。
+- **新しいゲームでは、カーソルを左上に戻す**（ユーザーの決定、2026-09-27。11 章）。3 つの版とも、新しいゲームで `BoardCursor` を作り直す（Web 版と同じ）。`BoardCursor` に戻すメソッドは作らない。
 
 ### 3.3 演出（`BoardAnimation` など）
 
@@ -429,6 +436,7 @@ public sealed class BoardViewModel : INotifyPropertyChanged
     public int ColumnCount { get; }
     public string AccessibleName { get; }                // 「盤面、9 行 9 列」（BoardNames.Of）
     public int CellSize { get; }                         // 20〜48。領域の大きさが分かるまでは既定の 32
+    public CellPosition CursorPosition { get; }          // カーソルのマス（キーボードのフォーカスを置くマス）
     public bool IsPressing { get; }
 
     public void SetAreaSize(Size areaSize);              // 盤面の領域の大きさが変わった
@@ -449,7 +457,6 @@ public sealed class CellViewModel : INotifyPropertyChanged
     public int Number { get; }                    // 見せ方が Opened のときの数字。それ以外と 0 のマスは 0
     public string AccessibleName { get; }         // BoardNames.CellOf
     public bool IsPressed { get; }                // 押下中の表示
-    public bool IsCursor { get; }                 // カーソルのマス（キーボードのフォーカスを置くマス）
     public bool IsFlagJustPlaced { get; }         // 直前の操作で旗を立てた（旗が広がる演出。9.1 の決定 4）
     public CellAnimation? Animation { get; }      // 直前の操作の演出
 }
@@ -459,7 +466,7 @@ public sealed class CellViewModel : INotifyPropertyChanged
 
 | 操作 | すること |
 |------|----------|
-| `Press` | カーソルを押したマスに移す（`MoveTo`）。勝敗が決まっていなければ、押下中にする。押下中の表示の範囲は、未開放ならそのマス、開いた数字のマスならコードで開く範囲（Web 版の `BoardView.PressedCells` と同じ）。`pressingChanged` を呼ぶ |
+| `Press` | カーソルを押したマスに移す（`MoveTo`。フォーカスは、押したことで Avalonia がそのマスに移す）。勝敗が決まっていなければ、押下中にする。押下中の表示の範囲は、未開放ならそのマス、開いた数字のマスならコードで開く範囲（Web 版の `BoardView.PressedCells` と同じ）。`pressingChanged` を呼ぶ |
 | `Release` | 押下中でなければ何もしない。押下中を解き、`pressingChanged` を呼ぶ。押したマスの上で離したなら、`PressMapping.ActionFor(PressKind.Tap, false, マス)` の操作を `requestAction` に渡す（`None` なら渡さない） |
 | `CancelPress` | 押下中を解く。操作はしない |
 | `PressRight` | カーソルを押したマスに移す。勝敗が決まっていなければ、`PressKind.RightClick` の操作を渡す（押した瞬間に旗。Web 版と同じ） |
@@ -471,7 +478,7 @@ public sealed class CellViewModel : INotifyPropertyChanged
   1. 前の操作で演出を付けたマスの `Animation` と `IsFlagJustPlaced` を消す。
   2. 勝敗が決まった操作なら全マスを、そうでなければ操作したマスと新たに開いたマスを、`Refresh` する（見せ方、数字、名前を知らせ直す）。
   3. `withAnimation` なら、`BoardAnimation.Of(move, game)` の演出を各マスに付け、旗を立てた操作（`FlagPlaced`）なら、そのマスの `IsFlagJustPlaced` を立てる。付けたマスを覚えておく。
-- `ShowNewGame` は、盤面の行数か列数が変わったら `Cells` を作り直し、変わらなければ全マスを `Refresh` する。押下中、演出、カーソルを初めに戻す（カーソルは 11 章の確認事項 1 による）。
+- `ShowNewGame` は、盤面の行数か列数が変わったら `Cells` を作り直し、変わらなければ全マスを `Refresh` する。押下中と演出を消し、カーソルを左上に戻す（`BoardCursor` を作り直す。3.2）。
 - マスは 1 次元の並び（行 × 列数 + 列）で持ち、位置からマスを引く計算はこのクラスの中の 1 か所に置く（simplicity.md の「座標変換は一箇所に」）。
 - `CellViewModel` の値を変えるメンバー（`Refresh`、`IsPressed` などの設定）は `internal` にし、`BoardViewModel` だけが使う。
 - `CellSize` は `WindowSizing.CellSizeToFit(領域の大きさ, 難易度)` で求める。`SetAreaSize` と `ShowNewGame` で求め直して知らせる。
@@ -625,9 +632,9 @@ public static class DataFilePaths
 | View | 見た目 | code-behind ですること |
 |------|--------|------------------------|
 | `MainWindow` | 中身の配置（ツールバー、盤面の領域、勝利カード、難易度ダイアログの幕、ライブ リージョン）。題名「マインスイーパー」 | 経過時間のタイマー（`DispatcherTimer`、250 ミリ秒ごとに `UpdateElapsedTime`。アーキ 14 章の決定 12）。起動のときと `DifficultySelected` のとき、最大化していなければ、`WindowSizing` でウィンドウの大きさと位置を決め直す。F2（ウィンドウの `KeyDown` で `HandleKey`）。フォーカスの移動（下の表） |
-| `ToolbarView` | ツールバーの 5 つの要素 | なし（バインディングだけ） |
-| `BoardView` | 盤面の枠と、マスの並び（`ItemsControl` と `UniformGrid`）。下限のマスでも収まらなければスクロール | 盤面の領域の大きさの変化を `SetAreaSize` に、キーを `HandleKey` に渡す |
-| `CellView` | 1 つのマス（タイル、数字、アイコン、フォーカスの枠） | ポインターの押す・離す・失うを `BoardViewModel` に渡す（離したときは、押したマスの上かを求めて渡す）。`Animation` と `IsFlagJustPlaced` が変わったら演出を始める。`IsCursor` になったら、盤面にキーボードのフォーカスがあるときだけ、自分にフォーカスを移す |
+| `ToolbarView` | ツールバーの 5 つの要素。効果音 ボタンは `ToggleButton` にし、`IsChecked` を `IsSoundEnabled` に結ぶ（オンかオフかを、トグル ボタンの状態としてナレーターに伝える。UI 2.11） | なし（バインディングだけ） |
+| `BoardView` | 盤面の枠と、マスの並び（`ItemsControl` と `UniformGrid`）。下限のマスでも収まらなければスクロール | 盤面の領域の大きさの変化を `SetAreaSize` に、キーを `HandleKey` に渡す。矢印キーでカーソルが動いたら、`FocusCursorCell` で `CursorPosition` のマスへ、キーボードの移動として（`NavigationMethod.Directional`）フォーカスを移す（下の段落） |
+| `CellView` | 1 つのマス（タイル、数字、アイコン、フォーカスの枠） | ポインターの押す・離す・失うを `BoardViewModel` に渡す（離したときは、押したマスの上かを求めて渡す）。`Animation` と `IsFlagJustPlaced` が変わったら演出を始める |
 | `DifficultyDialogView` | 幕とダイアログ | 開いたときのフォーカス、Esc と幕のクリックで `Close`、`StartCustom` が返した欄へのフォーカス |
 | `WinCardView` | 勝利カード | 出したときに見出しにフォーカスを移す（Web 版 UI 2.4）。Esc で `CloseWinCard` |
 
@@ -642,6 +649,7 @@ public static class DataFilePaths
 | 難易度ダイアログを閉じたとき（選んだとき、閉じたとき） | 難易度 ボタン |
 
 - 盤面は Tab の移動先を 1 つにし（`KeyboardNavigation.TabNavigation="Once"`）、盤面に入ったときにカーソルのマスへフォーカスが行くようにする（アーキ 7.4）。
+- **カーソルのマスへフォーカスを移す処理は、`BoardView` の 1 つのメソッド（`FocusCursorCell`）だけ**にする（クラス設計書レビューの指摘 1）。キーでカーソルが動いたときは、このメソッドでキーボードの移動としてフォーカスを移し、フォーカスの枠（`:focus-visible`）を出す。マウスで押したときは、押したことによるフォーカスに任せ、枠を出さない（UI 2.11）。どちらの操作で動いたかを知っているのは、キーを受けた View とポインターを受けた `CellView` だからである。呼ぶのは、矢印キーを受けた `BoardView` と、F2 で新しいゲームを始めたときに盤面にフォーカスがあった場合の `MainWindow`（カーソルは左上に戻る）の 2 か所である。Avalonia の `:focus-visible` が、この移し方で付くかは区切り 5 で確かめる。
 - 難易度ダイアログを開いている間は、ツールバーと盤面を `IsEnabled="False"` にして、フォーカスもクリックも届かないようにする。ダイアログの中は Tab を循環させる。Web 版の `inert` と違い、読み上げの木からは消えない。これで足りるかは、ナレーターで確かめる（11 章 #3）。
 - 盤面を表として読ませる部品（盤面とマスのオートメーション ピア。Grid と GridItem）は、11 章 #3 の結果で Avalonia が対応していると分かったときだけ加える（10 章）。
 
@@ -857,7 +865,9 @@ internal static partial class WindowsConsoleMode
 | 代替画面に入り、カーソルを隠す | 色を既定に戻し、カーソルを出し、代替画面を抜ける |
 
 - `Program` が `using` で使う。例外で終わるときも、`Dispose` が端末を戻してから、例外が元の画面に出る（アーキ 8.4、10 章）。
-- `Output` は、標準出力のストリームに UTF-8（BOM なし）で書く `StreamWriter` で、自動で `Flush` しない（`FrameWriter` が 1 画面ごとに `Flush` する）。
+- `Output` は、標準出力のストリームに UTF-8（BOM なし）で書く `StreamWriter` で、自動で `Flush` しない（`FrameWriter` が 1 画面ごとに `Flush` する）。`Open` と `Dispose` の VT のシーケンスも `Output` に書く（`Console.Out` と混ぜると、書く順が入れ替わりうる）。
+- `ReadAvailableKeys` は、`Console.KeyAvailable` が真の間、`Console.ReadKey(intercept: true)` で読む。`intercept` を真にしないと、読んだキーが画面に出る（クラス設計書レビューの指摘 2）。
+- Linux の端末で、キーを読んでいない間（30 ミリ秒待つ間や描く間）に打った文字が画面に出ないかは、区切り 1 で確かめる（アーキ 11 章 #5 の一部）。出るときの手は 5.9 に書く。
 - 端末の窓口のインターフェイスは作らない（アーキ 15 章）。画面の単位と `FrameWriter` は、`TerminalSession` を知らない。
 
 ### 5.4 `IScreen`、`ScreenNavigator`
@@ -871,7 +881,6 @@ public interface IScreen
 
 public sealed class ScreenNavigator(GameScreen game)
 {
-    public const int RequiredColumns = 76;        // キーの案内の行の幅（UI 3.2）
     public bool IsExitRequested { get; }
     public void HandleKey(ConsoleKeyInfo key, TerminalSize size);
     public Frame Render(TerminalSize size);
@@ -879,7 +888,7 @@ public sealed class ScreenNavigator(GameScreen game)
 ```
 
 - **インターフェイスを作る理由**: 実装が 3 つ（ゲーム、ヘルプ、難易度の選択）あり、`ScreenNavigator` がそれらを同じ形で切り替える。種類ごとの振る舞い（キーの意味と描き方）を、各画面が自分で答える形である（object-design.md の「種類を増やす → 多態」）。今ある種類のための形で、先回りではない（simplicity.md の YAGNI の点検表の「実装が一つしかないインターフェイス」に当たらない）。
-- **必要な端末の大きさ**は、今の画面の `Frame` の行数と 76 列である（9.1 の決定 7）。ゲームの画面では、盤面の行数 + 6 行になる（UI 3.2）。ヘルプと難易度の選択は、ゲームの画面より行が少ないので、盤面が収まらない端末でも出せる。
+- **必要な端末の大きさ**は、今の画面の `Frame` の行数と 76 列である（9.1 の決定 7）。76 はキーの案内の行の幅で、`GameScreen.KeyGuideColumns` として案内の行の定数の隣に置き、`ScreenNavigator` はそれを使う（案内の行を変えたときに、離れた場所の数を直し忘れないため。クラス設計書レビューの指摘 5）。ゲームの画面では、盤面の行数 + 6 行になる（UI 3.2）。ヘルプと難易度の選択は、ゲームの画面より行が少ないので、盤面が収まらない端末でも出せる。
 - `Render`: 今の画面の `Frame` が端末に収まれば、それを返す。収まらなければ `TerminalTooSmallScreen.Render(必要な大きさ, 今の大きさ)` を返す（アーキ 8.3）。
 - `HandleKey`:
   1. Ctrl+C（`KeyboardMapping.IsInterrupt`）なら、終わる。どの画面でも効く（仕様書 5.9）。
@@ -892,6 +901,9 @@ public sealed class ScreenNavigator(GameScreen game)
 ```csharp
 public sealed class GameScreen : IScreen
 {
+    public const string KeyGuide = "矢印/HJKL 移動  Space 開く  F 旗  N 新しいゲーム  D 難易度  ? ヘルプ  Q 終了";   // UI 3.6
+    public const int KeyGuideColumns = 76;            // KeyGuide の表示の幅（升）。必要な端末の幅になる（5.4）
+
     public GameScreen(TimeProvider timeProvider, BestTimesFile bestTimesFile, MineChooser? chooseMines = null);
 
     public Difficulty Difficulty { get; }             // 今のゲームの難易度（難易度の選択が使う）
@@ -928,12 +940,12 @@ public enum GameCommand { None, NewGame, SelectDifficulty, ShowHelp, Quit }
 - 作るときに、`bestTimesFile.Load()` でベストタイムを読み、`new GameSession(Difficulty.Beginner, timeProvider, playSoundEffect: null, chooseMines)` を作る。音の出口は渡さない（効果音を鳴らさない。CLAUDE.md の「目的」）。
 - `HandleKey` の順:
   1. `DirectionFor` があれば、カーソルを動かす（勝敗が決まった後も。UI 3.4）。
-  2. `CommandFor` が `NewGame` なら同じ難易度で新しいゲーム、`SelectDifficulty` なら `new DifficultySelectionScreen(this)`、`ShowHelp` なら `new HelpScreen(this)`、`Quit` なら `null` を返す。
+  2. `CommandFor` が `NewGame` なら同じ難易度で新しいゲーム（カーソルは左上に戻る。3.2）、`SelectDifficulty` なら `new DifficultySelectionScreen(this)`、`ShowHelp` なら `new HelpScreen(this)`、`Quit` なら `null` を返す。
   3. 勝敗が決まっていなければ、`ActionFor` の操作をカーソルのマスに行う。勝ったら、ベストタイムを記録し、更新したら保存する（Web 版の勝ったときの流れ。アーキ 6.2）。
 - `Render` の行（UI 3.1、3.2）: 上の行、空行、`BoardLines.Of`、状態の行、キーの案内の行。行数は盤面の行数 + 6 になる。
   - 上の行: 難易度の名前（`DifficultyNames`）、盤面の大きさ（`{幅}x{高さ}`）、残り地雷数、経過時間を、UI 3.3 の書式で。経過時間は描くたびに `Game.ElapsedSeconds` を読む（アーキ 8.2）。
   - 状態の行（UI 3.5）: 未開始は「マスを開くと始まります。」、プレイ中は空、勝利は `Announcements.Won` に「N で新しいゲーム。」を続けた文（緑）、敗北は `Announcements.Lost` に同じ文を続けた文（赤）。勝利の文のために、勝ったときの `BestTimeResult` を覚えておく。
-  - キーの案内の行は定数（UI 3.6）。
+  - キーの案内の行は定数 `KeyGuide`（UI 3.6）。
 - 状態の行の文とキーの案内の行は、コンソール版だけの文言なので、`GameScreen` に置く。
 
 **`BoardLines`**（UI 3.2、3.4）
@@ -1062,6 +1074,8 @@ GameLoop.Run(terminal, new ScreenNavigator(game), new FrameWriter(terminal.Outpu
 
 `GameLoop` は、端末と時間の待ちだけを扱い、判断を持たない。テストは `ScreenNavigator` 以下で行い、`GameLoop` は実機で確かめる。
 
+- 区切り 1 で、キーを読んでいない間に打った文字を Linux の端末が画面に出すと分かったら（5.3）、手順 2 でキーを 1 つ以上読んだときに `writer.Invalidate()` を呼び、画面全体を書き直す。キーを押したときだけなので、書く量は問題にならない。出なければ、この手は入れない。
+
 ## 6. エラーの扱い
 
 アーキ 10 章の境界を、型と例外の種類に落とす。
@@ -1095,20 +1109,21 @@ GameLoop.Run(terminal, new ScreenNavigator(game), new FrameWriter(terminal.Outpu
 | プロジェクト | テストクラス | 主な観点 |
 |--------------|--------------|----------|
 | GameLogic.Tests | `BestTimesFileTests` | 書いて読むと同じ記録、ファイルがない・壊れているときは記録なし、フォルダーがなければ作る、書けないとき（フォルダーの場所にファイルがあるなど）に例外が出ない |
-| Presentation.Tests | `BoardCursorTests`（Web から移して改める） | 4 方向、端で止まる、`MoveTo` |
+| | `BoardTests`（足す） | `Contains`（四隅の内側と外側） |
+| Presentation.Tests | `BoardCursorTests`（Web から移して改める） | 4 方向、端で止まる、`MoveTo`、`MoveTo` に盤面の外を渡すと例外 |
 | | `BoardAnimationTests`（Web から移す） | 今のテストのまま |
 | | `BoardNamesTests`（Web の `CellPresentationTests` の名前の部分を移す） | マスの状態ごとの名前、盤面の名前 |
 | | `ToolbarTextsTests`、`DifficultyDialogTextsTests`、`CustomDifficultyTextsTests`、`WinCardTextsTests` | 引数のある文言。地雷数の範囲の出し分け、勝利カードのベストタイムの行の出し分け（4 つの結果） |
 | Tests（Web 版） | `BoardPlacementTests`（足す） | `ToBoard(Direction)`（入れ替えたとき、入れ替えないとき） |
 | | 既存のすべて | 変えずに Green（振る舞いが変わらないこと） |
 | Desktop.Tests | `GameViewModelTests` | 勝ったら記録して保存し、勝利カードと読み上げ。負けの読み上げ。効果音: 盤面の操作で出口に渡る、オフなら渡らない、切り替えを保存する。F2: 新しいゲーム、勝利カードを閉じる、ダイアログの間は効かない。経過時間: 秒が変わったときだけ知らせる。難易度の選択で `DifficultySelected`。顔の表情 |
-| | `BoardViewModelTests` | 押下中の範囲（未開放、コード）、押したマスの上で離すと開く、外で離すと取り消し、右ボタンで旗、勝敗の後は押下中にならない、カーソルの移動とマウスで押したマスへの移動、キー、変わったマスだけ知らせる、演出の付け方（設定がオフなら付けない、何も起きない操作では前の演出を消さない）、旗を立てた演出、マスの大きさ |
+| | `BoardViewModelTests` | 押下中の範囲（未開放、コード）、押したマスの上で離すと開く、外で離すと取り消し、右ボタンで旗、勝敗の後は押下中にならない、カーソルの移動とマウスで押したマスへの移動、新しいゲームでカーソルが左上に戻る、キー、変わったマスだけ知らせる、演出の付け方（設定がオフなら付けない、何も起きない操作では前の演出を消さない）、旗を立てた演出、マスの大きさ |
 | | `DifficultyDialogViewModelTests` | 行の中身（ベストタイム、今の難易度）、カスタムの検証（全角の数字と前後の空白を含む）、地雷数の範囲の文の追従、最初の誤った欄 |
 | | `WindowSizingTests` | 初級 400×382、中級 550×606、上級 998×606、マスの大きさ（上限、下限、切り捨て）、作業領域に収める（動かす、縮める） |
 | | `KeyboardMappingTests` | キーの表 |
 | | `SoundSettingFileTests` | `"off"` で偽、ない・壊れている・ほかの値で真、書いて読む |
 | | `WebStyleConsistencyTests` | 配色のトークン（ライト、ダーク）と演出の時間が Web 版と同じ（アーキ 7.5） |
-| ConsoleApp.Tests | `GameScreenTests` | 初級の最初の画面が UI 3.2 の図と同じ行、キーごとの動き、状態の行（未開始、勝利、敗北）、勝ったときのベストタイムの保存、画面の移り変わり（`?`、`D`、`Q` で `null`） |
+| ConsoleApp.Tests | `GameScreenTests` | 初級の最初の画面が UI 3.2 の図と同じ行（キーの案内の行を含む）、キーごとの動き、新しいゲームでカーソルが左上に戻る、状態の行（未開始、勝利、敗北）、勝ったときのベストタイムの保存、画面の移り変わり（`?`、`D`、`Q` で `null`） |
 | | `BoardLinesTests`、`CellGlyphsTests` | 角かっこ（左端、右端の列）、反転、記号と色の表 |
 | | `KeyboardMappingTests` | 大文字と小文字、HJKL、`?`、Ctrl+C の 2 つの届き方 |
 | | `DifficultySelectionScreenTests` | 1〜4、矢印と Enter、Esc、今の難易度の印とベストタイムの列 |
@@ -1126,11 +1141,11 @@ GameLoop.Run(terminal, new ScreenNavigator(game), new FrameWriter(terminal.Outpu
 
 | # | 区切り | 主な型 | 終わったときにできること | 実行環境の確認 |
 |---|--------|--------|--------------------------|----------------|
-| 1 | 骨組みと実行環境 | 4 つのプロジェクト（Desktop、ConsoleApp とそのテスト）、空のウィンドウ、`TerminalSession`（代替画面に 1 行出して、キーで戻る） | ソリューションがビルドでき、全テストが Windows と Linux で走る。発行した実行ファイルが動く | #1（ヘッドレス）、#2（Linux の上で発行して Windows で動く）、#5 の一部（VT、代替画面、Ctrl+C の届き方）、#7（WSL の ICU） |
+| 1 | 骨組みと実行環境 | 4 つのプロジェクト（Desktop、ConsoleApp とそのテスト）、空のウィンドウ、`TerminalSession`（代替画面に 1 行出して、キーで戻る） | ソリューションがビルドでき、全テストが Windows と Linux で走る。発行した実行ファイルが動く | #1（ヘッドレス）、#2（Linux の上で発行して Windows で動く）、#5 の一部（VT、代替画面、Ctrl+C の届き方、キーを読んでいない間の打鍵が画面に出ないか）、#7（WSL の ICU） |
 | 2 | 共有の部品の移動 | 3 章のすべて。Web 版の変更と設計書への書き足し | Web 版が前と同じに動き、Web 版の全テストが Green | Web 版をブラウザーで動かし、キーボードの操作と読み上げの名前が変わらないことを確かめる |
 | 3 | コンソール版のゲームの画面 | Rendering、`GameScreen`、`BoardLines`、`CellGlyphs`、`KeyboardMapping`、`ScreenNavigator`、`TerminalTooSmallScreen`、`GameLoop` | 初級で遊べ、ベストタイムが残る。端末が小さいと知らせる | #5（Windows Terminal、従来のコンソール ホスト、WSL で見え方と色、`NO_COLOR`） |
 | 4 | コンソール版のヘルプと難易度 | `HelpScreen`、`DifficultySelectionScreen`、`CustomDifficultyInput`、`LineEditor` | すべての難易度で遊べる | #5（IME の全角の数字）、#6（発行した実行ファイルで「２０」） |
-| 5 | デスクトップ版の盤面とツールバー | `GameViewModel`（ダイアログと勝利カードを除く）、`BoardViewModel`、`CellViewModel`、`KeyboardMapping`、`WindowSizing`、`MainWindow`、`ToolbarView`、`BoardView`、`CellView`、配色とアイコン | 初級をマウスとキーボードで遊べる。ウィンドウの大きさに合わせてマスが変わる | #3（ナレーターでマスの名前、ライブ リージョン、表として読めるか）、#8（見た目、書体、DPI） |
+| 5 | デスクトップ版の盤面とツールバー | `GameViewModel`（ダイアログと勝利カードを除く）、`BoardViewModel`、`CellViewModel`、`KeyboardMapping`、`WindowSizing`、`MainWindow`、`ToolbarView`、`BoardView`、`CellView`、配色とアイコン | 初級をマウスとキーボードで遊べる。ウィンドウの大きさに合わせてマスが変わる | #3（ナレーターでマスの名前、ライブ リージョン、効果音 ボタンの状態、表として読めるか）、#8（見た目、書体、DPI）。Avalonia の `:focus-visible`（キーでカーソルを動かしたときに枠が出るか）とメソッドへのバインディング |
 | 6 | デスクトップ版の難易度と勝利 | `DifficultyDialogViewModel`、`DifficultyRowViewModel`、`CustomFieldViewModel`、`WinCardViewModel`、`DataFilePaths`、ダイアログとカードの View、ウィンドウの大きさの決め直し | すべての難易度で遊べ、ベストタイムが残る | #6（発行した実行ファイルで「２０」） |
 | 7 | デスクトップ版の効果音と演出 | `SoundEffectPlayer`、`SoundSettingFile`、`AnimationEffects`、`CellAnimationTimings`、演出、`WebStyleConsistencyTests` | 効果音が重なって鳴り、切り替えが残る。演出が見え、アニメーション効果をオフにすると出ない | #4（NAudio。パッケージを加える前にユーザーに確かめる） |
 
@@ -1152,10 +1167,11 @@ GameLoop.Run(terminal, new ScreenNavigator(game), new FrameWriter(terminal.Outpu
 | 6 | コンソール版で、端末の大きさが変わったら、画面を消してすべての行を書き直す | 端末が行を詰め直すと、変わった行だけを書く方法では画面が崩れるため（5.2） |
 | 7 | コンソール版の必要な端末の大きさは、今の画面の行数と 76 列とする | ゲームの画面では UI 3.2 の表と同じになる。ヘルプと難易度の選択は行が少ないので、盤面が収まらない端末でも出せる。小さい端末で D を押して小さい難易度を選べる（仕様書 5.5）ようにするため、難易度の選択の画面は、小さい端末の画面に隠れてはいけない |
 | 8 | デスクトップ版の効果音の設定のファイルは、`{"SoundEffects":"on"}` か `"off"` の JSON とし、`"off"` 以外はオンとする | Web 版の値と規則にそろえた（4.9） |
+| 9 | 3 つの版とも、新しいゲームを始めたら、カーソルを左上に戻す。仕様書 4.3 と 5.3 を改めた | ユーザーの決定（2026-09-27）。仕様書は「Web 版と同じ」を理由にしていたが、Web 版は新しいゲームで左上に戻している（Web 版 クラス 9.1 の決定 3）。仕様書の「前に選んでいたマス」は、盤面にフォーカスが戻ったときの規則（Web 版の仕様書 4.5）を読み違えたものだった |
 
 ### 9.2 アーキテクチャー設計書を改める点
 
-工程 10 のレビューで確かめ、アーキテクチャー設計書に反映する。
+工程 10 のレビューで確かめ、アーキテクチャー設計書に反映した（2026-09-27）。
 
 | # | 改める点 | アーキテクチャー設計書の場所 | 理由 |
 |---|----------|------------------------------|------|
@@ -1189,3 +1205,6 @@ GameLoop.Run(terminal, new ScreenNavigator(game), new FrameWriter(terminal.Outpu
 |---|--------------|--------|----------------------|
 | 1 | **新しいゲームを始めたときのカーソルの位置**。仕様書 4.3（デスクトップ版）と 5.3（コンソール版）は「前に選んでいたマスを保つ（Web 版の仕様書 4.5 と同じ）」としているが、Web 版は、新しいゲームでカーソルを左上に戻している（Web 版 クラス 9.1 の決定 3）。Web 版の仕様書 4.5 の「前に選んでいたマス」は、盤面にフォーカスが戻ったときの規則だった。仕様書の「Web 版と同じ」は読み違いである | **3 つの版とも、新しいゲームで左上に戻す**（Web 版の実際の動きに合わせ、仕様書の 2 か所を直す） | 仕様書が「Web 版と同じ」を理由にしているので、Web 版の実際の動きに合わせるのが意図に沿う。難易度が変わると前の位置が盤面の外になりうるが、いつも左上に戻せば規則が 1 つで済む（Web 版の理由と同じ）。ほかの案は、仕様書の文のとおりに保つこと。その場合、小さい難易度に変えたときに盤面の中に収める規則を足し、Web 版とは動きが違う |
 | 2 | NAudio の導入（アーキ 17 章の確認事項 1 の続き） | 導入する | 設計はこの案で進めた。パッケージを加えるのは区切り 7 で、その前に改めて確かめる |
+
+- **確認事項 1 の回答**（2026-09-27）: 「仕様書は『Web 版と同じ』を理由にしているので、Web 版の実際の動きに合わせる」。推した案のとおり、3 つの版とも新しいゲームで左上に戻す（9.1 の決定 9）。仕様書 4.3 と 5.3 を改めた。
+- 確認事項 2 は、区切り 7 の前に確かめる。
