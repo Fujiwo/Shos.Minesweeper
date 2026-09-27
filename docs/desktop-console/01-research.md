@@ -4,7 +4,7 @@
 |------|------|
 | 工程 | 1. 調査書作成（デスクトップ版・コンソール版の一巡） |
 | 作成日 | 2026-09-27 |
-| 状態 | 作成した（レビュー前）。提出の後、ユーザーの決定で、デスクトップ版の技術を WPF から Avalonia UI に改め、1.1、2 章、4 章、6〜9 章を書き直した（2026-09-27） |
+| 状態 | 提出の後、ユーザーの決定で、デスクトップ版の技術を WPF から Avalonia UI に改め、1.1、2 章、4 章、6〜9 章を書き直した。工程 1 をユーザーが承認した（2026-09-27）。調査書レビュー（docs/desktop-console/reviews/01-research-review.md）の指摘を反映した |
 | 入力 | CLAUDE.md（目的・設計方針）、Web 版の調査書（docs/01-research.md）と仕様書（docs/02-spec.md）、Web 版 1.1.0 のコード |
 
 ## 1. 目的と範囲
@@ -33,13 +33,15 @@ WPF は Windows でしか動かない。Linux の上でも `EnableWindowsTargeti
 
 | 方法 | 条件に合うか | 主な特徴 |
 |------|--------------|----------|
-| Avalonia UI | 合う | XAML と MVVM で書き、WPF に近い。画面のテストを、ディスプレイのない Linux で動かせる（Avalonia.Headless.XUnit）。Windows では UI オートメーションでスクリーンリーダーに対応する。フレームワークは MIT ライセンスで無料 |
+| Avalonia UI | 合う | XAML と MVVM で書き、WPF に近い。画面のテストを、ディスプレイのない Linux で動かせる（Avalonia.Headless。xUnit と組み合わせる部品が、このリポジトリの xUnit の版と合うかは確かめる。4.9）。Windows では UI オートメーションでスクリーンリーダーに対応する。フレームワークは MIT ライセンスで無料 |
 | Photino.Blazor | 合う | Web 版の画面を WebView2 の中でほぼそのまま使える。ただし、中身は Web 版をウィンドウに入れたものになる。元のプロジェクトとは別に、保守をうたうフォークが出ている |
 | Uno Platform（`net10.0-desktop`） | 合う | WinUI の API で書き、Skia で描く。SDK が大きく、覚えることが多い |
 | WinForms、WinUI 3 | 合わない | WPF と同じく Windows 専用 |
 | .NET MAUI | 合わない | Windows 向けのビルドに Windows が要る |
 | BlazorWebView | 合わない | WPF、WinForms、MAUI の中で動く部品で、それらの制約を受ける |
 | ゲームの描画ライブラリ（MonoGame、Raylib-cs など） | ビルドは合う | 標準の部品とスクリーンリーダーへの対応がなく、Web 版のアクセシビリティの目標（WCAG 2.2 AA）に合わない |
+
+Photino.Blazor と Uno Platform を「合う」としたのは、それぞれの資料による。Linux の上でのテストの方法までは確かめていない。
 
 **ユーザーは Avalonia UI を選んだ（2026-09-27）。** 以後、この一巡では、Avalonia UI で作る版を「デスクトップ版」と呼ぶ。Avalonia の有料の製品（Plus、Pro の開発ツールと追加の部品、WPF を動かす XPF）は使わない。
 
@@ -121,7 +123,7 @@ Web 版の仕様書（docs/02-spec.md）の各節が、デスクトップ版と�
 
 - Avalonia のアプリは `net10.0` を対象にできる（WPF の `net10.0-windows` のような OS 専用の対象は要らない）。そのため、Linux の上でもビルドとテストができる（1.1）。
 - 同じアプリが Windows、macOS、Linux で動く。どの OS を動作環境にするかは論点 2 とする。
-- フレームワークは MIT ライセンスである。NuGet の最新の安定版は 12 系である（Avalonia.Headless.XUnit 12.0.4 など）。
+- フレームワークは MIT ライセンスである。NuGet の最新の安定版は 12.1.3（2026-09-22）である（Avalonia.Headless.XUnit の版による）。
 
 ### 4.2 画面の作り方
 
@@ -161,6 +163,13 @@ Web 版の仕様書（docs/02-spec.md）の各節が、デスクトップ版と�
 
 - Avalonia の標準のテーマ（Fluent）は、既定で OS のライト・ダークの設定に従い、OS の設定が変わると切り替わる（Avalonia Docs）。WPF の `ThemeMode` のような試験的な API ではない。
 - OS の設定は、プラットフォームの設定（`PlatformSettings.GetColorValues()`）で読める。ライトかダークか（`ThemeVariant`）と、ハイコントラストを求めているか（`ContrastPreference`）が分かり、変わったときは `ColorValuesChanged` のイベントが起きる（Avalonia Docs）。
+
+#### 日本語の文字
+
+- 画面の文言は日本語だけ（Web 版の仕様書 5.5）なので、日本語の字形で表示される必要がある。
+- Avalonia では、漢字などの CJK の文字が、意図と違う言語のフォントで表示されるという報告がある（AvaloniaUI/Avalonia の issue #12349 では、中国語の文字が日本語のフォントで表示された）。また、`FontFamily` にカンマで区切って複数のフォントを並べても、WPF や CSS のように順に代わりを探さないという報告がある（issue #19361）。
+- そのため、日本語のフォントを明示する必要がある見込みである。動作環境に macOS や Linux を含める（論点 2）なら、OS ごとに入っているフォントが違う。フォントをアプリに含める方法もある（Avalonia Docs の Custom fonts）。どのフォントにするかは UI デザインで決める。
+- カスタムの入力欄で日本語の入力（IME）が使えるか、全角の数字が入ったときに `InputText` で整えられるか（Web 版の仕様書 3.1）は、実装のときに確かめる。
 
 #### 動きを減らす設定
 
@@ -204,7 +213,9 @@ Avalonia には、音を鳴らす仕組みがない。Web 版の仕様書 5.6 �
 ### 4.9 テスト
 
 - ビューモデルと、UI に依存しない部品は、xUnit でテストできる。
-- 画面のテストには、Avalonia の「ヘッドレス」の仕組み（Avalonia.Headless.XUnit）を使える。ウィンドウを画面に出さずに Avalonia を動かすので、ディスプレイのない Linux の CI でも実行できる。テストには `[Fact]` の代わりに `[AvaloniaFact]` を付け、テストのプロジェクトに `[AvaloniaTestApplication]` を 1 つ置く（Avalonia Docs）。最新版（12.0.4）は xUnit v3 に対応している（NuGet）ので、このリポジトリのテストの構成（xUnit v3、Microsoft.Testing.Platform）と合う見込みである。Microsoft.Testing.Platform で動くかは確かめていない。
+- 画面のテストには、Avalonia の「ヘッドレス」の仕組み（Avalonia.Headless）を使える。ウィンドウを画面に出さずに Avalonia を動かすので、ディスプレイのない Linux の CI でも実行できる（Avalonia Docs）。xUnit と組み合わせる部品（Avalonia.Headless.XUnit）では、テストに `[Fact]` の代わりに `[AvaloniaFact]` を付け、テストのプロジェクトに `[AvaloniaTestApplication]` を 1 つ置く。
+- **ただし、この部品がこのリポジトリの xUnit の版と合うかは分からない。** Avalonia.Headless.XUnit の最新版（12.1.3、2026-09-22）は、`xunit.v3.extensibility.core` の 3.2.2 以上に依存し、xUnit v3 の 3 系に合わせて作られている（NuGet）。このリポジトリのテストは xUnit v3 の 4.0.1 を使う。xUnit v3 の 4.0.0（2026-08-14）は、拡張のための API に多くの破壊的変更を入れた（xUnit.net のリリースノート）。拡張の部品を 4 系に上げた後に、テストが 1 件も見つからなくなったという報告もある（Altinn/altinn-notifications の issue #1870）。
+- 合わなかったときの手には、(1) デスクトップ版の画面のテストのプロジェクトだけ xUnit v3 の 3 系に留める、(2) xUnit と組み合わせる部品を使わず、Avalonia.Headless のテストのセッションで UI のスレッドに処理を渡す（直接使えるかは確かめていない）、(3) 4 系に対応した版を待つ、がある。実装の最初の区切りで組み合わせを確かめてから決める（9 章）。Microsoft.Testing.Platform（`global.json`）で動くかも、同じときに確かめる。
 - Web 版では bUnit でコンポーネントを確かめた。デスクトップ版では、ヘッドレスの仕組みで同じことができる見込みである。どこまで自動でテストするかは、9 章で決める。
 - ヘッドレスは本物の描画と OS とのやり取り（DPI、スクリーンリーダー、音）を通らないので、それらは実機で確かめる。
 
@@ -269,13 +280,13 @@ Avalonia には、音を鳴らす仕組みがない。Web 版の仕様書 5.6 �
 
 ### 5.9 文字列の正規化と実行環境
 
-1.1.0 では、ブラウザーの .NET が NFKC に対応しておらず、例外になった（1.1.0 の B2）。コンソール版にも、実行環境で振る舞いが変わる点がある。デスクトップ版も、トリミングや Native AOT で発行する（6.1）なら同じ注意が要る。
+1.1.0 では、ブラウザーの .NET が NFKC に対応しておらず、例外になった（1.1.0 の B2）。コンソール版とデスクトップ版にも、発行の設定と実行環境で振る舞いが変わる点がある。
 
 - .NET の「グローバリゼーションのインバリアント モード」（`InvariantGlobalization`）では、正規化のデータがないので、`String.Normalize` は**例外を出さずに、元の文字列をそのまま返す**（dotnet/runtime の設計文書）。全角の数字は半角にならず、カスタムの入力を数として読めなくなる。例外が出ないので、気づきにくい。
-- Native AOT のコンソールのテンプレート（`dotnet new console --aot`）は、`InvariantGlobalization` を `true` にする。発行の大きさを減らすために、この設定を使うことが多い。
-- Linux でインバリアント モードを使わない場合、.NET は OS の ICU のライブラリを読み込む。ICU が入っていないと、プログラムは起動の時点でエラーになって終わる（Microsoft Learn）。ICU をアプリに同梱する方法（app-local ICU）もある。
-- Windows では、OS に付いている ICU（または NLS）を使うので、この問題は起きない。
-- そのため、macOS や Linux に配るときは、「インバリアント モードを使わない（ICU に依存する）」か、「使って、NFKC の代わりの整え方を用意する」かを決める必要がある（9 章）。
+- **この問題は、Windows を含むどの OS でも起きる。** インバリアント モードは、OS の ICU や NLS を使わないモードだからである。
+- インバリアント モードは、プロジェクトの設定（`InvariantGlobalization`）で有効になる。トリミングや Native AOT そのものが有効にするのではない。ただし、Native AOT のコンソールのテンプレート（`dotnet new console --aot`）は、この設定を `true` にする。発行の大きさを減らすために、この設定を使うことが多い。
+- インバリアント モードを使わない場合、Linux の .NET は OS の ICU のライブラリを読み込む。ICU が入っていないと、プログラムは起動の時点でエラーになって終わる（Microsoft Learn）。ICU をアプリに同梱する方法（app-local ICU）もある。Windows の .NET は、OS に付いている ICU か NLS を使うので、この起動の問題は起きない。
+- そのため、どの OS 向けでも、インバリアント モードを使うかを決める必要がある。使うなら、NFKC の代わりの整え方を用意する。使わずに Linux に配るなら、ICU に依存するか、同梱するかも決める（9 章）。
 
 ### 5.10 テスト
 
@@ -302,7 +313,7 @@ Avalonia には、音を鳴らす仕組みがない。Web 版の仕様書 5.6 �
 | 自己完結 | ランタイムを含める。ランタイムは要らないが、発行物は大きい | できる | できる |
 | 単一ファイル | 1 つの実行ファイルにまとめる（`PublishSingleFile`）。描画に使うネイティブのライブラリ（SkiaSharp など）を含めるには `IncludeNativeLibrariesForSelfExtract` が要る | できる | できる |
 | トリミング | 使わないコードを除いて小さくする | できる。コンパイル済みのバインディング（4.2）が要る（Avalonia Docs） | できる |
-| Native AOT | ネイティブのコードにして、起動を速く、発行物を小さくする。発行する OS の上に、その OS の C++ のツール（Windows は Visual Studio の C++、Linux は clang、macOS は Xcode の Command Line Tools）が要る（Microsoft Learn） | できる（Avalonia Docs）。ただし、Windows 向けは Windows の上で作ることになり、「Linux の上で公開する」（1.1）と合わない。インバリアント モードの注意（5.9）がある | できる。同じ注意がある |
+| Native AOT | ネイティブのコードにして、起動を速く、発行物を小さくする。発行する OS の上に、その OS の C++ のツール（Windows は Visual Studio の C++、Linux は clang、macOS は Xcode の Command Line Tools）が要る。OS をまたいだビルド（Linux の上で Windows 向けに作るなど）はできない（Microsoft Learn の Cross-compilation） | できる（Avalonia Docs）。ただし、Windows 向けは Windows の上で作ることになり、「Linux の上で公開する」（1.1）と合わない。インバリアント モードの注意（5.9）がある | できる。同じ注意がある |
 | .NET ツール | NuGet のパッケージとして配り、`dotnet tool install` で入れる。.NET 10 からは、OS ごとのパッケージ（自己完結や AOT を含む）と、入れずに 1 回だけ動かす `dnx` がある（Microsoft Learn） | 当てはまらない | できる。利用者に .NET の SDK が要る |
 
 - **Linux の上で Windows 向けに発行する**: `dotnet publish -r win-x64` で、Windows 向けのランタイムと、NuGet に入っている Windows 用のネイティブのライブラリを含めて発行できる見込みである。ただし、`win-x64` で発行したアプリが SkiaSharp のネイティブのライブラリを読み込めなかったという報告がある（AvaloniaUI/Avalonia の議論 #13853）。Linux の上で発行したものが Windows で動くかは、実装の最初の区切りで確かめる（CLAUDE.md の「実行環境での確認」）。
@@ -378,7 +389,7 @@ Avalonia には、音を鳴らす仕組みがない。Web 版の仕様書 5.6 �
 
 | # | 論点 | 選択肢 | 関連する節 |
 |---|------|--------|------------|
-| 21 | 保存 | 保存先。デスクトップ版とコンソール版でベストタイムを共有するか | 4.8、5.8 |
+| 21 | 保存 | 保存先。デスクトップ版とコンソール版でベストタイムを共有するか。デスクトップ版で、ウィンドウの位置と大きさ、最後に選んだ難易度を覚えるか（Web 版は覚えない。Web 版の仕様書 6.4） | 4.8、5.8 |
 | 22 | 画面の言語 | 日本語だけ（Web 版と同じ） / コンソール版は英語も | 5.4 |
 | 23 | 対象外の機能 | Web 版の仕様書 9 章をそのまま引き継ぐか（途中経過の保存は、Windows 7 版にある） | 3.1 |
 | 24 | ゲームの終わり方 | 閉じる・終了の操作。途中のゲームがあるときに確かめるか | 3.2、5.2 |
@@ -400,9 +411,9 @@ Avalonia には、音を鳴らす仕組みがない。Web 版の仕様書 5.6 �
 | 盤面の描き方（デスクトップ版） | マスごとのコントロール / 自分で描く。UI オートメーションとの関係 | 4.2、4.5 |
 | 動きを減らす設定の読み方（デスクトップ版） | Avalonia にないので、OS ごとに読む（Windows は `SystemParametersInfo`） | 4.4 |
 | 入力と描画のスレッド（コンソール） | キーの待ち方と、1 秒ごとの描き直しの両立 | 5.7 |
-| 正規化と実行環境 | インバリアント モードを使うか。使うなら、NFKC の代わりをどうするか | 5.9 |
+| 正規化と実行環境 | インバリアント モードを使うか（どの OS 向けでも）。使うなら、NFKC の代わりをどうするか。Linux 向けの ICU の扱い | 5.9 |
 | 例外の境界 | デスクトップ版とコンソール版のそれぞれで、捕まえなかった例外をどこで受け、端末の状態をどう戻すか | 4.10、5.3 |
-| 画面のテストの範囲 | デスクトップ版の画面、コンソールの出力を、どこまで自動のテストで確かめ、どこから実機で確かめるか | 4.9、5.10 |
+| 画面のテストの範囲と方法 | デスクトップ版の画面、コンソールの出力を、どこまで自動のテストで確かめ、どこから実機で確かめるか。Avalonia のヘッドレスのテストと xUnit v3 の 4 系の組み合わせ（合わなければ 4.9 の三つの手のどれか） | 4.9、5.10 |
 | 公開のワークフロー | Web 版のワークフローとの関係。デスクトップ版とコンソール版を Linux の上で発行して公開する仕組み | 6、7 |
 
 ## 10. 参考資料
@@ -428,7 +439,12 @@ Avalonia UI:
 - [Accessibility - Avalonia Docs](https://docs.avaloniaui.net/docs/app-development/accessibility)
 - [AutomationLiveSetting - Avalonia Docs](https://docs.avaloniaui.net/api/avalonia/automation/automationlivesetting)
 - [Headless Testing with XUnit - Avalonia Docs](https://docs.avaloniaui.net/docs/testing/headless-xunit)
-- [NuGet Gallery | Avalonia.Headless.XUnit](https://www.nuget.org/packages/Avalonia.Headless.XUnit)
+- [NuGet Gallery | Avalonia.Headless.XUnit](https://www.nuget.org/packages/Avalonia.Headless.XUnit)（依存する xUnit の版）
+- [Core Framework v3 4.0.0 - xUnit.net](https://xunit.net/releases/v3/4.0.0)（拡張のための API の破壊的変更）
+- [xunit v3 → v4 upgrade breaks test discovery - Altinn/altinn-notifications issue #1870](https://github.com/Altinn/altinn-notifications/issues/1870)
+- [Wrong default font when show CJK characters - AvaloniaUI/Avalonia issue #12349](https://github.com/AvaloniaUI/Avalonia/issues/12349)
+- [Support multi-font fallback for Chinese characters in Menu controls - AvaloniaUI/Avalonia issue #19361](https://github.com/AvaloniaUI/Avalonia/issues/19361)
+- [Custom fonts - Avalonia Docs](https://docs.avaloniaui.net/docs/styling/custom-fonts)
 - [Handling unhandled exceptions - Avalonia Docs](https://docs.avaloniaui.net/docs/concepts/unhandledexceptions)
 - [Dispatcher.UIThread.UnhandledException not triggering on MacOS - AvaloniaUI/Avalonia issue #17759](https://github.com/AvaloniaUI/Avalonia/issues/17759)
 - [Native AOT - Avalonia Docs](https://docs.avaloniaui.net/docs/deployment/native-aot)
@@ -454,6 +470,7 @@ Avalonia UI:
 - [Globalization config settings - Microsoft Learn](https://learn.microsoft.com/dotnet/core/runtime-config/globalization)
 - [BertTokenizer fails to strip accents under invariant globalization - dotnet/machinelearning issue #7728](https://github.com/dotnet/machinelearning/issues/7728)（AOT のテンプレートがインバリアント モードを有効にすること）
 - [Native AOT deployment overview - Microsoft Learn](https://learn.microsoft.com/dotnet/core/deploying/native-aot/)
+- [Cross-compilation (Native AOT) - Microsoft Learn](https://learn.microsoft.com/dotnet/core/deploying/native-aot/cross-compile)
 - [Create RID-specific, self-contained, and AOT .NET tools - Microsoft Learn](https://learn.microsoft.com/dotnet/core/tools/rid-specific-tools)
 - [What's new in the SDK and tooling for .NET 10 - Microsoft Learn](https://learn.microsoft.com/dotnet/core/whats-new/dotnet-10/sdk)
 - [SmartScreen reputation for Windows app developers - Microsoft Learn](https://learn.microsoft.com/windows/apps/package-and-deploy/smartscreen-reputation)
