@@ -130,7 +130,7 @@ flowchart LR
 |--------------|------------|------|
 | Desktop | Avalonia、Avalonia.Desktop、Avalonia.Themes.Fluent（MIT。12.1 系） | 画面の技術（ユーザーの決定） |
 | Desktop | NAudio の再生の部品（MIT） | 効果音を重ねて鳴らす（仕様書 4.6）。**導入はユーザーの確認が要る**（17 章） |
-| Desktop.Tests | xUnit v3（既存と同じ版）。Avalonia.Headless.XUnit は、11 章の確認の結果による | 12 章 |
+| Desktop.Tests | xUnit v3（既存と同じ版）。Avalonia.Headless.XUnit は使わない（11 章の #1 の結果） | 12 章 |
 | ConsoleApp、ConsoleApp.Tests | 追加なし（`System.Console` と xUnit v3） | 5.11 の調査で、ライブラリなしで作れると判断した（15 章） |
 
 ## 5. 層と依存の向き
@@ -397,8 +397,8 @@ stateDiagram-v2
 
 | # | 確かめること | 確かめ方 | 合わなかったときの手 |
 |---|--------------|----------|----------------------|
-| 1 | Avalonia.Headless.XUnit が、xUnit v3 の 4 系と Microsoft.Testing.Platform で動くか | 1 件の画面のテストを書いて、`dotnet test` で動かす（Windows と Linux） | 画面のテストは作らず、ビューモデルのテストと実機の確認で補う（12 章）。xUnit を 3 系に留めたテストのプロジェクトは作らない（テストの版が 2 つになり、読む人が迷う） |
-| 2 | Linux の上で `win-x64` の自己完結の単一ファイルを発行し、Windows で動くか | GitHub Actions の Ubuntu か WSL で発行し、Windows で起動する | 描画のネイティブのライブラリの読み込みを確かめる（調査書 6.1）。直せなければユーザーに相談する（条件に関わるため） |
+| 1 | Avalonia.Headless.XUnit が、xUnit v3 の 4 系と Microsoft.Testing.Platform で動くか | 1 件の画面のテストを書いて、`dotnet test` で動かす（Windows と Linux） | 画面のテストは作らず、ビューモデルのテストと実機の確認で補う（12 章）。xUnit を 3 系に留めたテストのプロジェクトは作らない（テストの版が 2 つになり、読む人が迷う）。**結果（区切り 1）: 動かなかった**（テストを見つける段階で `MissingMethodException`）。この手に従った（docs/desktop-console/reviews/code-review.md の区切り 1） |
+| 2 | Linux の上で `win-x64` の自己完結の単一ファイルを発行し、Windows で動くか | GitHub Actions の Ubuntu か WSL で発行し、Windows で起動する | 描画のネイティブのライブラリの読み込みを確かめる（調査書 6.1）。直せなければユーザーに相談する（条件に関わるため）。**結果（区切り 1）: 動いた**（WSL で発行し、Windows でウィンドウが出た） |
 | 3 | ナレーターが、マスの名前とライブ リージョンの文を読むか。盤面を表として読ませられるか | 実機でナレーターを動かす | 表として読めなければ、既知の制約にする（仕様書 4.8） |
 | 4 | NAudio で、効果音が重なって鳴るか。最初の音が遅れないか | 実機で鳴らす | 17 章の確認の結果による |
 | 5 | 従来のコンソール ホストで VT の解釈が効くか。WSL の Linux で代替画面、色、キーが効くか。日本語の入力（IME）で入れた全角の数字が、キーとして届くか（カスタムの入力） | 実機で動かす | VT が効かない環境は対象外にする（仕様書 5.1 の端末は、どれも VT に対応している見込み） |
@@ -413,7 +413,7 @@ stateDiagram-v2
 | GameLogic.Tests | `BestTimesFile`（一時フォルダーで、読めない・書けない場合も） | xUnit |
 | Presentation.Tests | 移した部品（カーソル、演出、読み上げの名前、文言、大きさの範囲）。移す前のテストを一緒に移す | xUnit |
 | Tests（Web 版） | 移した後も振る舞いが変わらないこと（既存のテストをそのまま通す） | xUnit、bUnit |
-| Desktop.Tests | ビューモデル（操作、勝敗、ベストタイム、ダイアログの検証、効果音の出口に渡したもの、演出の値）、ウィンドウとマスの大きさの計算、キーの割り当て、設定のファイル、配色と演出の時間が Web 版と一致すること（7.5） | xUnit。画面のテストは 11 章の #1 の結果による |
+| Desktop.Tests | ビューモデル（操作、勝敗、ベストタイム、ダイアログの検証、効果音の出口に渡したもの、演出の値）、ウィンドウとマスの大きさの計算、キーの割り当て、設定のファイル、配色と演出の時間が Web 版と一致すること（7.5） | xUnit。画面のテストは作らない（11 章の #1 の結果） |
 | ConsoleApp.Tests | 画面の単位（キーを渡して、状態と Frame の行を確かめる）、Writer（前の Frame と比べて書く行）、小さい端末の判定、カスタムの入力の編集 | xUnit |
 
 - 時刻は `FakeTimeProvider`、盤面は `TestSupport` の `TestGames` で決める（既存と同じ）。

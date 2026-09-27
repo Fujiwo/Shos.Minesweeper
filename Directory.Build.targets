@@ -1,0 +1,12 @@
+<Project>
+
+  <!--
+    Avalonia がビルドのたびに Avalonia 社へ送る匿名の利用情報（Avalonia.BuildServices の AvaloniaStats）を止める（ユーザーの決定、2026-09-27）。
+    送る処理は UsedAvaloniaProducts が空でないときだけ動き、この値を使うのは Avalonia と Avalonia.BuildServices のパッケージだけである。
+    パッケージの props が値を足した後に空にするため、props ではなく targets に書く。この PC だけで止めるなら、環境変数 AVALONIA_TELEMETRY_OPTOUT=1 でもよい
+  -->
+  <PropertyGroup>
+    <UsedAvaloniaProducts></UsedAvaloniaProducts>
+  </PropertyGroup>
+
+</Project>

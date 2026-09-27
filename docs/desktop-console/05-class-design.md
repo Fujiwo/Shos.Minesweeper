@@ -4,7 +4,7 @@
 |------|------|
 | 工程 | 9. クラス設計書作成（デスクトップ版・コンソール版の一巡） |
 | 作成日 | 2026-09-27 |
-| 状態 | 工程 9 をユーザーが承認した（2026-09-27）。確認事項 1（カーソル）はユーザーが決めた（11 章）。クラス設計書レビュー（docs/desktop-console/reviews/05-class-design-review.md）の指摘を反映した |
+| 状態 | 工程 9 をユーザーが承認した（2026-09-27）。確認事項 1（カーソル）はユーザーが決めた（11 章）。クラス設計書レビュー（docs/desktop-console/reviews/05-class-design-review.md）の指摘を反映し、工程 10 をユーザーが承認した（2026-09-27） |
 | 入力 | docs/desktop-console/04-architecture.md（アーキテクチャー設計書）、docs/desktop-console/02-spec.md（仕様書）、docs/desktop-console/03-ui-design.md（UI デザイン）、Web 版のクラス設計書（docs/05-class-design.md）、今のコード |
 
 ## 1. 概要
@@ -1097,7 +1097,7 @@ GameLoop.Run(terminal, new ScreenNavigator(game), new FrameWriter(terminal.Outpu
 
 | プロジェクト | 参照 | パッケージ |
 |--------------|------|------------|
-| `Shos.Minesweeper.Desktop.Tests`（加える） | Desktop、TestSupport | xUnit v3、Microsoft.Extensions.TimeProvider.Testing（既存と同じ版）。Avalonia.Headless.XUnit は区切り 1 の確認の結果による（アーキ 11 章 #1） |
+| `Shos.Minesweeper.Desktop.Tests`（加える。区切り 5 で作る） | Desktop、TestSupport | xUnit v3、Microsoft.Extensions.TimeProvider.Testing（既存と同じ版）。Avalonia.Headless.XUnit は使わない（区切り 1 の確認で、xUnit v3 の 4 系では動かなかった。アーキ 11 章 #1。docs/desktop-console/reviews/code-review.md の区切り 1） |
 | `Shos.Minesweeper.ConsoleApp.Tests`（加える） | ConsoleApp、TestSupport | xUnit v3、Microsoft.Extensions.TimeProvider.Testing |
 
 - 盤面は `TestGames.DifficultyOf(絵)` と `TestGames.MineChooserOf(絵)` で決める（既存の補助）。
@@ -1141,7 +1141,7 @@ GameLoop.Run(terminal, new ScreenNavigator(game), new FrameWriter(terminal.Outpu
 
 | # | 区切り | 主な型 | 終わったときにできること | 実行環境の確認 |
 |---|--------|--------|--------------------------|----------------|
-| 1 | 骨組みと実行環境 | 4 つのプロジェクト（Desktop、ConsoleApp とそのテスト）、空のウィンドウ、`TerminalSession`（代替画面に 1 行出して、キーで戻る） | ソリューションがビルドでき、全テストが Windows と Linux で走る。発行した実行ファイルが動く | #1（ヘッドレス）、#2（Linux の上で発行して Windows で動く）、#5 の一部（VT、代替画面、Ctrl+C の届き方、キーを読んでいない間の打鍵が画面に出ないか）、#7（WSL の ICU） |
+| 1 | 骨組みと実行環境 | 3 つのプロジェクト（Desktop、ConsoleApp、ConsoleApp.Tests。Desktop.Tests は、テストの対象ができる区切り 5 で作る。区切り 1 の結果）、空のウィンドウ、`TerminalSession`（代替画面に 1 行出して、キーで戻る） | ソリューションがビルドでき、全テストが Windows と Linux で走る。発行した実行ファイルが動く | #1（ヘッドレス）、#2（Linux の上で発行して Windows で動く）、#5 の一部（VT、代替画面、Ctrl+C の届き方、キーを読んでいない間の打鍵が画面に出ないか）、#7（WSL の ICU） |
 | 2 | 共有の部品の移動 | 3 章のすべて。Web 版の変更と設計書への書き足し | Web 版が前と同じに動き、Web 版の全テストが Green | Web 版をブラウザーで動かし、キーボードの操作と読み上げの名前が変わらないことを確かめる |
 | 3 | コンソール版のゲームの画面 | Rendering、`GameScreen`、`BoardLines`、`CellGlyphs`、`KeyboardMapping`、`ScreenNavigator`、`TerminalTooSmallScreen`、`GameLoop` | 初級で遊べ、ベストタイムが残る。端末が小さいと知らせる | #5（Windows Terminal、従来のコンソール ホスト、WSL で見え方と色、`NO_COLOR`） |
 | 4 | コンソール版のヘルプと難易度 | `HelpScreen`、`DifficultySelectionScreen`、`CustomDifficultyInput`、`LineEditor` | すべての難易度で遊べる | #5（IME の全角の数字）、#6（発行した実行ファイルで「２０」） |

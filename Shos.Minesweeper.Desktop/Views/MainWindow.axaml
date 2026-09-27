@@ -1,0 +1,7 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Shos.Minesweeper.Desktop.Views.MainWindow"
+        Title="マインスイーパー"
+        Width="400" Height="382">
+    <!-- 区切り 1 では空のウィンドウ。大きさは初級の中身の大きさ（UI デザイン 2.2）で、区切り 5 で計算に置き換える -->
+</Window>

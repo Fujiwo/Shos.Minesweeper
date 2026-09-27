@@ -18,7 +18,7 @@ Web ブラウザーで遊べるマインスイーパーを作る。
 - この節は Web 版の動作環境である。デスクトップ版・コンソール版の動作環境は、docs/desktop-console/02-spec.md の 4.1、5.1 にある（デスクトップ版は Windows 11、コンソール版は Windows 11 と Linux）
 
 ## 開発手順
-現在の工程: デスクトップ版・コンソール版の一巡の工程 10（クラス設計書レビュー）。docs/desktop-console/reviews/05-class-design-review.md を提出し、ユーザーの承認を待っている（2026-09-27）（工程が承認されたら、Claude がこの行を次の工程に更新する）
+現在の工程: デスクトップ版・コンソール版の一巡の工程 11（実装）。区切り 1（骨組みと実行環境の確認。docs/desktop-console/05-class-design.md の 8 章）を進めている（2026-09-27）（工程が承認されたら、Claude がこの行を次の工程に更新する）
 
 Web 版 1.0.0 は工程 1〜16 をすべて終えた（2026-09-26 に公開）。1.1.0（UI の洗練と効果音）も同じ工程をたどり、すべて終えた（2026-09-27 に公開）。1.1.0 では、次のように進めた。
 - 成果物は新しいファイルにせず、既存の文書に「改訂（1.1.0）」の節を足すか、該当する箇所を書き換えて、冒頭の状態に改訂したことを書く。レビューは、既存のレビューのファイルに「1.1.0 のレビュー」の節を追記する。コードレビュー・リファクタリング・結合テストは docs/reviews/code-review.md に 1.1.0 の節を足す。リリースノートは docs/release-notes.md の先頭に 1.1.0 を足す
@@ -82,6 +82,10 @@ Web 版 1.0.0 は工程 1〜16 をすべて終えた（2026-09-26 に公開）�
 - .NET 10 (`net10.0`)、Blazor WebAssembly（スタンドアロン）
 - 言語: C#, Razor, HTML/CSS。JavaScript interop は必要なときに限る
 - テスト: .NET 10 の Blazor アプリで最も一般的な構成として、ロジックは xUnit、Razor コンポーネントは bUnit を使う
+- デスクトップ版: Avalonia UI 12.1（MIT。パッケージは Avalonia、Avalonia.Desktop、Avalonia.Themes.Fluent）。画面のテスト（Avalonia.Headless.XUnit）は、xUnit v3 の 4 系で動かないので使わない。判断はビューモデルに置き、xUnit で確かめる（docs/desktop-console/reviews/code-review.md の区切り 1）
+- コンソール版: `System.Console` と VT のシーケンスだけで作る（ライブラリなし）
+- Avalonia のビルドの利用情報の送信は、リポジトリ直下の `Directory.Build.targets` で止めている（ユーザーの決定、2026-09-27）
+- Linux の上のビルド・テスト・発行は、WSL の Ubuntu の `~/.dotnet` に入れた .NET 10 の SDK で確かめる（`~/.dotnet/dotnet`）。Windows と中間ファイルが混ざらないように、リポジトリを bin と obj を除いて WSL のホームに写してから行う（Git Bash から `wsl.exe` に `/mnt/c/...` のパスを渡すときは、`MSYS_NO_PATHCONV=1` を付ける）
 
 ## 設計方針
 - ゲームロジックは UI に依存しない C# クラスとして分け、単体テストできるようにする
@@ -121,10 +125,11 @@ Web 版 1.1.0（UI の洗練と効果音）を `https://fujiwo.github.io/Shos.Mi
 
 - 実装（工程 11）は、クラス設計書（docs/05-class-design.md）の 8 章の区切り 1〜7 で行った。区切りごとのレビュー、リファクタリング（工程 12。R1〜R5 と、R5 の後のやり直しの RR1〜RR4）、結合テスト（工程 13）の記録は docs/reviews/code-review.md にある。
 - 1.1.0 の実装は、クラス設計書の 12.10 の区切り 1〜7 で行った。区切りごとのレビュー、リファクタリング（R1〜R3）、結合テスト（見つけた不具合 B1、B2）の記録は、docs/reviews/code-review.md の「1.1.0」の節にある。
+- デスクトップ版・コンソール版は、工程 11 の区切り 1（骨組みと実行環境の確認）まで作った。空のウィンドウと、端末の準備と後始末だけで、ゲームはまだ遊べない。実装の区切りはクラス設計書（docs/desktop-console/05-class-design.md）の 8 章、レビューの記録は docs/desktop-console/reviews/code-review.md にある。
 - デスクトップ版・コンソール版と共有する部品は、`Shos.Minesweeper.GameLogic`（ゲームのルールとベストタイムの保存の形式。1.1.0 で操作の結果 `MoveResult`）と `Shos.Minesweeper.Presentation`（表示の文言、押し方からの操作の割り当て。1.1.0 で 1 回のゲームの進め方 `GameSession`、効果音の部品、入力された文字列の整え方 `InputText`）に切り出してある（1.0.0 の工程 12 の R5、1.1.0 のアーキテクチャー設計）。
 
 ## コマンド
-ソリューションは新しい XML 形式の `Shos.Minesweeper.slnx` で、次の 7 つのプロジェクトがある。
+ソリューションは新しい XML 形式の `Shos.Minesweeper.slnx` で、次の 10 のプロジェクトがある（デスクトップ版のテストの `Shos.Minesweeper.Desktop.Tests` は、クラス設計書 8 章の区切り 5 で加える）。
 
 | プロジェクト | 内容 |
 |--------------|------|
@@ -135,6 +140,9 @@ Web 版 1.1.0（UI の洗練と効果音）を `https://fujiwo.github.io/Shos.Mi
 | `Shos.Minesweeper.Presentation.Tests` | Presentation のテスト（xUnit v3）。Web アプリに依存しない。`GameSession` のテストで盤面を決めるため、TestSupport を参照する |
 | `Shos.Minesweeper.Tests` | Web アプリのテスト（xUnit v3。コンポーネントのテストには bUnit を使う） |
 | `Shos.Minesweeper.TestSupport` | テストの共通の補助（盤面を文字の絵で書く `TestGames`）。クラスライブラリ |
+| `Shos.Minesweeper.Desktop` | デスクトップ版（Avalonia のアプリ。Windows 11 向け） |
+| `Shos.Minesweeper.ConsoleApp` | コンソール版（Windows 11 と Linux 向け）。`Console` という名前にしないのは、名前空間が `System.Console` を隠すため |
+| `Shos.Minesweeper.ConsoleApp.Tests` | コンソール版のテスト（xUnit v3） |
 
 ```bash
 dotnet build Shos.Minesweeper.slnx
@@ -142,10 +150,15 @@ dotnet run --project Shos.Minesweeper                        # http://localhost:
 dotnet run --project Shos.Minesweeper --launch-profile https  # https://localhost:7163
 dotnet watch --project Shos.Minesweeper                      # ホットリロード
 dotnet publish Shos.Minesweeper -c Release                   # 静的ファイルとして bin/Release/net10.0/publish/wwwroot に出力
+dotnet run --project Shos.Minesweeper.Desktop                # デスクトップ版
+dotnet run --project Shos.Minesweeper.ConsoleApp             # コンソール版（端末の中で動かす。入力をリダイレクトすると起動できない）
+dotnet publish Shos.Minesweeper.Desktop -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o <出力先>
+dotnet publish Shos.Minesweeper.ConsoleApp -c Release -r linux-x64 --self-contained -p:PublishSingleFile=true -o <出力先>   # win-x64 も同じ形
 
 dotnet test                                                                                          # 全テスト（リポジトリ直下で。global.json と slnx を見つける）
 dotnet test --project Shos.Minesweeper.GameLogic.Tests                                               # GameLogic のテストだけ（Web アプリをビルドしない）
 dotnet test --project Shos.Minesweeper.Presentation.Tests                                            # Presentation のテストだけ（Web アプリをビルドしない）
+dotnet test --project Shos.Minesweeper.ConsoleApp.Tests                                              # コンソール版のテストだけ
 dotnet test --project Shos.Minesweeper.GameLogic.Tests --filter-class "Shos.Minesweeper.GameLogic.Tests.BoardTests"  # 1 つのテストクラス
 dotnet test --project Shos.Minesweeper.Tests --filter-method "*ClickingACellOpensIt"                 # 1 件（ワイルドカード可）
 ```

@@ -1,0 +1,9 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Shos.Minesweeper.Desktop.App"
+             RequestedThemeVariant="Default">
+    <!-- ライト・ダークは OS の設定に従う（仕様書 4.5）。RequestedThemeVariant の Default が、OS の設定に従う指定である -->
+    <Application.Styles>
+        <FluentTheme />
+    </Application.Styles>
+</Application>

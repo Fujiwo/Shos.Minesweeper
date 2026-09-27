@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- デスクトップ版（docs/desktop-console/04-architecture.md の 7 章）。名前に技術（Avalonia）を入れないのは、技術を変えても名前が嘘をつかないようにするため -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.3" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.3" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Shos.Minesweeper.GameLogic\Shos.Minesweeper.GameLogic.csproj" />
+    <ProjectReference Include="..\Shos.Minesweeper.Presentation\Shos.Minesweeper.Presentation.csproj" />
+  </ItemGroup>
+
+</Project>
