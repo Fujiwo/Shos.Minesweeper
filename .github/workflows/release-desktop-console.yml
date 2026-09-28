@@ -1,0 +1,105 @@
+# デスクトップ版・コンソール版の GitHub Releases への公開（docs/desktop-console/06-release.md）。
+# 公開はリリースレビューの承認の後に、ユーザーの指示で行うので（CLAUDE.md）、push では動かさず、手動で起動する。
+# Web 版の公開（deploy.yml）とは別のワークフローにする（アーキテクチャー設計書 13 章）。
+name: デスクトップ版・コンソール版を公開
+
+on:
+  workflow_dispatch:
+    inputs:
+      product:
+        description: 公開する版
+        type: choice
+        options:
+          - desktop
+          - console
+      version:
+        description: 版番号（例 1.0.0）。タグは desktop-v1.0.0 か console-v1.0.0 になる
+        type: string
+        required: true
+
+# 既定はソースを読むだけにし、タグと Release を作る権限は release のジョブだけに与える
+permissions:
+  contents: read
+
+# 同じ版の公開を 2 つ同時に走らせない
+concurrency:
+  group: release-${{ inputs.product }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      # 入力は、スクリプトに直接埋め込まず、環境変数として渡す
+      PRODUCT: ${{ inputs.product }}
+      VERSION: ${{ inputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      # 版番号の形と、まだ公開していないことを、テストと発行の前に確かめる
+      - name: 版番号とタグを確かめる
+        run: |
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "版番号は 1.0.0 の形で入れる: $VERSION"
+            exit 1
+          fi
+          case "$PRODUCT" in
+            desktop) LABEL=デスクトップ版 ;;
+            console) LABEL=コンソール版 ;;
+          esac
+          TAG="${PRODUCT}-v${VERSION}"
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" > /dev/null; then
+            echo "タグ ${TAG} はもうある。公開し直すときは、版番号を上げる"
+            exit 1
+          fi
+          echo "LABEL=${LABEL}" >> "$GITHUB_ENV"
+          echo "TAG=${TAG}" >> "$GITHUB_ENV"
+
+      # Release の説明は、リリースノートのその版の節（「## デスクトップ版 1.0.0（…）」から次の「## 」の前まで）
+      - name: リリースノートを取り出す
+        run: |
+          awk -v heading="## ${LABEL} ${VERSION}（" '
+            index($0, heading) == 1 { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' docs/desktop-console/release-notes.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "docs/desktop-console/release-notes.md に「## ${LABEL} ${VERSION}（」の節がない"
+            exit 1
+          fi
+
+      # 全テストが Green でなければ公開しない
+      - name: テスト
+        run: dotnet test
+
+      # 自己完結の単一ファイル（仕様書 7.1）。配るのは実行ファイルだけで、デバッグ情報（.pdb）は含めない
+      - name: 発行して、まとめる
+        run: |
+          mkdir -p dist
+          if [ "$PRODUCT" = desktop ]; then
+            # 描画のネイティブのライブラリも、実行ファイルに含める（アーキテクチャー設計書 13 章）
+            dotnet publish Shos.Minesweeper.Desktop -c Release -r win-x64 --self-contained \
+              -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version="$VERSION" -o publish/desktop-win-x64
+            (cd publish/desktop-win-x64 && zip -9 "../../dist/Shos.Minesweeper.Desktop-${VERSION}-win-x64.zip" Shos.Minesweeper.Desktop.exe)
+          else
+            for rid in win-x64 linux-x64; do
+              dotnet publish Shos.Minesweeper.ConsoleApp -c Release -r "$rid" --self-contained \
+                -p:PublishSingleFile=true -p:Version="$VERSION" -o "publish/console-${rid}"
+            done
+            (cd publish/console-win-x64 && zip -9 "../../dist/Shos.Minesweeper.ConsoleApp-${VERSION}-win-x64.zip" Shos.Minesweeper.ConsoleApp.exe)
+            # Linux は tar でまとめ、実行の許可を保つ
+            chmod +x publish/console-linux-x64/Shos.Minesweeper.ConsoleApp
+            tar -czf "dist/Shos.Minesweeper.ConsoleApp-${VERSION}-linux-x64.tar.gz" -C publish/console-linux-x64 Shos.Minesweeper.ConsoleApp
+          fi
+          ls -l dist
+
+      # タグは、Release を作るときに、テストしたコミットに付ける
+      - name: Release を作る
+        run: gh release create "$TAG" dist/* --target "$GITHUB_SHA" --title "${LABEL} ${VERSION}" --notes-file release-notes.md

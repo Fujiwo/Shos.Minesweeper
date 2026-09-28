@@ -18,7 +18,7 @@ Web ブラウザーで遊べるマインスイーパーを作る。
 - この節は Web 版の動作環境である。デスクトップ版・コンソール版の動作環境は、docs/desktop-console/02-spec.md の 4.1、5.1 にある（デスクトップ版は Windows 11、コンソール版は Windows 11 と Linux）
 
 ## 開発手順
-現在の工程: デスクトップ版・コンソール版の一巡の工程 14（リリース準備）。工程 13（結合テストとデバッグ。不具合 B1 を直した）は承認された（2026-09-28。docs/desktop-console/reviews/code-review.md の「工程 13」）（工程が承認されたら、Claude がこの行を次の工程に更新する）
+現在の工程: デスクトップ版・コンソール版の一巡の工程 15（リリースレビュー）。工程 14（リリース準備。docs/desktop-console/06-release.md、docs/desktop-console/release-notes.md、`.github/workflows/release-desktop-console.yml`）は承認された（2026-09-28）（工程が承認されたら、Claude がこの行を次の工程に更新する）
 
 Web 版 1.0.0 は工程 1〜16 をすべて終えた（2026-09-26 に公開）。1.1.0（UI の洗練と効果音）も同じ工程をたどり、すべて終えた（2026-09-27 に公開）。1.1.0 では、次のように進めた。
 - 成果物は新しいファイルにせず、既存の文書に「改訂（1.1.0）」の節を足すか、該当する箇所を書き換えて、冒頭の状態に改訂したことを書く。レビューは、既存のレビューのファイルに「1.1.0 のレビュー」の節を追記する。コードレビュー・リファクタリング・結合テストは docs/reviews/code-review.md に 1.1.0 の節を足す。リリースノートは docs/release-notes.md の先頭に 1.1.0 を足す
@@ -176,5 +176,6 @@ dotnet test --project Shos.Minesweeper.Tests --filter-method "*ClickingACellOpen
 - コンポーネントの見た目は CSS 分離（`*.razor.css`）で書き、`index.html` で `Shos.Minesweeper.styles.css` を読み込んでいる。配色のトークン（UI デザイン 4.1）とページ全体のスタイルは `wwwroot/css/app.css` にある。
 - アプリの C# は、フォルダーごとの名前空間（`Components`、`Display`、`Browser` など）に置き、`_Imports.razor` で取り込んでいる。フォルダーを追加したときは、ここに `@using` を追記すること。
 - 公開は `.github/workflows/deploy.yml`（GitHub Actions）で行う。push では動かず、手動で起動したときだけ、テスト、発行、`<base href>` の書き換えをして GitHub Pages に置く。手順は docs/06-release.md にある。
+- デスクトップ版・コンソール版の公開は `.github/workflows/release-desktop-console.yml` で行う。手動で起動し、版（`desktop` か `console`）と版番号を選ぶと、テスト、発行、まとめ（Windows は zip、Linux は tar.gz）をして、タグ（`desktop-v1.0.0` など）を付けた GitHub Release を作る。Release の説明は docs/desktop-console/release-notes.md のその版の節である。手順は docs/desktop-console/06-release.md にある。
 - JavaScript は `wwwroot/js/browser.js` だけで、C# から呼ぶのは `Browser/BrowserFeatures.cs` だけである（アーキテクチャー設計書 9 章）。
 - `Nullable` と `ImplicitUsings` が有効である。
