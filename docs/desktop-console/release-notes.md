@@ -88,7 +88,7 @@ Linux:
 
 ### 知っておいてほしいこと
 
-- ベストタイムは、Windows では `%LOCALAPPDATA%\Shos.Minesweeper\ConsoleApp`、Linux では `~/.local/share/Shos.Minesweeper/ConsoleApp` に保存します。デスクトップ版の記録とは別です。インターネットには何も送りません。
+- ベストタイムは、Windows では `%LOCALAPPDATA%\Shos.Minesweeper\ConsoleApp`、Linux では `~/.local/share/Shos.Minesweeper/ConsoleApp`（環境変数 `XDG_DATA_HOME` を設定していれば、その下の `Shos.Minesweeper/ConsoleApp`）に保存します。デスクトップ版の記録とは別です。インターネットには何も送りません。
 - 端末が盤面より小さいときは、盤面の代わりに、要る大きさを知らせます。端末を広げると続きから遊べます。そのときは、D で小さい難易度を選ぶこともできます（端末の幅は、どの画面も 76 列が要ります）。カスタムの最大（30×24）は、24 行の端末には収まりません。
 - 環境変数 `NO_COLOR` を設定すると、色を付けずに表示します。
 - 終わるときは、端末を元の画面と状態に戻します。
