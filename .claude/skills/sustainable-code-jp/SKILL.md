@@ -42,7 +42,7 @@ description: ユーザーのメッセージが日本語以外で、かつ、「s
 | 命名 | [naming.md](references/naming.md) | [object-design.md](references/object-design.md)(責務の混在が見つかったとき) |
 | テストの追加・設計 | [testing.md](references/testing.md) | — |
 | リファクタリング | [refactoring.md](references/refactoring.md) | [testing.md](references/testing.md)(安全網がないとき)、[naming.md](references/naming.md)(名前の変更が主な一手のとき)、[object-design.md](references/object-design.md)(クラスの分割や責務の移動など、責務の置き場所を変えるとき) |
-| レビュー(ユーザーから依頼されたとき) | [quality-gates.md](references/quality-gates.md) の「七箇条をレビューの観点にする」、[refactoring.md](references/refactoring.md) の「コードの臭い」「臭い → 技法の対応表」 | [testing.md](references/testing.md)(テストを含むとき)、[simplicity.md](references/simplicity.md)(レビュー対象がインターフェイス・基底クラス・ジェネリクス・デザインパターン・設定項目・拡張ポイントを新設しているとき)、[foundations.md](references/foundations.md)(セルフチェックの項目の合否を根拠付きで言えないとき) |
+| レビュー(ユーザーから依頼されたとき。設計書のレビューを含む) | [quality-gates.md](references/quality-gates.md) の「七箇条をレビューの観点にする」、[refactoring.md](references/refactoring.md) の「コードの臭い」「臭い → 技法の対応表」 | [testing.md](references/testing.md)(テストを含むとき)、[simplicity.md](references/simplicity.md)(レビュー対象がインターフェイス・基底クラス・ジェネリクス・デザインパターン・設定項目・拡張ポイントを新設しているとき)、[foundations.md](references/foundations.md)(セルフチェックの項目の合否を根拠付きで言えないとき) |
 | 自分の変更の見直し(依頼のない、暗黙のセルフレビュー) | —(末尾の「セルフチェック」を使う) | [simplicity.md](references/simplicity.md) の「引き算の設計」の点検表(抽象・パターン・備えを足したとき) |
 | 性能改善 | [quality-gates.md](references/quality-gates.md) の「技術的負債とパフォーマンス」 | [testing.md](references/testing.md)(対象に振る舞いを押さえるテストがないとき) |
 | 依頼が曖昧(何をどう変えるかが特定できない。例: 「いい感じに直して」) | [collaboration.md](references/collaboration.md) の「着手前」 | — |
@@ -50,6 +50,7 @@ description: ユーザーのメッセージが日本語以外で、かつ、「s
 | 質問・途中報告 | [collaboration.md](references/collaboration.md) の「質問・途中報告の4要素」 | — |
 
 - reference の中にある他の reference への言及は、その話題が当面の判断に必要なときだけ読む。芋づる式に読まない。
+- 同じ種類の作業が続くときは、同じ会話ですでに読んだ「必ず読む」の本文が文脈に残っていれば、読み直さなくてよい。要約などで本文が手元にないときは、作業の前に読み直す。
 - コードを変更した作業の完了報告は、次の項目で書く(小さな変更では、該当する項目だけでよい。例と補足は collaboration.md)。
   - **What**: 何を変えたか。準備的リファクタリングと機能変更は分けて書く
   - **Why**: なぜそう書いたか。選んだ設計と、捨てた案とのトレードオフ
@@ -85,7 +86,7 @@ description: ユーザーのメッセージが日本語以外で、かつ、「s
 
 ## 原則が対立したときの判断ルール
 
-1. **シンプルさ vs 拡張性**: 変更の見通しが具体的なときだけ抽象化する。具体的とは、根拠を指せること(要求やユーザーの説明にある、2つ目の実装が実際に来た〔8.3〕、同じ分岐がすでに2箇所目に現れた〔1.2、7.2〕)。「将来対応するかもしれない」だけでは足りない。「必要が見えてから入れる抽象は形が合うが、必要が見える前に入れる抽象は当てずっぽう」。〔8.3〕
+1. **シンプルさ vs 拡張性**: 変更の見通しが具体的なときだけ抽象化する。具体的とは、根拠を指せること(要求やユーザーの説明にある、2つ目の実装が実際に来た〔8.3〕、同じ分岐がすでに2箇所目に現れた〔1.2、7.2〕、仕様や計画で2つ目の利用者が決まっている)。「将来対応するかもしれない」だけでは足りない。「必要が見えてから入れる抽象は形が合うが、必要が見える前に入れる抽象は当てずっぽう」。〔8.3〕
 2. **抽象化の経済性 vs YAGNI**: 書く手間は抽象化を避ける理由にならない(書くコストはほぼゼロになったが、読むコストは下がっていない)。読解コストを下げる抽象(メソッド抽出、概念への命名、データの群れへの型付け)は積極的に入れる。読む対象を増やすだけの抽象(実装が一つしかないインターフェイス階層)は入れない。〔9.6、7.4、8.3〕
 3. **テスト容易性 vs YAGNI**: 時刻・I/O・外部システムを差し替えられるようにするのは YAGNI 違反ではない。テストコードは最初の利用者であり、その利用者がすでに差し替えを必要としているからである。〔1.2.7、6.1.1〕
 4. **コメントの削減 vs 説明責任**: What と How は名前とコードで表し、Why だけをコメントに残す。可読性を犠牲にする判断には、必ず Why を残す。〔7.5、9.5〕
