@@ -56,6 +56,12 @@ public sealed class BoardViewModel : INotifyPropertyChanged
 
     public bool IsPressing => pressedPosition is not null;
 
+    /// <summary>
+    /// Cells の中の、そのマスの番号。マスは 1 次元の並びで持ち、位置から番号を求める計算はここだけに置く
+    /// （Views は、この番号でマスの部品を探す）。
+    /// </summary>
+    public int IndexOf(CellPosition position) => position.Row * ColumnCount + position.Column;
+
     Board Board => session.Game.Board;
 
     /// <summary>盤面の領域（枠を含む）の大きさが変わった。</summary>
@@ -229,8 +235,7 @@ public sealed class BoardViewModel : INotifyPropertyChanged
     bool HasTheSameShapeAsTheBoard(IReadOnlyList<CellViewModel> shownCells)
         => shownCells[^1].Position == new CellPosition(Board.Height - 1, Board.Width - 1);
 
-    // マスは 1 次元の並びで持ち、位置からマスを引く計算はここだけに置く
-    CellViewModel CellAt(CellPosition position) => cells[position.Row * ColumnCount + position.Column];
+    CellViewModel CellAt(CellPosition position) => cells[IndexOf(position)];
 
     static IReadOnlyList<CellViewModel> CellsOf(GameSession session)
         => [.. session.Game.Board.AllPositions.Select(position => new CellViewModel(session, position))];

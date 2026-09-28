@@ -12,20 +12,7 @@ namespace Shos.Minesweeper.Desktop.Tests.ViewModels;
 /// <summary>盤面とマスのビューモデル（クラス設計書 4.4）。操作の意図は requestAction で受け、盤面を変えるのは GameSession を直接呼んで確かめる。</summary>
 public class BoardViewModelTests
 {
-    // 初級（9×9、地雷 10）。4 列目が地雷の壁で、右下にもう 1 つ（コンソール版の GameScreenTests と同じ盤面）
-    const string WallBoard = """
-        ....*....
-        ....*....
-        ....*....
-        ....*....
-        ....*....
-        ....*....
-        ....*....
-        ....*....
-        ....*...*
-        """;
-
-    readonly GameSession session = new(Difficulty.Beginner, new FakeTimeProvider(), chooseMines: TestGames.MineChooserOf(WallBoard));
+    readonly GameSession session = new(Difficulty.Beginner, new FakeTimeProvider(), chooseMines: TestGames.MineChooserOf(TestGames.BeginnerWallPicture));
     readonly List<(CellAction Action, CellPosition Position)> requests = [];
     readonly BoardViewModel board;
     int pressingChangedCount;
@@ -38,6 +25,12 @@ public class BoardViewModelTests
     {
         Assert.Equal(81, board.Cells.Count);
         Assert.Equal(new CellPosition(1, 0), board.Cells[9].Position);
+    }
+
+    [Fact]
+    public void IndexOfFindsThePositionInCells()
+    {
+        Assert.All(board.Cells, cell => Assert.Same(cell, board.Cells[board.IndexOf(cell.Position)]));
     }
 
     [Fact]
@@ -366,10 +359,10 @@ public class BoardViewModelTests
     public void PlacingAFlagMarksItAsJustPlaced()
     {
         ShowAnimated(session.ToggleFlag(new CellPosition(2, 3)));
-        Assert.True(board.Cells[2 * 9 + 3].IsFlagJustPlaced);
+        Assert.True(board.Cells[board.IndexOf(new CellPosition(2, 3))].IsFlagJustPlaced);
 
         ShowAnimated(session.ToggleFlag(new CellPosition(2, 3)));
-        Assert.False(board.Cells[2 * 9 + 3].IsFlagJustPlaced);
+        Assert.False(board.Cells[board.IndexOf(new CellPosition(2, 3))].IsFlagJustPlaced);
     }
 
     // 旗が広がる演出も、アニメーション効果がオフなら出さない（クラス設計書 9.1 の決定 4）
@@ -378,7 +371,7 @@ public class BoardViewModelTests
     {
         Show(session.ToggleFlag(new CellPosition(2, 3)));
 
-        Assert.False(board.Cells[2 * 9 + 3].IsFlagJustPlaced);
+        Assert.False(board.Cells[board.IndexOf(new CellPosition(2, 3))].IsFlagJustPlaced);
     }
 
     [Fact]
@@ -388,7 +381,7 @@ public class BoardViewModelTests
 
         ShowAnimated(session.Open(new CellPosition(0, 0)));
 
-        Assert.False(board.Cells[2 * 9 + 3].IsFlagJustPlaced);
+        Assert.False(board.Cells[board.IndexOf(new CellPosition(2, 3))].IsFlagJustPlaced);
     }
 
     [Fact]

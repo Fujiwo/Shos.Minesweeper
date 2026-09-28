@@ -9,19 +9,6 @@ namespace Shos.Minesweeper.ConsoleApp.Tests.Screens;
 /// <summary>ゲームの画面（仕様書 5.2〜5.4、UI デザイン 3.1〜3.6）。</summary>
 public sealed class GameScreenTests : IDisposable
 {
-    // 初級（9×9、地雷 10）。4 列目が地雷の壁で、右下にもう 1 つ。左上を開くと左側だけが、右上を開くと右側が開いて勝つ
-    const string WallBoard = """
-        ....*....
-        ....*....
-        ....*....
-        ....*....
-        ....*....
-        ....*....
-        ....*....
-        ....*....
-        ....*...*
-        """;
-
     const int StatusRow = 13;   // 上の行、空行、上の枠、9 行、下の枠の次
 
     readonly FakeTimeProvider time = new();
@@ -29,7 +16,7 @@ public sealed class GameScreenTests : IDisposable
     readonly GameScreen screen;
 
     public GameScreenTests()
-        => screen = new GameScreen(time, new BestTimesFile(BestTimesPath), TestGames.MineChooserOf(WallBoard));
+        => screen = new GameScreen(time, new BestTimesFile(BestTimesPath), TestGames.MineChooserOf(TestGames.BeginnerWallPicture));
 
     string BestTimesPath => Path.Combine(folder, "best-times.json");
 

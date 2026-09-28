@@ -31,16 +31,16 @@ public partial class WebStyleConsistencyTests
 
     // 演出の名前、長さ、遅れの最大（遅れのない演出は null）の組
     [Fact]
-    public void CellAnimationTimingsAreTheSameAsTheWebVersion()
+    public void AnimationTimingsAreTheSameAsTheWebVersion()
     {
         var expected = new HashSet<(string, int, int?)> {
-            ("flag-planted", Milliseconds(CellAnimationTimings.FlagPlanted), null),
-            ("number-appear", Milliseconds(CellAnimationTimings.Reveal), Milliseconds(CellAnimationTimings.RevealMaxDelay)),
-            ("tile-leave", Milliseconds(CellAnimationTimings.Reveal), Milliseconds(CellAnimationTimings.RevealMaxDelay)),
-            ("explode", Milliseconds(CellAnimationTimings.Explode), null),
-            ("tile-leave", Milliseconds(CellAnimationTimings.Appear), Milliseconds(CellAnimationTimings.AppearMaxDelay)),
-            ("grow", Milliseconds(CellAnimationTimings.Appear), Milliseconds(CellAnimationTimings.AppearMaxDelay)),
-            ("flag-bounce", Milliseconds(CellAnimationTimings.FlagBounce), Milliseconds(CellAnimationTimings.FlagBounceMaxDelay))
+            ("flag-planted", Milliseconds(AnimationTimings.FlagPlanted), null),
+            ("number-appear", Milliseconds(AnimationTimings.Reveal), Milliseconds(AnimationTimings.RevealMaxDelay)),
+            ("tile-leave", Milliseconds(AnimationTimings.Reveal), Milliseconds(AnimationTimings.RevealMaxDelay)),
+            ("explode", Milliseconds(AnimationTimings.Explode), null),
+            ("tile-leave", Milliseconds(AnimationTimings.Appear), Milliseconds(AnimationTimings.AppearMaxDelay)),
+            ("grow", Milliseconds(AnimationTimings.Appear), Milliseconds(AnimationTimings.AppearMaxDelay)),
+            ("flag-bounce", Milliseconds(AnimationTimings.FlagBounce), Milliseconds(AnimationTimings.FlagBounceMaxDelay))
         };
 
         Assert.Equal(expected, AnimationsOf(ReadStyle("BoardView.razor.css")).ToHashSet());
@@ -48,7 +48,7 @@ public partial class WebStyleConsistencyTests
 
     [Fact]
     public void WinCardFadeInIsTheSameAsTheWebVersion()
-        => Assert.Equal([("fade-in", Milliseconds(CellAnimationTimings.WinCardFadeIn), (int?)null)], AnimationsOf(ReadStyle("WinCard.razor.css")));
+        => Assert.Equal([("fade-in", Milliseconds(AnimationTimings.WinCardFadeIn), (int?)null)], AnimationsOf(ReadStyle("WinCard.razor.css")));
 
     // app.css の最初の :root はライト、@media (prefers-color-scheme: dark) の中の :root はダーク
     static Dictionary<string, string> WebColorTokens(string theme)

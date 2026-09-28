@@ -14,7 +14,7 @@ namespace Shos.Minesweeper.Desktop.Views;
 
 /// <summary>
 /// 演出を、Avalonia のアニメーションとして組み立てる（クラス設計書 4.11）。動き（どの部品の、何を、どう変えるか）は、
-/// Web 版の Components/BoardView.razor.css と WinCard.razor.css の keyframes のとおりで、長さと遅れは CellAnimationTimings にある。
+/// Web 版の Components/BoardView.razor.css と WinCard.razor.css の keyframes のとおりで、長さと遅れは AnimationTimings にある。
 /// 遅れは「CellAnimation.DelayRatio × 最大の遅れ」で、遅れの間は最初の見た目を保つ（Web 版の backwards）。
 /// </summary>
 public static class ViewAnimations
@@ -34,30 +34,30 @@ public static class ViewAnimations
     {
         var animations = new List<(Animation, Animatable)>();
         if (cell.IsFlagJustPlaced)
-            animations.Add((ScaleFrom(0.6, CellAnimationTimings.FlagPlanted, TimeSpan.Zero), icon));
+            animations.Add((ScaleFrom(0.6, AnimationTimings.FlagPlanted, TimeSpan.Zero), icon));
         if (cell.Animation is not { } animation)
             return animations;
         switch (animation.Kind) {
             case CellAnimationKind.Reveal:
-                var revealDelay = DelayOf(animation, CellAnimationTimings.RevealMaxDelay);
-                animations.Add((TileLeave(CellAnimationTimings.Reveal, revealDelay), cover));
-                animations.Add((NumberAppear(CellAnimationTimings.Reveal, revealDelay), number));
+                var revealDelay = DelayOf(animation, AnimationTimings.RevealMaxDelay);
+                animations.Add((TileLeave(AnimationTimings.Reveal, revealDelay), cover));
+                animations.Add((NumberAppear(AnimationTimings.Reveal, revealDelay), number));
                 break;
             case CellAnimationKind.Explode:
-                animations.Add((ScaleFrom(1.2, CellAnimationTimings.Explode, TimeSpan.Zero), icon));
+                animations.Add((ScaleFrom(1.2, AnimationTimings.Explode, TimeSpan.Zero), icon));
                 break;
             case CellAnimationKind.MineAppear:
-                var appearDelay = DelayOf(animation, CellAnimationTimings.AppearMaxDelay);
-                animations.Add((TileLeave(CellAnimationTimings.Appear, appearDelay), cover));
-                animations.Add((ScaleFrom(0, CellAnimationTimings.Appear, appearDelay), icon));
+                var appearDelay = DelayOf(animation, AnimationTimings.AppearMaxDelay);
+                animations.Add((TileLeave(AnimationTimings.Appear, appearDelay), cover));
+                animations.Add((ScaleFrom(0, AnimationTimings.Appear, appearDelay), icon));
                 break;
             case CellAnimationKind.WrongFlagAppear:
                 // × だけが広がって現れる。× はアイコンのテンプレートの中にあるので、テンプレートを当ててから探す
                 if (CrossOf(icon) is { } cross)
-                    animations.Add((ScaleFrom(0, CellAnimationTimings.Appear, DelayOf(animation, CellAnimationTimings.AppearMaxDelay)), cross));
+                    animations.Add((ScaleFrom(0, AnimationTimings.Appear, DelayOf(animation, AnimationTimings.AppearMaxDelay)), cross));
                 break;
             case CellAnimationKind.FlagBounce:
-                animations.Add((FlagBounce(cellSize * FlagBounceHeightRatio, DelayOf(animation, CellAnimationTimings.FlagBounceMaxDelay)), icon));
+                animations.Add((FlagBounce(cellSize * FlagBounceHeightRatio, DelayOf(animation, AnimationTimings.FlagBounceMaxDelay)), icon));
                 break;
         }
         return animations;
@@ -65,7 +65,7 @@ public static class ViewAnimations
 
     /// <summary>勝利カードが現れる（不透明度 0 から、150 ミリ秒）。</summary>
     public static Animation WinCardFadeIn()
-        => AnimationOf(CellAnimationTimings.WinCardFadeIn, TimeSpan.Zero, EaseOut, FillMode.Backward,
+        => AnimationOf(AnimationTimings.WinCardFadeIn, TimeSpan.Zero, EaseOut, FillMode.Backward,
                        Frame(0, [(Visual.OpacityProperty, 0.0)]), Frame(1, [(Visual.OpacityProperty, 1.0)]));
 
     static TimeSpan DelayOf(CellAnimation animation, TimeSpan maxDelay) => maxDelay * animation.DelayRatio;
@@ -87,7 +87,7 @@ public static class ViewAnimations
 
     // 上に跳ねて戻る。遅れの間は元の位置のまま（Web 版は backwards を付けていない）
     static Animation FlagBounce(double height, TimeSpan delay)
-        => AnimationOf(CellAnimationTimings.FlagBounce, delay, EaseOut, FillMode.None,
+        => AnimationOf(AnimationTimings.FlagBounce, delay, EaseOut, FillMode.None,
                        Frame(0, [(TranslateTransform.YProperty, 0.0)]),
                        Frame(0.5, [(TranslateTransform.YProperty, -height)]),
                        Frame(1, [(TranslateTransform.YProperty, 0.0)]));

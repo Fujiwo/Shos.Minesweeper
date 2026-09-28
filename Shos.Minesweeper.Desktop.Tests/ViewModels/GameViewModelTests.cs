@@ -15,19 +15,6 @@ namespace Shos.Minesweeper.Desktop.Tests.ViewModels;
 /// </summary>
 public sealed class GameViewModelTests : IDisposable
 {
-    // 左上を開くと左側が、右上を開くと右側が開いて勝つ。(0, 4) は地雷
-    const string WallBoard = """
-        ....*....
-        ....*....
-        ....*....
-        ....*....
-        ....*....
-        ....*....
-        ....*....
-        ....*....
-        ....*...*
-        """;
-
     readonly FakeTimeProvider time = new();
     readonly string folder = Path.Combine(Path.GetTempPath(), "Shos.Minesweeper.Tests", Guid.NewGuid().ToString("N"));
     readonly List<SoundEffect> played = [];
@@ -42,7 +29,7 @@ public sealed class GameViewModelTests : IDisposable
 
     GameViewModel NewGameViewModel()
         => new(time, new BestTimesFile(BestTimesPath), new SoundSettingFile(SoundSettingPath), played.Add,
-               () => areAnimationEffectsEnabled, TestGames.MineChooserOf(WallBoard));
+               () => areAnimationEffectsEnabled, TestGames.MineChooserOf(TestGames.BeginnerWallPicture));
 
     public void Dispose()
     {
@@ -460,7 +447,7 @@ public sealed class GameViewModelTests : IDisposable
         areAnimationEffectsEnabled = false;
         game.Board.PressRight(new CellPosition(5, 5));
 
-        Assert.False(game.Board.Cells[5 * 9 + 5].IsFlagJustPlaced);
+        Assert.False(game.Board.Cells[game.Board.IndexOf(new CellPosition(5, 5))].IsFlagJustPlaced);
     }
 
     // 勝利カードは、アニメーション効果がオンなら 150 ミリ秒で現れる（Web 版の WinCard.razor.css）

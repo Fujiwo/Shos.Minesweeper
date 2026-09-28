@@ -4,7 +4,7 @@
 |------|------|
 | 工程 | 9. クラス設計書作成（デスクトップ版・コンソール版の一巡） |
 | 作成日 | 2026-09-27 |
-| 状態 | 工程 9 をユーザーが承認した（2026-09-27）。確認事項 1（カーソル）はユーザーが決めた（11 章）。クラス設計書レビュー（docs/desktop-console/reviews/05-class-design-review.md）の指摘を反映し、工程 10 をユーザーが承認した（2026-09-27） |
+| 状態 | 工程 9 をユーザーが承認した（2026-09-27）。確認事項 1（カーソル）はユーザーが決めた（11 章）。クラス設計書レビュー（docs/desktop-console/reviews/05-class-design-review.md）の指摘を反映し、工程 10 をユーザーが承認した（2026-09-27）。工程 12 のリファクタリングで、4.4（`IndexOf`）、4.1 と 4.11（`AnimationTimings`）、7.1（`TestGames.BeginnerWallPicture`）を改めた（2026-09-28。docs/desktop-console/reviews/code-review.md の「工程 12」） |
 | 入力 | docs/desktop-console/04-architecture.md（アーキテクチャー設計書）、docs/desktop-console/02-spec.md（仕様書）、docs/desktop-console/03-ui-design.md（UI デザイン）、Web 版のクラス設計書（docs/05-class-design.md）、今のコード |
 
 ## 1. 概要
@@ -139,7 +139,7 @@ public sealed class Board   // GameLogic。変えるのは次の 1 つだけ
 
 ### 3.3 演出（`BoardAnimation` など）
 
-`CellAnimationKind`、`CellAnimation`、`BoardAnimation` を、名前とメンバーを変えずに Presentation に移す（Web 版 クラス 12.5）。変えるのは名前空間と、`CellAnimation` のコメント（「CSS が最大の遅れを掛ける」を「各版が演出ごとの最大の遅れを掛ける。Web 版は CSS、デスクトップ版は `CellAnimationTimings`」）だけである。
+`CellAnimationKind`、`CellAnimation`、`BoardAnimation` を、名前とメンバーを変えずに Presentation に移す（Web 版 クラス 12.5）。変えるのは名前空間と、`CellAnimation` のコメント（「CSS が最大の遅れを掛ける」を「各版が演出ごとの最大の遅れを掛ける。Web 版は CSS、デスクトップ版は `AnimationTimings`」。工程 12 の R4 で改名に合わせた）だけである。
 
 ### 3.4 `BoardNames`
 
@@ -288,7 +288,7 @@ public sealed class BestTimesFile(string path)
 | Views | `MainWindow`、`ToolbarView`、`BoardView`、`CellView`、`DifficultyDialogView`、`WinCardView` | XAML と code-behind | 4.10 |
 | | `WinCardArea`（区切り 6 で加えた） | class（`Panel`） | 勝利カードの置き場（4.10） |
 | | `ViewAnimations`（区切り 7 で加えた） | static class | 演出を Avalonia のアニメーションとして組み立てる（4.11） |
-| | `CellAnimationTimings` | static class | 演出の長さと遅れの最大（Web 版の CSS と同じ値） |
+| | `AnimationTimings` | static class | 演出の長さと遅れの最大（Web 版の CSS と同じ値。マスの演出と勝利カード。工程 12 の R4 で `CellAnimationTimings` から改名した） |
 | （直下） | `App`、`Program` | class | 起動、テーマ、組み立て（4.12） |
 
 ```mermaid
@@ -444,6 +444,7 @@ public sealed class BoardViewModel : INotifyPropertyChanged
     public int CellSize { get; }                         // 20〜48。領域の大きさが分かるまでは既定の 32
     public CellPosition CursorPosition { get; }          // カーソルのマス（キーボードのフォーカスを置くマス）
     public bool IsPressing { get; }
+    public int IndexOf(CellPosition position);           // Cells の中の、そのマスの番号（工程 12 の R1 で加えた）
 
     public void SetAreaSize(Size areaSize);              // 盤面の領域の大きさが変わった
     public void Press(CellPosition position);            // 左ボタン（タッチ、ペン）を押した
@@ -485,7 +486,7 @@ public sealed class CellViewModel : INotifyPropertyChanged
   2. 勝敗が決まった操作なら全マスを、そうでなければ操作したマスと新たに開いたマスを、`Refresh` する（見せ方、数字、名前を知らせ直す）。
   3. `withAnimation` なら、`BoardAnimation.Of(move, game)` の演出を各マスに付け、旗を立てた操作（`FlagPlaced`）なら、そのマスの `IsFlagJustPlaced` を立てる。付けたマスを覚えておく。
 - `ShowNewGame` は、盤面の行数か列数が変わったら `Cells` を作り直し、変わらなければ全マスを `Refresh` する。押下中と演出を消し、カーソルを左上に戻す（`BoardCursor` を作り直す。3.2）。
-- マスは 1 次元の並び（行 × 列数 + 列）で持ち、位置からマスを引く計算はこのクラスの中の 1 か所に置く（simplicity.md の「座標変換は一箇所に」）。
+- マスは 1 次元の並び（行 × 列数 + 列）で持ち、位置から並びの番号を求める計算は `IndexOf` の 1 か所に置く（simplicity.md の「座標変換は一箇所に」）。Views の `BoardView` も、カーソルのマスの部品を `IndexOf` の番号で探す（工程 12 の R1。それまでは Views に同じ式があった）。
 - `CellViewModel` の値を変えるメンバー（`Refresh`、`IsPressed` などの設定）は `internal` にし、`BoardViewModel` だけが使う。
 - `CellSize` は `WindowSizing.CellSizeToFit(領域の大きさ, 難易度)` で求める。`SetAreaSize` と `ShowNewGame` で求め直して知らせる。
 - `requestAction` を 1 つのデリゲートにしたのは、`PressMapping` が返す `CellAction` がそのまま意図の名前になっているからである（開くと旗で 2 つに分けると、どちらも同じ形の受け渡しになる）。
@@ -682,10 +683,10 @@ public static class DataFilePaths
 | `Assets/Colors.axaml` | 配色のトークン。ライトとダークの `ThemeDictionaries` に、Web 版の `app.css` と同じ名前（`page`、`cell-closed`、`number-1` など）と値の `Color` を置く（アーキ 7.5） |
 | `Assets/Icons.axaml` | アイコンの形。Web 版の SVG と同じ座標（24×24）の `StreamGeometry`（地雷、旗、顔 4 つ、時計、下向きの山形、×、チェック、警告、星、効果音のオンとオフ） |
 | `Assets/Styles.axaml` | ツールバー、ボタン、マス、ダイアログ、勝利カードのスタイル。書体は Yu Gothic UI（UI 2.8） |
-| `Views/CellAnimationTimings.cs` | 演出の長さと遅れの最大（下の表） |
+| `Views/AnimationTimings.cs` | 演出の長さと遅れの最大（下の表。工程 12 の R4 で `CellAnimationTimings` から改名した。勝利カードの時間も持つため） |
 
 ```csharp
-public static class CellAnimationTimings
+public static class AnimationTimings
 {
     public static readonly TimeSpan FlagPlanted = TimeSpan.FromMilliseconds(150);          // 旗が広がる
     public static readonly TimeSpan Reveal = TimeSpan.FromMilliseconds(100);               // タイルが消えて数字が出る
@@ -704,7 +705,7 @@ public static class CellAnimationTimings
 - **Avalonia の制約**（区切り 7 で分かった）: Avalonia 12 には `RenderTransform` を丸ごと変えるアニメーションがない（`No animator registered for the property RenderTransform`）。大きさと位置は、`ScaleTransform.ScaleX`・`ScaleY` と `TranslateTransform.Y` の値として変える。
 - 開く演出と地雷が現れる演出では、マスに未開放のタイルの覆い（`Cover`）を重ね、遅れの間は未開放に見せる（Web 版の `::before`）。覆いは演出の間だけ出す。
 - 演出は終わるのを待たずに始め、`async void` にして、演出の中の誤り（プログラムの誤り）を握りつぶさない。止めたとき（次の操作）に Avalonia は例外を出さないことを、実機で確かめた。
-- **Web 版と一致することのテスト**（アーキ 7.5）: `Colors.axaml` と Web 版の `app.css` のトークンを、ライトとダークのそれぞれで比べる。`CellAnimationTimings` と Web 版の `BoardView.razor.css`、`WinCard.razor.css` の `animation` の長さと遅れを比べる。どちらのファイルも、テストのプロジェクトにリンクして出力のフォルダーに写し、パスをたどらずに読む（7.2）。
+- **Web 版と一致することのテスト**（アーキ 7.5）: `Colors.axaml` と Web 版の `app.css` のトークンを、ライトとダークのそれぞれで比べる。`AnimationTimings` と Web 版の `BoardView.razor.css`、`WinCard.razor.css` の `animation` の長さと遅れを比べる。どちらのファイルも、テストのプロジェクトにリンクして出力のフォルダーに写し、パスをたどらずに読む（7.2）。
 
 ### 4.12 組み立て（`App`）
 
@@ -1127,7 +1128,7 @@ GameLoop.Run(terminal, new ScreenNavigator(game), new FrameWriter(terminal.Outpu
 | `Shos.Minesweeper.Desktop.Tests`（加える。区切り 5 で作る。区切り 7 から、対象は Desktop と同じ `net10.0-windows`。9.2 の A6） | Desktop、TestSupport | xUnit v3、Microsoft.Extensions.TimeProvider.Testing（既存と同じ版）。Avalonia.Headless.XUnit は使わない（区切り 1 の確認で、xUnit v3 の 4 系では動かなかった。アーキ 11 章 #1。docs/desktop-console/reviews/code-review.md の区切り 1） |
 | `Shos.Minesweeper.ConsoleApp.Tests`（加える） | ConsoleApp、TestSupport | xUnit v3、Microsoft.Extensions.TimeProvider.Testing |
 
-- 盤面は `TestGames.DifficultyOf(絵)` と `TestGames.MineChooserOf(絵)` で決める（既存の補助）。
+- 盤面は `TestGames.DifficultyOf(絵)` と `TestGames.MineChooserOf(絵)` で決める（既存の補助）。初級の大きさで左右に分かれて勝てる盤面は、`TestGames.BeginnerWallPicture` を使う（`GameScreenTests`、`GameViewModelTests`、`BoardViewModelTests`。工程 12 の R2 で、3 つのテストクラスの写しを TestSupport に移した）。
 - Desktop.Tests は、Web 版の `wwwroot/css/app.css`、`Components/BoardView.razor.css` と、デスクトップ版の `Assets/Colors.axaml` をリンクして出力のフォルダーに写す（4.11）。
 - どちらも Windows と Linux の `dotnet test` で動く。Windows の API（`AnimationEffects`、NAudio）を呼ぶテストは作らない。
 

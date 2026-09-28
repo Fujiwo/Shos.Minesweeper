@@ -1,11 +1,11 @@
 namespace Shos.Minesweeper.Desktop.Views;
 
 /// <summary>
-/// 演出の長さと、遅れの最大（クラス設計書 4.11）。Web 版の Components/BoardView.razor.css の animation と同じ値にする。
+/// 演出の長さと、遅れの最大（クラス設計書 4.11）。マスの演出と、勝利カードが現れる演出の時間で、Web 版の CSS の animation と同じ値にする。
 /// 遅れはマスごとに「CellAnimation.DelayRatio × 最大の遅れ」になり、演出を code-behind で組み立てるので、XAML でなくここに置く。
 /// 値が Web 版と同じことは、WebStyleConsistencyTests で確かめる。
 /// </summary>
-public static class CellAnimationTimings
+public static class AnimationTimings
 {
     /// <summary>旗が広がる（Web 版の flag-planted）。</summary>
     public static readonly TimeSpan FlagPlanted = TimeSpan.FromMilliseconds(150);

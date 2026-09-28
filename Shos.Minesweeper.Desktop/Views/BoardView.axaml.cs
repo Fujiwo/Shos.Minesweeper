@@ -29,7 +29,7 @@ public partial class BoardView : UserControl
     /// </summary>
     public void FocusCursorCell(NavigationMethod method)
     {
-        if (Board is not { } board || CellViewAt(board.CursorPosition.Row * board.ColumnCount + board.CursorPosition.Column) is not { } cell)
+        if (Board is not { } board || CellViewAt(board.IndexOf(board.CursorPosition)) is not { } cell)
             return;
         KeyboardNavigation.SetTabOnceActiveElement(CellsControl, cell);
         cell.Focus(method);

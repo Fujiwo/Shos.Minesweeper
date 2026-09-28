@@ -18,7 +18,7 @@ public partial class CellView : UserControl
     const double IconScale = 0.7;
     const int MaxNumber = 8;
 
-    static readonly string[] AppearanceClasses = ["closed", "flagged", "opened", "mine", "exploded", "wrong-flag"];
+    static readonly string[] AppearanceClasses = [.. Enum.GetValues<CellAppearance>().Select(ClassOf)];
 
     CellViewModel? cell;
     CancellationTokenSource? runningAnimations;
@@ -96,9 +96,10 @@ public partial class CellView : UserControl
         NumberText.Text = cell.Number > 0 ? cell.Number.ToString(CultureInfo.InvariantCulture) : "";
         for (var number = 1; number <= MaxNumber; number++)
             NumberText.Classes.Set($"n{number}", number == cell.Number);
-        Icon.IsVisible = IconOf(appearance) is not null;
-        if (IconOf(appearance) is { } icon)
-            Icon.Kind = icon;
+        var icon = IconOf(appearance);
+        Icon.IsVisible = icon is not null;
+        if (icon is { } kind)
+            Icon.Kind = kind;
     }
 
     static string ClassOf(CellAppearance appearance)

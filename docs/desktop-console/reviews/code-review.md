@@ -376,3 +376,83 @@ WSL の疑似端末（`script`。80 列 × 24 行）で、Linux の上でビル�
   - OS の「アニメーション効果」（設定 → アクセシビリティ → 視覚効果）をオフにすると、演出（旗が広がる、開く、負け、勝ち、勝利カードが現れる）が出ないこと。アプリを開いたまま変えても、次の操作から従うこと
   - 効果音 ボタンのナレーターの読み上げ（「効果音」と、オンかオフかの状態。#3）
 - 工程 11 はこの区切りで終わり。工程 12（リファクタリング）の見直しの対象に、区切り 6 の指摘 6（`MainWindow` の受け持ち）と、この区切りの指摘 4、5 を含める。
+- **ユーザーの確認**（2026-09-28）: 区切り 7 の報告に「工程 12（リファクタリング）に進め」と答え、工程 11 の完了を承認した。上の「確かめてもらうこと」（効果音が聞こえるか、OS のアニメーション効果をオフにしたとき、効果音 ボタンの読み上げ）には、個別の回答はなかった。
+
+## 工程 12: リファクタリング
+
+| 項目 | 内容 |
+|------|------|
+| 作成日 | 2026-09-28 |
+| 状態 | 対象の一覧をユーザーが承認した（2026-09-28）。C1 は今の違いを受け入れると決まった（2026-09-28）。R1〜R4 を反映済み。工程 12 の完了の承認を待っている |
+| 対象 | この一巡で作ったコード（`Shos.Minesweeper.Desktop`、`Shos.Minesweeper.ConsoleApp`）と、この一巡で足した・移した共有の部品（GameLogic の `BestTimesFile`、Presentation のカーソル・演出・文言など）、そのテスト |
+| 観点 | 機能のまとまり（区切り）をまたぐ見直し（CLAUDE.md の「各工程で扱う内容」）。sustainable-code-jp スキルの「リファクタリング」と、臭いと技法の名前。工程 11 のレビューで工程 12 に送った指摘（区切り 6 の指摘 6、区切り 7 の指摘 4、5）を含める |
+
+### 見直したこと
+
+- 区切りをまたいで同じ意図が重なっていないか（デスクトップ版とコンソール版の間、ビューモデルと Views の間、本番のコードとテストの間）。
+- 工程 11 で「今は直さない」とした指摘が、後の区切りで事情が変わっていないか（区切り 2 の指摘 4、区切り 3 の指摘 3、区切り 4 の指摘 2、区切り 6 の指摘 6、区切り 7 の指摘 4）。
+- コメントが今のコードと食い違っていないか。
+- 使っていない `using`（`dotnet format style --diagnostics IDE0005 --severity info --verify-no-changes` の終了コード 0。指摘なし）。
+
+区切りごとのレビューで整えたので、大きな臭いはない。区切りをまたいで出たのは、ビューモデルと Views の間の同じ計算の重なり（R1）と、区切りごとにテストに書いた同じ盤面の絵（R2）である。
+
+### 対象の一覧（案）
+
+| # | 場所 | 臭い（症状の根拠） | 技法 | 出どころ | 優先 |
+|---|------|--------------------|------|----------|------|
+| R1 | `BoardViewModel.CellAt`、`BoardView.FocusCursorCell`、`BoardViewModelTests`・`GameViewModelTests`（`Cells[2 * 9 + 3]` など 5 か所） | 重複したコード（マスの位置から並びの番号を求める式 `Row * ColumnCount + Column` が、ビューモデル（区切り 5）と Views（区切り 5）とテスト（区切り 7）にある。`BoardViewModel` のコメントは「位置からマスを引く計算はここだけに置く」と言っていて、今のコードと食い違う。並びの持ち方を変えると 3 か所を直すことになる） | メソッド抽出: `BoardViewModel` に `IndexOf(CellPosition)`（`Cells` の中の番号）を公開し、`CellAt`、`FocusCursorCell`、テストで使う | 今回の見直し | 中 |
+| R2 | `Desktop.Tests` の `GameViewModelTests`・`BoardViewModelTests`、`ConsoleApp.Tests` の `GameScreenTests` | 重複したコード（テスト）（同じ 9×9 の盤面の絵 `WallBoard`（4 列目が地雷の壁、右下にもう 1 つ）が 3 つのテストクラスに写してある。`BoardViewModelTests` のコメントは「GameScreenTests と同じ盤面」と書いて、同じ意図であることを示している） | 責務の切り出し: テストの共通の補助 `TestGames`（TestSupport）に、初級の大きさの絵として置き（名前は `BeginnerWallPicture`。既存の `WallPicture` は 5×5）、3 か所で使う | 今回の見直し | 低 |
+| R3 | `CellView.AppearanceClasses`、`CellView.ClassOf` | 重複したコード（見せ方のクラス名 6 つが、配列と `switch` の 2 か所に並んでいる。見せ方を足すと 2 か所を直すことになり、片方を忘れるとクラスが外れない）。`ShowAppearance` が `IconOf` を 2 回呼ぶ | 一方を他方から作る（対応表の技法に当たるものがないので、症状に合わせた）: `AppearanceClasses` を `Enum.GetValues<CellAppearance>().Select(ClassOf)` で作る。アイコンは一時変数に受ける | 今回の見直し | 低 |
+| R4 | `Views/CellAnimationTimings` | 不適切な名前（区切り 7 で勝利カードの `WinCardFadeIn` も置いたので、「マスの」演出の時間という名前が中身より狭い） | 名前の変更: `AnimationTimings` にする。クラス設計書 4.1、4.11 と、`WebStyleConsistencyTests` のコメントを合わせる | 今回の見直し | 低 |
+
+進め方: R1 → R3 → R4 → R2 の順に、一手ごとにビルドと全テストを流して Green を保つ。テストの件数（814 件）は変わらない。振る舞いは変えない（デスクトップ版の見た目と動きは、工程 13 で実機で確かめる）。
+
+反映する文書: クラス設計書 4.4（`IndexOf`）、4.1 と 4.11（`AnimationTimings`）、7.2（テストの共通の補助）。アーキテクチャー設計書と CLAUDE.md は変えない見込み。
+
+### 見送るもの（検討した結果）
+
+| 候補 | 見送る理由 |
+|------|------------|
+| `MainWindow` の受け持ち（区切り 6 の指摘 6。巨大なクラスの兆し） | 区切り 7 で `MainWindow` は変わらなかった（効果音の準備は `App`、演出は `CellView` と `WinCardView` に置いた）。145 行で、受け持ち（タイマー、ウィンドウの大きさ、F2 と勝利カードの Esc、ダイアログとカードのフォーカス、最後の操作がキーボードか）はどれも「ビューモデルの変化を Avalonia のウィンドウとフォーカスにつなぐ」という 1 つの変更の理由に収まる。判断はビューモデルと `WindowSizing` にある。分けると、ウィンドウの部品（`Board`、`Toolbar`、`WinCard`）を知る型が増えるだけで、読む対象が増える |
+| `ViewAnimations.CellAnimationsOf` の 5 つの引数（区切り 7 の指摘 4。多すぎる引数） | 区切り 7 の判断のとおり。まとめる型を作っても、`CellView` の部品を並べ直すだけになる。呼ぶのは `CellView.Animate` の 1 か所だけである |
+| 4 つのビューモデルの `Notify(params string[])`（重複したコード。4 行ずつ） | `INotifyPropertyChanged` の定型で、変わる理由がない。まとめるには、再利用のための基底クラス（スキルの判断ルール 9 で避ける）か、拡張メソッドを置くことになり、後者でも各クラスに 1 行の転送が残る。読む対象が増える割に得るものが少ない |
+| `SoundSettingFile` と `BestTimesFile` の、ファイルの読み書きの失敗の受け止め方（`IsFileAccessFailure` と、フォルダーを作って書く 2 行） | 置き場所がない。`BestTimesFile` は GameLogic（ゲームのルールとベストタイムの保存の形式）にあり、ファイルの読み書き一般の補助を GameLogic の公開の型にすると、GameLogic の受け持ちが広がる。2 か所で、受け止める例外の決まりはアーキテクチャー設計書 10 章にある |
+| コンソール版の `Program` がベストタイムのパスをその場で組み立てる（デスクトップ版は `DataFilePaths`） | コンソール版の保存するファイルは 1 つで、組み立てるのも `Program` の 1 か所だけである。型にすると読む対象が増えるだけになる。版ごとのフォルダー（`Shos.Minesweeper/Desktop`、`Shos.Minesweeper/ConsoleApp`）は、仕様書 6.2 のとおり版ごとに決めるもので、共有する意図ではない |
+| コンソール版の盤面の大きさの書き方（`GameScreen.TopLine` と `DifficultySelectionScreen.RowOf` の `{幅}x{高さ}`） | 2 か所の短い式で、難易度の選択の側は列をそろえるための幅（11 升）と一体である。まとめる型を作ると、式より長くなる |
+| `GameViewModelTests`（498 行、テストのメソッド 37）と `BoardViewModelTests`（438 行、同 36）を、効果音と演出の節で分ける | 1.1.0 の R2（`GamePageTests` を分けた）では、共通の土台（`AppTestContext`）があった。ここにはないので、分けると準備（一時フォルダー、偽の時刻、`NewGameViewModel`、`Open`、`Win`）を写すか、再利用のための基底クラスを作ることになる。節ごとにコメントで区切ってあり、探しにくさは小さい |
+| 区切り 2 の指摘 4（「ベスト {n} 秒」の 3 か所）、区切り 3 の指摘 3（`GameScreen.winBestTime`）、区切り 4 の指摘 2（「記録なし」の 2 か所） | 工程 11 の判断のとおり。後の区切りで事情は変わっていない |
+
+### 工程 13 に送る候補（ユーザーの判断）
+
+リファクタリングでは振る舞いを変えないので、ここでは直さない。
+
+| # | 場所 | 症状 | 案 |
+|---|------|------|----|
+| C1 | `CellView` の爆発の演出（区切り 7 の指摘 5） | 爆発の形が 120% に広がる 150 ミリ秒の間、はみ出した部分が右と下のマスの下に隠れる（Web 版は手前に描く）。区切り 7 では「違いとして記録する」とした | 工程 13 で、演出の間だけマスを手前に描く（`ZIndex` を上げる）ように直すか、今の違いを受け入れるかを、ユーザーに決めてもらう。**ユーザーの決定（2026-09-28）: 今の違いを受け入れる。** 工程 13 では直さない |
+
+見直しの途中で、不具合は見つからなかった。
+
+### 結果
+
+一覧の順（R1 → R3 → R4 → R2）に、一手ごとに全体のビルド（警告をエラーとして扱う）と全テストを流して Green を保った。本番のコードの振る舞いは変えていない。
+
+| # | 結果 | 検証 |
+|---|------|------|
+| R1 | `BoardViewModel` に `IndexOf(CellPosition)` を公開し、`CellAt`、`BoardView.FocusCursorCell`、テストの 5 か所（`Cells[2 * 9 + 3]` など）で使うようにした。「ここだけに置く」のコメントは `IndexOf` に移した。公開のメンバーを足したので、テスト `IndexOfFindsThePositionInCells`（全マスで、番号の先が同じマスか）を先に書き、`IndexOf` がないためにビルドが失敗すること（Red）を確かめてから書いた | 815 件成功（テストを 1 件足した） |
+| R3 | `CellView.AppearanceClasses` を `Enum.GetValues<CellAppearance>().Select(ClassOf)` で作るようにした。`ShowAppearance` はアイコンを一時変数に受けて、`IconOf` を 1 回だけ呼ぶ | 815 件成功。`CellView` には自動のテストがないので、見た目は工程 13 で実機で確かめる |
+| R4 | `CellAnimationTimings` を `AnimationTimings` に改名した（ファイル名、`ViewAnimations`、`WebStyleConsistencyTests` のテストの名前、Presentation の `CellAnimation` のコメント） | 815 件成功 |
+| R2 | 同じ 9×9 の盤面の絵を `TestGames.BeginnerWallPicture` として TestSupport に置き、`GameScreenTests`、`GameViewModelTests`、`BoardViewModelTests` の写しと、それぞれの説明のコメントを消した（説明は `BeginnerWallPicture` の要約のコメントに 1 つにまとめた） | 815 件成功 |
+
+反映した文書:
+
+| 文書 | 変更 |
+|------|------|
+| クラス設計書（docs/desktop-console/05-class-design.md） | 冒頭の状態、3.3（`CellAnimation` のコメントの引用）、4.1 と 4.11（`AnimationTimings`）、4.4（`IndexOf` と、位置から番号を求める計算の置き場所）、7.1（`TestGames.BeginnerWallPicture`）。8 章の区切りの表は、区切り 7 で作った時点の名前のまま残す（記録のため） |
+| アーキテクチャー設計書、Web 版の設計書、CLAUDE.md | 変えていない（型の名前やテストの補助を書いていない。Presentation の変更はコメントだけで、Web 版の設計書は引用していない） |
+
+検証結果（最後。WSL の Linux の上で、作業ツリーを写して行った）:
+
+- `dotnet build Shos.Minesweeper.slnx -warnaserror`: 警告 0、エラー 0
+- `dotnet test`: 815 件すべて成功（工程 11 の終わりの 814 件に、R1 のテスト 1 件を足した）
+- 使っていない `using` はない（`dotnet format style --diagnostics IDE0005 --severity info --verify-no-changes` の終了コード 0）
+- デスクトップ版の実機での確認（R1 のフォーカスの移動、R3 のマスの見た目）は、続く工程 13 で行う
