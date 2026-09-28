@@ -162,7 +162,7 @@
     </Style>
 
     <!-- 押せない要素（残り地雷数、経過時間）は、枠のない、沈んだ小さな面にする -->
-    <Style Selector="Border.counter">
+    <Style Selector="UserControl.counter">
         <Setter Property="Width" Value="64" />
         <Setter Property="Height" Value="44" />
         <Setter Property="Padding" Value="4,0" />
@@ -172,7 +172,7 @@
     </Style>
 
     <!-- 値が変わっても位置がずれないように、数字の幅をそろえて右に寄せる（Web 版の UI デザイン 4.5） -->
-    <Style Selector="Border.counter TextBlock">
+    <Style Selector="UserControl.counter TextBlock">
         <Setter Property="FontSize" Value="20" />
         <Setter Property="FontWeight" Value="Bold" />
         <Setter Property="FontFeatures" Value="+tnum" />

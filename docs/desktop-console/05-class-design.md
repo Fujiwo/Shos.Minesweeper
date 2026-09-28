@@ -4,7 +4,7 @@
 |------|------|
 | 工程 | 9. クラス設計書作成（デスクトップ版・コンソール版の一巡） |
 | 作成日 | 2026-09-27 |
-| 状態 | 工程 9 をユーザーが承認した（2026-09-27）。確認事項 1（カーソル）はユーザーが決めた（11 章）。クラス設計書レビュー（docs/desktop-console/reviews/05-class-design-review.md）の指摘を反映し、工程 10 をユーザーが承認した（2026-09-27）。工程 12 のリファクタリングで、4.4（`IndexOf`）、4.1 と 4.11（`AnimationTimings`）、7.1（`TestGames.BeginnerWallPicture`）を改めた（2026-09-28。docs/desktop-console/reviews/code-review.md の「工程 12」） |
+| 状態 | 工程 9 をユーザーが承認した（2026-09-27）。確認事項 1（カーソル）はユーザーが決めた（11 章）。クラス設計書レビュー（docs/desktop-console/reviews/05-class-design-review.md）の指摘を反映し、工程 10 をユーザーが承認した（2026-09-27）。工程 12 のリファクタリングで、4.4（`IndexOf`）、4.1 と 4.11（`AnimationTimings`）、7.1（`TestGames.BeginnerWallPicture`）を改めた（2026-09-28。docs/desktop-console/reviews/code-review.md の「工程 12」）。工程 13 の B1 で、4.10 に読み上げの名前を付ける部品を書き足した（2026-09-28） |
 | 入力 | docs/desktop-console/04-architecture.md（アーキテクチャー設計書）、docs/desktop-console/02-spec.md（仕様書）、docs/desktop-console/03-ui-design.md（UI デザイン）、Web 版のクラス設計書（docs/05-class-design.md）、今のコード |
 
 ## 1. 概要
@@ -675,6 +675,7 @@ public static class DataFilePaths
 - **カーソルのマスへフォーカスを移す処理は、`BoardView` の 1 つのメソッド（`FocusCursorCell`）だけ**にする（クラス設計書レビューの指摘 1）。キーでカーソルが動いたときは、このメソッドでキーボードの移動としてフォーカスを移し、フォーカスの枠（`:focus-visible`）を出す。マウスで押したときは、押したことによるフォーカスに任せ、枠を出さない（UI 2.11）。どちらの操作で動いたかを知っているのは、キーを受けた View とポインターを受けた `CellView` だからである。呼ぶのは、矢印キーを受けた `BoardView` と、F2 で新しいゲームを始めたときに盤面にフォーカスがあった場合の `MainWindow`（カーソルは左上に戻る）の 2 か所である。Avalonia の `:focus-visible` が、この移し方で付くかは区切り 5 で確かめる。
 - 難易度ダイアログを開いている間は、ツールバーと盤面を `IsEnabled="False"` にして、フォーカスもクリックも届かないようにする。ダイアログの中は Tab を循環させる。Web 版の `inert` と違い、読み上げの木からは消えない。これで足りるかは、ナレーターで確かめる（11 章 #3）。
 - 盤面を表として読ませる部品（盤面とマスのオートメーション ピア。Grid と GridItem）は、11 章 #3 の結果で Avalonia が対応していると分かったときだけ加える（10 章）。
+- **読み上げの名前（`AutomationProperties.Name`）を付ける部品**（工程 13 の B1 で決めた）: Avalonia では、`Border`、`Panel`、`ContentControl` は UI オートメーションの木に出ないので、名前を付けてもナレーターに届かない。`TextBlock` は名前に自分の文字を使い、`AutomationProperties.Name` を見ない。名前は、木に出る部品（`UserControl`、`Button`、`TextBox` など）に付ける。盤面（`BoardView`）、難易度ダイアログ（`DifficultyDialogView`）、勝利カード（`WinCardView`）は、それぞれの `UserControl` の根に付ける。残り地雷数と経過時間は、数字の面を `UserControl`（`Classes="counter"`）にして名前を付け、中の数字の `TextBlock` は `AutomationProperties.AccessibilityView="Raw"` で木から外す（「残り地雷 10」だけを読ませる）。名前が届いたかは、実機の UI オートメーションで確かめる（画面のテストがないため）。
 
 ### 4.11 資源と見た目
 

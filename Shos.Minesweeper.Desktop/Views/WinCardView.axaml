@@ -4,12 +4,14 @@
              xmlns:vm="using:Shos.Minesweeper.Desktop.ViewModels"
              xmlns:p="using:Shos.Minesweeper.Presentation"
              x:Class="Shos.Minesweeper.Desktop.Views.WinCardView"
-             x:DataType="vm:WinCardViewModel">
+             x:DataType="vm:WinCardViewModel"
+             AutomationProperties.Name="{x:Static p:WinCardTexts.Title}">
     <!--
       勝利カード（UI デザイン 2.6、Web 版の UI デザイン 2.4、10.5。Components/WinCard.razor）。モードレスで、盤面の領域に重ねる。
-      ボタンは、ウィンドウのビューモデル（GameViewModel）の操作を呼ぶ
+      ボタンは、ウィンドウのビューモデル（GameViewModel）の操作を呼ぶ。
+      読み上げの名前は、UI オートメーションの木に出るこの UserControl に付ける（Border は木に出ない）
     -->
-    <Border Classes="win-card" AutomationProperties.Name="{x:Static p:WinCardTexts.Title}">
+    <Border Classes="win-card">
         <StackPanel>
             <StackPanel Orientation="Horizontal" Spacing="8">
                 <v:IconView Kind="FaceWon" Width="36" Height="36" />

@@ -4,10 +4,12 @@
              xmlns:vm="using:Shos.Minesweeper.Desktop.ViewModels"
              xmlns:p="using:Shos.Minesweeper.Presentation"
              x:Class="Shos.Minesweeper.Desktop.Views.DifficultyDialogView"
-             x:DataType="vm:DifficultyDialogViewModel">
+             x:DataType="vm:DifficultyDialogViewModel"
+             AutomationProperties.Name="{x:Static p:DifficultyDialogTexts.Title}">
     <!--
       難易度ダイアログ（UI デザイン 2.5、Web 版の UI デザイン 2.3。Components/DifficultyDialog.razor）。
-      別のウィンドウにはせず、ウィンドウの中身の中央に重ね、盤面の上に半透明の幕をかける
+      別のウィンドウにはせず、ウィンドウの中身の中央に重ね、盤面の上に半透明の幕をかける。
+      読み上げの名前は、UI オートメーションの木に出るこの UserControl に付ける（Border は木に出ない）
     -->
     <UserControl.Resources>
         <!-- カスタムの入力欄 1 つ。名前、入力欄、範囲の行と、誤りがあるときの誤りの行 -->
@@ -28,8 +30,7 @@
 
     <Panel>
         <Border x:Name="Backdrop" Classes="backdrop" />
-        <Border Classes="dialog" AutomationProperties.Name="{x:Static p:DifficultyDialogTexts.Title}"
-                KeyboardNavigation.TabNavigation="Cycle">
+        <Border Classes="dialog" KeyboardNavigation.TabNavigation="Cycle">
             <!-- 中身の領域に収まらないときは、ダイアログの中をスクロールする -->
             <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="16">

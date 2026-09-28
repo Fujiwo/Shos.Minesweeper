@@ -17,22 +17,26 @@
                     <v:IconView Kind="Chevron" Width="16" Height="16" VerticalAlignment="Center" />
                 </StackPanel>
             </Button>
-            <Border Grid.Column="2" Classes="counter" AutomationProperties.Name="{Binding RemainingMinesName}">
+            <!--
+              読み上げの名前（「残り地雷 10」）は、UI オートメーションの木に出る UserControl に付ける。Border と ContentControl は木に出ず、
+              TextBlock は名前に自分の文字（「10」）を使うので、どれに付けても名前が届かない。数字は木から外し、名前だけを読ませる
+            -->
+            <UserControl Grid.Column="2" Classes="counter" AutomationProperties.Name="{Binding RemainingMinesName}">
                 <DockPanel>
                     <v:IconView DockPanel.Dock="Left" Kind="Mine" Width="16" Height="16" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding RemainingMineCount}" />
+                    <TextBlock Text="{Binding RemainingMineCount}" AutomationProperties.AccessibilityView="Raw" />
                 </DockPanel>
-            </Border>
+            </UserControl>
             <Button x:Name="ResetButton" Grid.Column="4" Classes="reset" Command="{Binding NewGame}"
                     AutomationProperties.Name="{x:Static p:ToolbarTexts.NewGame}" ToolTip.Tip="{x:Static p:ToolbarTexts.NewGame}">
                 <v:IconView Kind="{Binding Face, Converter={x:Static v:ViewConverters.FaceIcon}}" Width="28" Height="28" />
             </Button>
-            <Border Grid.Column="6" Classes="counter" AutomationProperties.Name="{Binding ElapsedTimeName}">
+            <UserControl Grid.Column="6" Classes="counter" AutomationProperties.Name="{Binding ElapsedTimeName}">
                 <DockPanel>
                     <v:IconView DockPanel.Dock="Left" Kind="Clock" Width="16" Height="16" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding ElapsedSeconds}" />
+                    <TextBlock Text="{Binding ElapsedSeconds}" AutomationProperties.AccessibilityView="Raw" />
                 </DockPanel>
-            </Border>
+            </UserControl>
             <!-- オンかオフかを、トグル ボタンの状態としてナレーターに伝える（UI デザイン 2.11）。切り替えるのはビューモデルで、状態はそこから受ける -->
             <ToggleButton Grid.Column="8" Classes="sound" IsChecked="{Binding IsSoundEnabled, Mode=OneWay}" Command="{Binding ToggleSound}"
                           AutomationProperties.Name="{x:Static p:ToolbarTexts.SoundEffects}" ToolTip.Tip="{Binding SoundEffectsToolTip}">

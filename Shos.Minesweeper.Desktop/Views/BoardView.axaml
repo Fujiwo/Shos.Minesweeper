@@ -3,10 +3,13 @@
              xmlns:v="using:Shos.Minesweeper.Desktop.Views"
              xmlns:vm="using:Shos.Minesweeper.Desktop.ViewModels"
              x:Class="Shos.Minesweeper.Desktop.Views.BoardView"
-             x:DataType="vm:BoardViewModel">
-    <!-- 盤面。マスを 1 つずつフォーカスを受けられる部品にし、Tab の移動先は盤面の 1 つにする（アーキテクチャー設計書 7.4） -->
-    <Border Classes="board" BorderThickness="{x:Static v:BoardView.FrameThickness}"
-            AutomationProperties.Name="{Binding AccessibleName}">
+             x:DataType="vm:BoardViewModel"
+             AutomationProperties.Name="{Binding AccessibleName}">
+    <!--
+      盤面。マスを 1 つずつフォーカスを受けられる部品にし、Tab の移動先は盤面の 1 つにする（アーキテクチャー設計書 7.4）。
+      読み上げの名前は、UI オートメーションの木に出るこの UserControl に付ける（Border は木に出ない）
+    -->
+    <Border Classes="board" BorderThickness="{x:Static v:BoardView.FrameThickness}">
         <ItemsControl x:Name="CellsControl" ItemsSource="{Binding Cells}"
                       Width="{Binding CellsWidth}" Height="{Binding CellsHeight}"
                       KeyboardNavigation.TabNavigation="Once">
