@@ -38,11 +38,11 @@ description: ユーザーのメッセージが日本語以外で、かつ、「s
 |---|---|---|
 | 新機能の実装 | [collaboration.md](references/collaboration.md) の「着手前」、[testing.md](references/testing.md) の「テストファースト」「テストケースの設計」 | [modeling.md](references/modeling.md)・[object-design.md](references/object-design.md)(新しいクラスやモジュールを作る、または責務を既存の単位の間で動かすとき)、[paradigms.md](references/paradigms.md)(種類や条件ごとの分岐、コレクションの変換・集計を書くとき)、[simplicity.md](references/simplicity.md)(インターフェイス・基底クラス・ジェネリクス・デザインパターン・設定項目・拡張ポイントを新設するとき)、[quality-gates.md](references/quality-gates.md) の「契約とガード節」(引数の検証・前提条件を書くとき) |
 | バグ修正 | [quality-gates.md](references/quality-gates.md) の「バグ修正」「ガード節」 | [testing.md](references/testing.md) の「既存コードにテストを後から足す」(再現テストを置く足場がないとき)、[refactoring.md](references/refactoring.md)(原因が構造にあるとき) |
-| 設計の相談(コードを書く前の相談も含む) | [modeling.md](references/modeling.md)、[object-design.md](references/object-design.md) | [paradigms.md](references/paradigms.md)(命令型・宣言型・OO・関数型のどれで書くかを決めるとき)、[simplicity.md](references/simplicity.md)(インターフェイス・基底クラス・ジェネリクス・デザインパターン・設定項目・拡張ポイントを新設するとき) |
+| 設計の相談(コードを書く前の相談と、設計書のレビューを含む) | [modeling.md](references/modeling.md)、[object-design.md](references/object-design.md) | [paradigms.md](references/paradigms.md)(命令型・宣言型・OO・関数型のどれで書くかを決めるとき)、[simplicity.md](references/simplicity.md)(インターフェイス・基底クラス・ジェネリクス・デザインパターン・設定項目・拡張ポイントを新設するとき)、[quality-gates.md](references/quality-gates.md) の「七箇条をレビューの観点にする」(設計書をレビューするとき) |
 | 命名 | [naming.md](references/naming.md) | [object-design.md](references/object-design.md)(責務の混在が見つかったとき) |
 | テストの追加・設計 | [testing.md](references/testing.md) | — |
 | リファクタリング | [refactoring.md](references/refactoring.md) | [testing.md](references/testing.md)(安全網がないとき)、[naming.md](references/naming.md)(名前の変更が主な一手のとき)、[object-design.md](references/object-design.md)(クラスの分割や責務の移動など、責務の置き場所を変えるとき) |
-| レビュー(ユーザーから依頼されたとき。設計書のレビューを含む) | [quality-gates.md](references/quality-gates.md) の「七箇条をレビューの観点にする」、[refactoring.md](references/refactoring.md) の「コードの臭い」「臭い → 技法の対応表」 | [testing.md](references/testing.md)(テストを含むとき)、[simplicity.md](references/simplicity.md)(レビュー対象がインターフェイス・基底クラス・ジェネリクス・デザインパターン・設定項目・拡張ポイントを新設しているとき)、[foundations.md](references/foundations.md)(セルフチェックの項目の合否を根拠付きで言えないとき) |
+| レビュー(ユーザーから依頼されたとき) | [quality-gates.md](references/quality-gates.md) の「七箇条をレビューの観点にする」、[refactoring.md](references/refactoring.md) の「コードの臭い」「臭い → 技法の対応表」 | [testing.md](references/testing.md)(テストを含むとき)、[simplicity.md](references/simplicity.md)(レビュー対象がインターフェイス・基底クラス・ジェネリクス・デザインパターン・設定項目・拡張ポイントを新設しているとき)、[foundations.md](references/foundations.md)(セルフチェックの項目の合否を根拠付きで言えないとき) |
 | 自分の変更の見直し(依頼のない、暗黙のセルフレビュー) | —(末尾の「セルフチェック」を使う) | [simplicity.md](references/simplicity.md) の「引き算の設計」の点検表(抽象・パターン・備えを足したとき) |
 | 性能改善 | [quality-gates.md](references/quality-gates.md) の「技術的負債とパフォーマンス」 | [testing.md](references/testing.md)(対象に振る舞いを押さえるテストがないとき) |
 | 依頼が曖昧(何をどう変えるかが特定できない。例: 「いい感じに直して」) | [collaboration.md](references/collaboration.md) の「着手前」 | — |
@@ -58,7 +58,7 @@ description: ユーザーのメッセージが日本語以外で、かつ、「s
   - **検証結果**: 実際に実行したビルド・静的解析・テストとその結果。失敗した試みと、検証できなかったことも書く
   - **範囲外の気づき**: 変更範囲の外で見つけた臭いを、臭いの名前で
   - **ユーザーの判断が要る点**: 仕様の解釈、可読性と性能のトレードオフなど
-- 依頼されたレビューの結果は、指摘ごとに refactoring.md の書式(`<場所>: <臭いの名前>(<症状の根拠>)→ <技法>`)で書き、該当する七箇条の箇条名と改善案を添える。
+- 依頼されたレビューの結果は、指摘ごとに refactoring.md の書式(`<場所>: <臭いの名前>(<症状の根拠>)→ <技法>`)で書き、該当する七箇条の箇条名(七箇条の外の指摘は、その性質の名前。quality-gates.md)と改善案を添える。
 
 ## 優先順位
 
@@ -86,7 +86,7 @@ description: ユーザーのメッセージが日本語以外で、かつ、「s
 
 ## 原則が対立したときの判断ルール
 
-1. **シンプルさ vs 拡張性**: 変更の見通しが具体的なときだけ抽象化する。具体的とは、根拠を指せること(要求やユーザーの説明にある、2つ目の実装が実際に来た〔8.3〕、同じ分岐がすでに2箇所目に現れた〔1.2、7.2〕、仕様や計画で2つ目の利用者が決まっている)。「将来対応するかもしれない」だけでは足りない。「必要が見えてから入れる抽象は形が合うが、必要が見える前に入れる抽象は当てずっぽう」。〔8.3〕
+1. **シンプルさ vs 拡張性**: 変更の見通しが具体的なときだけ抽象化する。具体的とは、根拠を指せること(要求・仕様・計画やユーザーの説明にある(まだ実装のない2つ目の利用者を含む)、2つ目の実装が実際に来た〔8.3〕、同じ分岐がすでに2箇所目に現れた〔1.2、7.2〕)。「将来対応するかもしれない」だけでは足りない。「必要が見えてから入れる抽象は形が合うが、必要が見える前に入れる抽象は当てずっぽう」。〔8.3〕
 2. **抽象化の経済性 vs YAGNI**: 書く手間は抽象化を避ける理由にならない(書くコストはほぼゼロになったが、読むコストは下がっていない)。読解コストを下げる抽象(メソッド抽出、概念への命名、データの群れへの型付け)は積極的に入れる。読む対象を増やすだけの抽象(実装が一つしかないインターフェイス階層)は入れない。〔9.6、7.4、8.3〕
 3. **テスト容易性 vs YAGNI**: 時刻・I/O・外部システムを差し替えられるようにするのは YAGNI 違反ではない。テストコードは最初の利用者であり、その利用者がすでに差し替えを必要としているからである。〔1.2.7、6.1.1〕
 4. **コメントの削減 vs 説明責任**: What と How は名前とコードで表し、Why だけをコメントに残す。可読性を犠牲にする判断には、必ず Why を残す。〔7.5、9.5〕
