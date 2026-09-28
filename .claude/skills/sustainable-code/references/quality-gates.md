@@ -31,6 +31,7 @@ Read this during implementation and before completion, when doing a self-review 
 | Testable | Is it in a form where correctness can be checked? Are the preconditions made explicit? |
 
 - When you can point something out by the name of a smell, use the names of smells and techniques (refactoring.md).
+- The Seven Articles are criteria for readability and changeability. When you find a discrepancy with the specification or design (consistency) or a correctness problem (exception boundaries, including exceptions inside discarded asynchronous work; cleanup; differences between execution environments), do not force it into an article; point it out as "outside the Seven Articles" under the name of its nature.
 
 ### Pre-Commit Check (Pre-Completion Check)
 
@@ -122,7 +123,7 @@ public Result Register(string? name, int age) {
   1. If there is test infrastructure, first write a test that reproduces the defect and confirm Red (if there is no infrastructure, see the Alternatives When Something Cannot Be Done in SKILL.md).
      - When the expected value is not determined by the specification, do not decide the expected value by guessing. Put the reproduction test on hold with the reason stated explicitly (e.g. xUnit's `Skip`), report the reproduction steps and what you observed, and confirm the specification. Once the expected value is decided, write it in, remove the hold, confirm Red, and then fix.
      - Do not assert the error currently occurring (e.g. NullReferenceException) as the expected value. It would be Green from the start and would lock the bug in as the specification.
-  2. Identify the cause (a caller breaking a precondition, a wrong boundary, etc.), fix it with the smallest change, and make it Green. Do not end with a change that merely suppresses the symptom (catching and ignoring an exception, silently replacing null with a default value).
+  2. Identify the cause (a caller breaking a precondition, a wrong boundary, etc.), fix it with the smallest change, and make it Green. Do not end with a change that merely suppresses the symptom (catching and ignoring an exception, silently replacing null with a default value). When the cause lies in the behavior of an external library or framework, investigate its mechanism (types, documentation, source) before trying fixes. Do not pile up trial-and-error guesses.
   3. If the cause is a broken precondition, make the precondition explicit at the entry with a guard clause or a type. However, that is detection of recurrence, and is done separately from fixing the cause.
   4. Do not fix the surrounding smells; report them (Restraint in the Scope of Change in SKILL.md).
 - Check: Did the reproduction test go from Red to Green? Are all existing tests Green?

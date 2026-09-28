@@ -187,7 +187,7 @@ The smells the source book treats all the way to remedies are Duplicated Code, L
 | Inappropriate names (naming anti-patterns) | Rename |
 | Long Method | Extract Method by meaningful units |
 | Comments (explaining What/How) | Replace with Rename and Extract Method; keep only the Why |
-| Duplicated Code | Identify the underlying responsibility and settle it in one place with Rename, Extract Method, and extracting responsibilities |
+| Duplicated Code | Identify the underlying responsibility and settle it in one place with Rename, Extract Method, and extracting responsibilities. When the same correspondence is written both as a list and as an expression, derive one from the other (for example, build the list from the mapping expression) |
 | Deep nesting | Extract Method |
 | Switch Statements (proliferating branches) | Replacing types via polymorphism (the Strategy pattern) |
 | Temporary Field | Move the field inside the side that needs it |
