@@ -6,7 +6,7 @@
 | 対象 | デスクトップ版 1.0.0 とコンソール版 1.0.0 の公開物と手順（docs/desktop-console/06-release.md、docs/desktop-console/release-notes.md、`.github/workflows/release-desktop-console.yml`） |
 | レビュー日 | 2026-09-28 |
 | レビュー者 | Claude（自己レビュー） |
-| 状態 | 指摘 1 件を反映した。ユーザーの実機の確認（3 章）と承認を待っている |
+| 状態 | 指摘 1 件を反映した。ユーザーが 3 章の実機の確認を行い（「確認した」）、レビューを承認して、デスクトップ版とコンソール版の両方の公開を指示した（2026-09-28） |
 
 ## 観点
 
