@@ -1,0 +1,40 @@
+=== run 1 (exit 1)
+files: test_cell_position.py 
+Ran 1 test in 0.003s
+
+FAILED (errors=1)
+=== run 2 (exit 0)
+files: cell_position.py test_cell_position.py 
+Ran 11 tests in 0.002s
+
+OK
+=== run 3 (exit 1)
+files: cell_position.py test_board_size.py test_cell_position.py 
+Ran 12 tests in 0.002s
+
+FAILED (errors=1)
+=== run 4 (exit 0)
+files: board_size.py cell_position.py test_board_size.py test_cell_position.py 
+Ran 21 tests in 0.008s
+
+OK
+=== run 5 (exit 1)
+files: board_size.py cell_position.py test_board_size.py test_cell_position.py test_flag_counter.py 
+Ran 22 tests in 0.005s
+
+FAILED (errors=1)
+=== run 6 (exit 0)
+files: board_size.py cell_position.py flag_counter.py test_board_size.py test_cell_position.py test_flag_counter.py 
+Ran 29 tests in 0.012s
+
+OK
+=== run 7 (exit 1)
+files: board_size.py cell_position.py flag_counter.py test_board_size.py test_cell_position.py test_elapsed_time.py test_flag_counter.py 
+Ran 30 tests in 0.003s
+
+FAILED (errors=1)
+=== run 8 (exit 0)
+files: board_size.py cell_position.py elapsed_time.py flag_counter.py test_board_size.py test_cell_position.py test_elapsed_time.py test_flag_counter.py 
+Ran 36 tests in 0.009s
+
+OK

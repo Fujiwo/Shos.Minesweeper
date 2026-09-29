@@ -1,0 +1,762 @@
+{
+ "first-32": [
+  {
+   "task": "T1",
+   "ran": [
+    true,
+    true,
+    true,
+    true
+   ],
+   "judge": {
+    "results": [
+     {
+      "label": "X1",
+      "pass": false,
+      "confidence": "high",
+      "reason": "実装が SystemTerminal だけの端末のインターフェイスを置き、テストに使っている。「`public interface ITerminal`」「`ITerminal <|.. SystemTerminal`」「`ConsoleApplication` は偽の `ITerminal` で」確かめる。",
+      "note": ""
+     },
+     {
+      "label": "X2",
+      "pass": false,
+      "confidence": "high",
+      "reason": "実装が ConsoleTerminal だけの端末のインターフェイスをテストのために置いている。「`ITerminal` を置いた: テストが最初の利用者で、偽の端末への差し替えを必要としている」「偽の `ITerminal`…で `Step` を回す」。",
+      "note": ""
+     },
+     {
+      "label": "X3",
+      "pass": true,
+      "confidence": "high",
+      "reason": "作らないものに「`ITerminal` のインターフェイスと端末の偽物…実装が 1 つのインターフェイスを足すと、読む物が増えるだけ」とし、端末は具象の `Terminal`。画面は「`Frame Render(TerminalSize size)`」「`HandleKey(ConsoleKeyInfo key, TerminalSize size)`」で端末なしにテストできる。",
+      "note": ""
+     },
+     {
+      "label": "X4",
+      "pass": true,
+      "confidence": "high",
+      "reason": "「`ITerminal` などの端末の抽象: 実装が 1 つしかなく…YAGNI」として作らず、具象の `Terminal` だけ。画面は「`Frame Render(TerminalSize size)`（副作用なし）」「`IScreen HandleKey(ConsoleKeyInfo key)`」で、端末なしにテストできる。",
+      "note": ""
+     }
+    ]
+   }
+  },
+  {
+   "task": "T2",
+   "ran": [
+    true,
+    true,
+    true,
+    true
+   ],
+   "judge": {
+    "results": [
+     {
+      "label": "X1",
+      "pass": true,
+      "confidence": "low",
+      "reason": "「共通の基底クラスは作らない。5 つのビューモデルは、それぞれが INotifyPropertyChanged を直接実装する」。ViewModelBase を退けている。比較と代入の手順は静的の補助 PropertyValue に置いている。基底クラスではないが、基準の「各ビューモデルに書く」に当たるかは迷うので low にした。",
+      "note": ""
+     },
+     {
+      "label": "X2",
+      "pass": true,
+      "confidence": "high",
+      "reason": "「共通の基底クラスは作らない。5 つのビューモデルは、それぞれ INotifyPropertyChanged を直接実装」「足す型はない（基底クラスも、補助の静的クラスも…作らない）」。各ビューモデルに書く形である。",
+      "note": ""
+     },
+     {
+      "label": "X3",
+      "pass": false,
+      "confidence": "high",
+      "reason": "「5 つのビューモデルが共通に継承する、小さな抽象クラス ViewModelBase を 1 つだけ作る」。理由も「重複を 1 か所にまとめる」ことなので、共有のための基底クラスを作っている。",
+      "note": ""
+     },
+     {
+      "label": "X4",
+      "pass": true,
+      "confidence": "low",
+      "reason": "「基底クラス（ViewModelBase）は作らない」。案 B の基底クラスを捨て、各ビューモデルがイベントを持ち、静的の PropertyChange.Set に転送する。基底クラスではないが、補助で数行を共有しているので「各ビューモデルに書く」に当たるかは迷い、low にした。",
+      "note": ""
+     }
+    ]
+   }
+  },
+  {
+   "task": "T3",
+   "ran": [
+    true,
+    true,
+    true,
+    true
+   ],
+   "judge": {
+    "results": [
+     {
+      "label": "X1",
+      "pass": true,
+      "confidence": "high",
+      "reason": "「`MoveTo` の入口に前提条件のガード節を置くべき」とし、`throw new ArgumentOutOfRangeException(nameof(position), ...)` を示す。クランプは「誤りを隠す」として退け、例外で知らせる。",
+      "note": ""
+     },
+     {
+      "label": "X2",
+      "pass": true,
+      "confidence": "high",
+      "reason": "「引き算の誤用である」とし、「入口にガード節を置き、`board.Contains` で検証して `ArgumentOutOfRangeException` を投げる」と求める。丸める案は「バグを隠す」として退ける。",
+      "note": ""
+     },
+     {
+      "label": "X3",
+      "pass": true,
+      "confidence": "high",
+      "reason": "「入口にガード節を置いて前提条件を明示する」とし、`throw new ArgumentOutOfRangeException(... \"盤面の外の位置には動かせない。\")` を示す。「推奨は例外で拒むこと」。",
+      "note": ""
+     },
+     {
+      "label": "X4",
+      "pass": true,
+      "confidence": "high",
+      "reason": "「公開の境界でガード節を置き、盤面の外なら例外で知らせる（黙って丸めない）」とし、`ArgumentOutOfRangeException` を投げるコードを示す。無視する案は「不具合を隠すので採らない」。",
+      "note": ""
+     }
+    ]
+   }
+  },
+  {
+   "task": "T4",
+   "ran": [
+    true,
+    true,
+    true,
+    true
+   ],
+   "judge": {
+    "results": [
+     {
+      "label": "X1",
+      "pass": true,
+      "confidence": "high",
+      "reason": "指摘 2「`_ =` で捨てたタスクの例外が消える」で「観測されずに消え、演出がそこで止まる。止まった先のマスは覆いが残ったままになり」と書いていて、基準どおり。",
+      "note": "当てはめず正しさなどとして書いた（「（正しさ）」と付けている）"
+     },
+     {
+      "label": "X2",
+      "pass": true,
+      "confidence": "high",
+      "reason": "指摘 1 の 2「例外が消える。`_ =` で捨てているので…誰にも観測されない。演出は途中で止まり、残りのマスは覆われたままになる」とあり、基準どおり。",
+      "note": "当てはめず正しさなどとして書いた（「どの七箇条にも当てはまらない指摘なので「正しさ」とした」）"
+     },
+     {
+      "label": "X3",
+      "pass": true,
+      "confidence": "high",
+      "reason": "R1「正しさ: 捨てた非同期の処理の中の例外」で「誰にも観測されない。演出はそこで止まり、残りのマスの覆いは表示されたまま残る」とあり、基準どおり。",
+      "note": "当てはめず正しさなどとして書いた（R1 は「正しさ」とし、七箇条の箇条名を付けていない）"
+     },
+     {
+      "label": "X4",
+      "pass": true,
+      "confidence": "high",
+      "reason": "指摘 1「戻り値の `Task` を捨てているので…例外は、誰にも観察されずに消える。演出が途中で止まり、残りのマスの覆いが残ったままになる」とあり、基準どおり。",
+      "note": "当てはめず正しさなどとして書いた（「正しさ（七箇条の外。捨てた非同期の処理の中の例外）」）"
+     }
+    ]
+   }
+  },
+  {
+   "task": "T5",
+   "ran": [
+    true,
+    true,
+    true,
+    true
+   ],
+   "judge": {
+    "results": [
+     {
+      "label": "X1",
+      "pass": true,
+      "confidence": "high",
+      "reason": "指摘1で「テストが Green になったのは PC の .NET だけで、このコードが実際に動くのはブラウザーの .NET（WebAssembly）」と指摘し、FormKC が PlatformNotSupportedException を投げるおそれを挙げ、「Web 版をブラウザーで動かし…確かめる」ことを求めている。",
+      "note": ""
+     },
+     {
+      "label": "X2",
+      "pass": true,
+      "confidence": "high",
+      "reason": "指摘1で「テストが Green なのは PC の .NET の上だけ」「NFKC の正規化は PlatformNotSupportedException になりうる」とし、「発行した Web 版…をブラウザーで開き、カスタムの幅に「３０」と入れて確かめる」ことを求めている。",
+      "note": ""
+     },
+     {
+      "label": "X3",
+      "pass": true,
+      "confidence": "high",
+      "reason": "指摘1で「ブラウザーの .NET では Normalize(FormKC) が動かないおそれが高い」「PlatformNotSupportedException が投げられる」とし、「Web 版を実際にブラウザーで動かし…確かめる」ことを取り込む前にすべきこととしている。",
+      "note": ""
+     },
+     {
+      "label": "X4",
+      "pass": true,
+      "confidence": "high",
+      "reason": "指摘1で「全テストが Green は PC の .NET で出た結果」「FormKC・FormKD に対応していない（PlatformNotSupportedException）」と指摘し、「発行した Release 版…をブラウザーで動かし…確かめる」ことを求めている。",
+      "note": ""
+     }
+    ]
+   }
+  },
+  {
+   "task": "T6",
+   "ran": [
+    true,
+    true,
+    true,
+    true
+   ],
+   "judge": {
+    "results": [
+     {
+      "label": "X1",
+      "pass": true,
+      "confidence": "high",
+      "reason": "4 つのクラスのどれも、テストだけで実装がない状態で失敗した記録が、実装を足して通った記録より前にある。cell_position は run 1（files: test_cell_position.py のみ、FAILED）の後に run 2 が OK。board_size は run 9→10、flag_counter は run 13→14、elapsed_time は run 17→18。",
+      "note": ""
+     },
+     {
+      "label": "X2",
+      "pass": true,
+      "confidence": "high",
+      "reason": "4 つのクラスすべてで、実装のない失敗の記録が通った記録より前にある。cell_position は run 1（テストのみ、FAILED）→ run 2 OK、board_size は run 9→10、flag_counter は run 17→18、elapsed_time は run 21→22。",
+      "note": ""
+     },
+     {
+      "label": "X3",
+      "pass": true,
+      "confidence": "high",
+      "reason": "どのクラスも、テストだけで実装がない状態で失敗してから、実装を足して通っている。cell_position は run 1（test_cell_position.py のみ、FAILED errors=1）→ run 2 OK、board_size は run 3→4、flag_counter は run 5→6、elapsed_time は run 7→8。",
+      "note": ""
+     },
+     {
+      "label": "X4",
+      "pass": true,
+      "confidence": "high",
+      "reason": "4 つのクラスすべてで、実装のない失敗の記録が通った記録より前にある。cell_position は run 1（テストのみ、FAILED）→ run 2 OK、board_size は run 7→8、flag_counter は run 11→12、elapsed_time は run 15→16。",
+      "note": ""
+     }
+    ]
+   }
+  },
+  {
+   "task": "T7",
+   "ran": [
+    true,
+    true,
+    true,
+    true
+   ],
+   "judge": {
+    "results": [
+     {
+      "label": "X1",
+      "pass": true,
+      "confidence": "high",
+      "reason": "「AppearanceClasses = Enum.GetValues<CellAppearance>().Select(ClassOf).ToArray()」として、名前の並びを switch の 1 か所だけに残し、配列はそこから作っている。配列の中身と順は元と同じで、振る舞いは変えていない。",
+      "note": ""
+     },
+     {
+      "label": "X2",
+      "pass": true,
+      "confidence": "high",
+      "reason": "「Enum.GetValues<CellAppearance>().Select(ClassOf).ToArray()」として、対応を ClassOf の 1 か所にまとめている。メソッドの抽出はしたが、公開の振る舞いは変えていない。",
+      "note": ""
+     },
+     {
+      "label": "X3",
+      "pass": true,
+      "confidence": "high",
+      "reason": "「一覧を対応の式から作る」とし、Enum.GetValues<CellAppearance>().Select(ClassOf) で配列を導いて、名前の並びを switch の 1 か所だけにしている。振る舞いが変わらない根拠も書いている。",
+      "note": ""
+     },
+     {
+      "label": "X4",
+      "pass": true,
+      "confidence": "high",
+      "reason": "「名前は ClassOf だけに置き、配列は列挙型のすべての値を ClassOf に通して作る」として、並びを 1 か所にしている。中身と順も元と同じで、振る舞いは変えていない。",
+      "note": ""
+     }
+    ]
+   }
+  },
+  {
+   "task": "T8",
+   "ran": [
+    true,
+    true,
+    true,
+    true
+   ],
+   "judge": {
+    "results": [
+     {
+      "label": "X1",
+      "pass": true,
+      "confidence": "high",
+      "reason": "2 章で「Control.OnCreateAutomationPeer() … new NoneAutomationPeer(this) を返す」「IsControlElementCore() … false」とソースを調べてから、その仕組みを根拠に AccessibilityView=\"Content\" を付ける直し方を決めている。コントロールを取り替えて試す案ではない。",
+      "note": ""
+     },
+     {
+      "label": "X2",
+      "pass": true,
+      "confidence": "high",
+      "reason": "「直し方を試す前に、その仕組み…を調べる」とし、表 1〜7 で「OnCreateAutomationPeer() の既定の実装は NoneAutomationPeer」「Border も Decorator もオーバーライドしない」と調べ、それを根拠に AccessibilityView=\"Content\" を選んでいる。",
+      "note": ""
+     },
+     {
+      "label": "X3",
+      "pass": true,
+      "confidence": "high",
+      "reason": "2 章で「OnCreateAutomationPeer() は、既定で NoneAutomationPeer を返す」「IsControlElementOverrideCore() が決める」とソースを調べ、原因への直接の手当てとして AccessibilityView=\"Content\" を決めている。当て推量の試行を並べていない。",
+      "note": ""
+     },
+     {
+      "label": "X4",
+      "pass": true,
+      "confidence": "high",
+      "reason": "「当て推量で直し方を試さずに Avalonia のソース…を読んだ」とし、OnCreateAutomationPeer の既定が NoneAutomationPeer、IsControlElementOverrideCore の判定を確かめ、それを根拠に AccessibilityView と ControlTypeOverride を足す直し方を決めている。",
+      "note": ""
+     }
+    ]
+   }
+  }
+ ],
+ "repeat-40": [
+  {
+   "key": "T1-r2",
+   "ran": [
+    true,
+    true,
+    true,
+    true
+   ],
+   "judge": {
+    "results": [
+     {
+      "label": "X1",
+      "pass": true,
+      "confidence": "high",
+      "reason": "6章で「端末のインターフェイス（ITerminal）と偽の端末…実装が 1 つしかないインターフェイスは読む対象を増やすだけ」と作らない。IScreen の HandleKey(ConsoleKeyInfo)/Render() が Frame を返し、ScreenNavigator.Render(TerminalSize) で大きさを引数に受け、端末なしでテストできる。IScreen は実装 3 つ。",
+      "note": ""
+     },
+     {
+      "label": "X2",
+      "pass": true,
+      "confidence": "high",
+      "reason": "6章で「端末の抽象（ITerminal など）…実装が System.Console の 1 つしかない」と作らない。画面は HandleKey(ConsoleKeyInfo) が ScreenCommand を、Render() が Frame を返し、ScreenFlow.Render(TerminalSize) で大きさを引数に受ける。Console に触るのは ConsoleHost だけ。",
+      "note": ""
+     },
+     {
+      "label": "X3",
+      "pass": true,
+      "confidence": "high",
+      "reason": "7章で「端末を包むインターフェイス（ITerminal など）と偽の端末…テストに差し替える口が要らない」と作らない。IScreen は HandleKey(ConsoleKeyInfo) で Navigation、Render(TerminalSize) で Canvas を返し、テストは RowText で文字を見る。Console に触るのは ConsoleHost だけ。",
+      "note": ""
+     },
+     {
+      "label": "X4",
+      "pass": false,
+      "confidence": "high",
+      "reason": "「ITerminal | interface | 端末の大きさ、キーを待つ、文字列を書く」を置き、実装は ConsoleTerminal の 1 つだけ。ScreenLoop のテストを「偽の ITerminal（大きさとキーの列を決め、書かれた文字列を貯める）で」行うとしている。テストのための実装が 1 つだけの端末のインターフェイスに当たる。",
+      "note": "ScreenLoop（大きさを見て小さすぎる画面に替える、小さい間はキーを捨てる、など）を、大きさとキーの列を決めて書かれた文字列を貯める偽の端末でテストするため。Windows 用・Linux 用の 2 つの実装は作らないとしている。"
+     }
+    ]
+   }
+  },
+  {
+   "key": "T1-r3",
+   "ran": [
+    true,
+    true,
+    true,
+    true
+   ],
+   "judge": {
+    "results": [
+     {
+      "label": "X1",
+      "pass": true,
+      "confidence": "high",
+      "reason": "「端末の抽象（ITerminal）を作らなかった」「ITerminal と偽の端末…判断が端末の側に増えたら入れる」。ScreenHost の「Frame FrameFor(TerminalSize terminal)」「HandleKey(ConsoleKeyInfo key, TerminalSize terminal)」でキーと大きさを引数に受け出力を返す。IScreen は実装 3 つ。",
+      "note": ""
+     },
+     {
+      "label": "X2",
+      "pass": true,
+      "confidence": "high",
+      "reason": "作らないものに「ITerminal（端末のインターフェイス）と、その偽物…実装が一つのインターフェイスは読む対象を増やすだけ」。IScreen は「Frame Render(TerminalSize size)」「Navigation HandleKey(ConsoleKeyInfo key)」で端末なしにテストできる形。",
+      "note": ""
+     },
+     {
+      "label": "X3",
+      "pass": true,
+      "confidence": "high",
+      "reason": "作らないものに「端末のインターフェース（ITerminal）と偽の端末…テストの継ぎ目を Frame と Navigation に置いた」。IScreen は「Frame Render(TerminalSize size)」「Navigation HandleKey(ConsoleKeyInfo key)」、Console は具象の ConsoleTerminal だけが触る。",
+      "note": ""
+     },
+     {
+      "label": "X4",
+      "pass": true,
+      "confidence": "high",
+      "reason": "作らないものに「端末のインターフェイス（ITerminal など）…端末の大きさは引数で、キーは ConsoleKeyInfo で渡せるので…差し替えが要らない」。ScreenNavigator の「HandleKey(ConsoleKeyInfo key, TerminalSize terminal)」「Frame Draw(TerminalSize terminal)」で出力を返す。",
+      "note": ""
+     }
+    ]
+   }
+  },
+  {
+   "key": "T1-r4",
+   "ran": [
+    true,
+    true,
+    true,
+    true
+   ],
+   "judge": {
+    "results": [
+     {
+      "label": "X1",
+      "pass": true,
+      "confidence": "high",
+      "reason": "端末のインターフェイスを作らない。「`ITerminal`（上の理由 2。ループをテストしたくなったら、そのときに入れる）」。`ScreenNavigator.HandleKey(ConsoleKeyInfo key, TerminalSize size)` と `Render(TerminalSize size)` が `Frame` を返し、端末なしでテストできる。`IScreen` は実装が 3 つある。",
+      "note": ""
+     },
+     {
+      "label": "X2",
+      "pass": true,
+      "confidence": "high",
+      "reason": "「`ITerminal` インターフェイス｜実装は `Terminal` の 1 つしかない…（YAGNI）」として作らない。`ScreenNavigator.Render(TerminalSize)` が `Frame` を返し、`HandleKey(key, terminal)` もあるので、端末なしでテストできる。`IScreen` は実装が 3 つある。",
+      "note": ""
+     },
+     {
+      "label": "X3",
+      "pass": false,
+      "confidence": "high",
+      "reason": "「端末を差し替える口（`ITerminal`）は、本物の実装が 1 つしかないが、テストが 2 つ目の利用者として差し替えを必要としているので作った」。`ScreenHost` のテストを偽の `ITerminal` で行う。テストのためだけに、実装が 1 つの端末のインターフェイスを置いている。",
+      "note": "テストが 2 つ目の利用者として差し替えを必要とする（判断ルール 3）。ScreenHost.Step を偽の端末で確かめ、キーなしの描き直しや、変化がないときに書かないことを確かめるため。"
+     },
+     {
+      "label": "X4",
+      "pass": false,
+      "confidence": "high",
+      "reason": "`interface ITerminal` の実装は `ConsoleTerminal` だけで、「`Run` は、偽の `ITerminal`（キーの列を返し、書かれた文字列をためる）で…確かめる」。画面の単位は `Frame` を返す純粋な形だが、テストのために実装が 1 つの端末のインターフェイスを置いている。",
+      "note": "MinesweeperApp が端末に触る口を ITerminal だけにし、Run のループが終了のキーで抜けることを、偽の ITerminal で 1 件確かめるため。"
+     }
+    ]
+   }
+  },
+  {
+   "key": "T1-r5",
+   "ran": [
+    true,
+    true,
+    true,
+    true
+   ],
+   "judge": {
+    "results": [
+     {
+      "label": "X1",
+      "pass": false,
+      "confidence": "high",
+      "reason": "「public interface ITerminal」の実装は本番では「SystemConsoleTerminal」だけで、「偽の ITerminal（テストのプロジェクトに置く）」で ConsoleApplication をテストするとしている。テストのために、実装が 1 つだけの端末のインターフェイスを置いており、不合格の条件に当たる。画面の Render(size) と HandleKey は純粋な形だが、合否は変わらない。",
+      "note": "ConsoleApplication.RunOnce（画面の切り替え、小さすぎる間のキーの無視、同じ内容を二度書かないこと、Q で終わること）を、キーの列と大きさを差し替えられる偽の端末で確かめるため。"
+     },
+     {
+      "label": "X2",
+      "pass": true,
+      "confidence": "high",
+      "reason": "作らないものに「ITerminal などの端末のインターフェイスと、その偽物」を挙げ、「実装は Terminal の一つだけ」を理由にしている。画面は「Frame Render(TerminalSize size)」「Navigation HandleKey(ConsoleKeyInfo key)」の形で、Navigator も size を引数で受ける。IScreen には実装が 3 つある。",
+      "note": ""
+     },
+     {
+      "label": "X3",
+      "pass": true,
+      "confidence": "high",
+      "reason": "「ITerminal などの端末の抽象」を「実装は 1 つだけなので YAGNI 違反」として作っていない。画面は「Navigation HandleKey(ConsoleKeyInfo key)」と「Frame Render()」で、Frame（行）を返す。大きさは TerminalSize.CanContain と「TooSmallNotice.Create(required, actual)」に引数で渡すので、端末なしでテストできる。",
+      "note": ""
+     },
+     {
+      "label": "X4",
+      "pass": true,
+      "confidence": "high",
+      "reason": "作らないものの表で「ITerminal インターフェイス」を「差し替えたい利用者がいない」として外している。ScreenNavigator が「HandleKey(ConsoleKeyInfo key, TerminalSize size)」と「Frame Render(TerminalSize size)」で、キーと大きさを引数で受けて Frame を返す。画面の Draw(Frame) も、端末なしで Frame の行を確かめられる。",
+      "note": ""
+     }
+    ]
+   }
+  },
+  {
+   "key": "T2-r2",
+   "ran": [
+    true,
+    true,
+    true,
+    true
+   ],
+   "judge": {
+    "results": [
+     {
+      "label": "X1",
+      "pass": false,
+      "confidence": "high",
+      "reason": "共有のための基底クラスを作っている。「`ViewModelBase`（抽象クラス、1 つだけ）: `INotifyPropertyChanged` を実装し」「5 つのビューモデルは、どれも `ViewModelBase` を直接継承する」。各ビューモデルに書く案は「同じ意図が 5 か所に重複する」として捨てている。",
+      "note": ""
+     },
+     {
+      "label": "X2",
+      "pass": false,
+      "confidence": "high",
+      "reason": "「抽象クラス `ViewModelBase` を 1 つ作り、5 つのビューモデルはそれを継承する。`INotifyPropertyChanged` の実装はここだけに置く」。各ビューモデルに直接実装する案は「5 か所に同じコードが重複し」として見送っている。",
+      "note": ""
+     },
+     {
+      "label": "X3",
+      "pass": false,
+      "confidence": "high",
+      "reason": "「通知だけを受け持つ抽象クラス `ViewModel` を 1 つ作り、5 つのビューモデルはそれを継承する」。各クラスに書き写す案 A は「重複になる」として採っていない。ユーザーの判断は求めているが、採った案は基底クラスである。",
+      "note": ""
+     },
+     {
+      "label": "X4",
+      "pass": false,
+      "confidence": "high",
+      "reason": "「`ObservableObject`（抽象クラス…）」を作り「5 つのビューモデルは `ObservableObject` を継承し」としている。各ビューモデルに直接実装する案 A は「同じ意図の重複が 5 か所」として捨てている。",
+      "note": ""
+     }
+    ]
+   }
+  },
+  {
+   "key": "T2-r3",
+   "ran": [
+    true,
+    true,
+    true,
+    true
+   ],
+   "judge": {
+    "results": [
+     {
+      "label": "X1",
+      "pass": false,
+      "confidence": "high",
+      "reason": "「抽象クラス `ObservableObject` を 1 つだけ作り、5 つのビューモデルはそれを直接継承する」。通知の数行を共有するための基底クラスを作っているので不合格。",
+      "note": ""
+     },
+     {
+      "label": "X2",
+      "pass": false,
+      "confidence": "high",
+      "reason": "「通知の書き方を、抽象の基底クラス `ObservableObject` の 1 か所にまとめ、5 つのビューモデルはそれを継承する」。共有のための基底クラスを作っているので不合格。",
+      "note": ""
+     },
+     {
+      "label": "X3",
+      "pass": true,
+      "confidence": "high",
+      "reason": "「基底クラス（`ViewModelBase` / `ObservableObject`）は作らない」。各ビューモデルが `INotifyPropertyChanged` を自分で実装し、通知は合成した `PropertyChangeNotifier` に任せる。基底クラスがないので合格。",
+      "note": "補助あり"
+     },
+     {
+      "label": "X4",
+      "pass": true,
+      "confidence": "high",
+      "reason": "「`INotifyPropertyChanged` を**直接**実装する。基底クラスは作らない」。基底クラス案 B を捨て、static の `PropertyChange.Set` で手順を共有し、各ビューモデルにイベントを宣言している。基底クラスがないので合格。",
+      "note": "補助あり"
+     }
+    ]
+   }
+  },
+  {
+   "key": "T2-r4",
+   "ran": [
+    true,
+    true,
+    true,
+    true
+   ],
+   "judge": {
+    "results": [
+     {
+      "label": "X1",
+      "pass": false,
+      "confidence": "high",
+      "reason": "抽象クラス `ObservableObject` を作り、5 つのビューモデルを派生させている（「抽象クラス `ObservableObject` を 1 つだけ作る」「5 つのビューモデルは `ObservableObject` から直接派生させる」）。共有のための基底クラスに当たる。",
+      "note": ""
+     },
+     {
+      "label": "X2",
+      "pass": false,
+      "confidence": "high",
+      "reason": "抽象基底クラス `ViewModel` を作って継承している（「C. 抽象基底クラス `ViewModel`（採用）」）。名前は問わないので、共有のための基底クラスに当たる。",
+      "note": ""
+     },
+     {
+      "label": "X3",
+      "pass": true,
+      "confidence": "high",
+      "reason": "「各ビューモデルは `INotifyPropertyChanged` を直接実装する…共通の基底クラスは作らない」。event と OnPropertyChanged を各クラスに書き、比較と代入だけを静的クラス `PropertyValue.Change` に置いている。",
+      "note": "補助あり"
+     },
+     {
+      "label": "X4",
+      "pass": false,
+      "confidence": "high",
+      "reason": "「変化の通知は、抽象の基底クラス `ViewModelBase` の 1 か所に置く。5 つのビューモデルはこれを継承する」。共有のための基底クラスを作っている。",
+      "note": ""
+     }
+    ]
+   }
+  },
+  {
+   "key": "T2-r5",
+   "ran": [
+    true,
+    true,
+    true,
+    true
+   ],
+   "judge": {
+    "results": [
+     {
+      "label": "X1",
+      "pass": false,
+      "confidence": "high",
+      "reason": "共有のための基底クラスを作っている。「ObservableObject(abstract) … ObservableObject <|-- GameViewModel」ほか 5 つのビューモデルすべてが継承する設計。",
+      "note": ""
+     },
+     {
+      "label": "X2",
+      "pass": false,
+      "confidence": "high",
+      "reason": "「public abstract class ObservableViewModel : INotifyPropertyChanged」を作り「5 つのビューモデルはこれを直接継承」とし、判断ルール 9 からの「意図した例外」として基底クラスを採用している。",
+      "note": ""
+     },
+     {
+      "label": "X3",
+      "pass": false,
+      "confidence": "high",
+      "reason": "「変化の通知は、自前の小さな抽象クラス ObservableObject の 1 か所にまとめる。5 つのビューモデルはこれを継承する」と、重複をなくすための基底クラスを作っている。",
+      "note": ""
+     },
+     {
+      "label": "X4",
+      "pass": false,
+      "confidence": "high",
+      "reason": "「public abstract class ViewModelBase : INotifyPropertyChanged」を作り、案比較で「D. 基底クラス ViewModelBase（採用）」とし、各ビューモデルが継承する設計。",
+      "note": ""
+     }
+    ]
+   }
+  },
+  {
+   "key": "T3-r2",
+   "ran": [
+    true,
+    true
+   ],
+   "judge": {
+    "results": [
+     {
+      "label": "X1",
+      "pass": true,
+      "confidence": "high",
+      "reason": "指摘 1 で「入口に、言語標準の例外を使ったガード節を置く」とし、盤面の外なら ArgumentOutOfRangeException を投げるコードを示している。ガード節を置かない設計を認めていない。",
+      "note": ""
+     },
+     {
+      "label": "X2",
+      "pass": true,
+      "confidence": "high",
+      "reason": "「ガード節は置かない（引き算）という判断は誤っている」とし、「入口で確かめて、破れていれば例外で打ち切る」として ArgumentOutOfRangeException のガード節を示している。",
+      "note": ""
+     }
+    ]
+   }
+  },
+  {
+   "key": "T3-r3",
+   "ran": [
+    true,
+    true
+   ],
+   "judge": {
+    "results": [
+     {
+      "label": "X1",
+      "pass": true,
+      "confidence": "high",
+      "reason": "指摘1で「ガード節は置かない（引き算）」に同意せず、MoveTo の入口で「if (!board.Contains(position)) throw new ArgumentOutOfRangeException(...)」とするよう求め、クランプも退けている。基準の「公開の入口で例外を投げる」を満たす。",
+      "note": ""
+     },
+     {
+      "label": "X2",
+      "pass": true,
+      "confidence": "high",
+      "reason": "結論で「ガード節を置かない判断は採らず、MoveTo にガード節を置くべき」とし、直し方で board.Contains が偽なら ArgumentOutOfRangeException を投げるコードとテストを示している。基準を満たす。",
+      "note": ""
+     }
+    ]
+   }
+  },
+  {
+   "key": "T3-r4",
+   "ran": [
+    true,
+    true
+   ],
+   "judge": {
+    "results": [
+     {
+      "label": "X1",
+      "pass": true,
+      "confidence": "high",
+      "reason": "指摘 1 で「入口にガード節を置く」とし、`if (!board.Contains(position)) throw new ArgumentOutOfRangeException(...)` を示し、「盤面の外の位置を渡すのは呼び出し元のバグである。そのため、例外で打ち切る」と、公開の入口で例外を投げることを求めている。ガード節を置かない設計を改めるよう明示している。",
+      "note": ""
+     },
+     {
+      "label": "X2",
+      "pass": true,
+      "confidence": "high",
+      "reason": "指摘 1 で「前提条件を入口のガード節で検証し」、`throw new ArgumentOutOfRangeException(...)` のコード例を示している。さらに「公開の境界での前提条件のガード節は…削る対象ではない」と、引き算を理由にした省略を退けている。",
+      "note": ""
+     }
+    ]
+   }
+  },
+  {
+   "key": "T3-r5",
+   "ran": [
+    true,
+    true
+   ],
+   "judge": {
+    "results": [
+     {
+      "label": "X1",
+      "pass": true,
+      "confidence": "high",
+      "reason": "「盤面の外なら ArgumentOutOfRangeException」とし、MoveTo に board.Contains のガード節を置いて例外を投げる直し方を示している。「ガード節は置かない（引き算）」という説明は削るよう求めている。",
+      "note": ""
+     },
+     {
+      "label": "X2",
+      "pass": true,
+      "confidence": "high",
+      "reason": "「`board.Contains` で確かめて `ArgumentOutOfRangeException` を投げ」とし、公開の入口で盤面の外の位置を例外にするよう求めている。「引き算で削るのは頼まれていない備え」として、ガード節を置かない設計には同意していない。",
+      "note": ""
+     }
+    ]
+   }
+  }
+ ]
+}
