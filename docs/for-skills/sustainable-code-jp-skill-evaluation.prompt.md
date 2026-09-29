@@ -7,18 +7,18 @@
 
 ## 対象と時点
 
-- 評価の対象は、今のコミットのスキルである（docs/reviews/skill-evaluation.md の 11.8 で S1〜S3、S5〜S9 を入れ、docs/reviews/skill-review.md の 6 章で指摘 1〜5 を反映した後）。始めるときに、ファイルごとの行数とバイト数を数え直して書く
+- 評価の対象は、今のコミットのスキルである（docs/for-skills/reviews/skill-evaluation.md の 11.8 で S1〜S3、S5〜S9 を入れ、docs/for-skills/reviews/skill-review.md の 6 章で指摘 1〜5 を反映した後）。始めるときに、ファイルごとの行数とバイト数を数え直して書く
 - 記録（skill-log.md など）は、ほとんどが改良の前のスキルで取ったものである。改良の後のスキルは、まだ一巡も使っていない。そのため、S1〜S9 の効果は「未測定」と書き、記録から推して言えることは「推測」と書く
 - 範囲は 3 つの一巡（Web 版 1.0.0、1.1.0、デスクトップ版・コンソール版）の全体である
 
 ## 前提（すでにあるもの）
 
-- これまでの評価: docs/reviews/skill-evaluation.md（1〜11 章）、docs/reviews/skill-log.md、docs/reviews/skill-review.md
+- これまでの評価: docs/for-skills/reviews/skill-evaluation.md（1〜11 章）、docs/for-skills/reviews/skill-log.md、docs/for-skills/reviews/skill-review.md
 - 上の文書にある結論をやり直さない。章と節の番号で引用して使い、新しい根拠で変わる点だけを書く。記録の判定の区分（skill-log.md の「判定の区分」）も、新しい根拠なしに付け直さない
 - 根拠の文書は、ほかに docs/reviews/ と docs/desktop-console/reviews/ の各レビュー、git log を使ってよい。会話の記録（`~/.claude/projects/` の jsonl）を使うときは、skill-evaluation.md の 1.1 と同じく「リポジトリに残っていない根拠」と書き分ける
 - スキルのファイルは編集しない（`.claude/settings.json` の `deny` で禁じている）。Bash で書き換えることもしない。案を書くだけにする
 - 英語版（sustainable-code）は評価の対象外とする。日本語版を改良した後に合わせる（CLAUDE.md の決定）。ただし、改善案の見込みには、英語版に合わせる手間があることを含めてよい
-- 書くのは docs/reviews/skill-evaluation.md だけである。コミットはしない
+- 書くのは docs/for-skills/reviews/skill-evaluation.md だけである。コミットはしない
 
 ## 指標と測り方
 
@@ -64,7 +64,7 @@ AI 駆動開発で広く勧められているやり方と、このスキルを�
 
 ## 成果物
 
-docs/reviews/skill-evaluation.md に「12. AI 駆動開発の観点からの評価（指標: 有用性・効果・トークンコスト）」の章を足す。文体と表の形は 11 章に合わせる。冒頭の表の「範囲」と「状態」の行にも、12 章を足したことを書く。
+docs/for-skills/reviews/skill-evaluation.md に「12. AI 駆動開発の観点からの評価（指標: 有用性・効果・トークンコスト）」の章を足す。文体と表の形は 11 章に合わせる。冒頭の表の「範囲」と「状態」の行にも、12 章を足したことを書く。
 
 - 12.1 要約（結論を 5 行以内で）
 - 12.2 有用性、12.3 効果、12.4 トークンコスト（それぞれ表を使う）

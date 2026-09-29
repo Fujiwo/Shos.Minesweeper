@@ -129,7 +129,7 @@
 
 ## 8. 公開の後の予定
 
-工程 16 の後に、スキルの評価の記録（docs/reviews/skill-log.md）から数を取り、docs/reviews/skill-evaluation.md に評価の章を足して、日本語版のスキルの改善案を作る（CLAUDE.md の「スキルの評価の記録」）。
+工程 16 の後に、スキルの評価の記録（docs/for-skills/reviews/skill-log.md）から数を取り、docs/for-skills/reviews/skill-evaluation.md に評価の章を足して、日本語版のスキルの改善案を作る（CLAUDE.md の「スキルの評価の記録」）。
 
 ## 9. ユーザーに確認する点
 

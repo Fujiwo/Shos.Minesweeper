@@ -3,7 +3,7 @@
 | 項目 | 内容 |
 |------|------|
 | 対象 | `.claude/skills/sustainable-code/`（英語版）と `.claude/skills/sustainable-code-jp/`（日本語版）。どちらも SKILL.md と 10 の reference（22 ファイル、3,756 行） |
-| 時点 | コミット `79a1ca3`（docs/reviews/skill-evaluation.md の 11.8 の改善案 S1〜S3、S5〜S9 を入れた後） |
+| 時点 | コミット `79a1ca3`（docs/for-skills/reviews/skill-evaluation.md の 11.8 の改善案 S1〜S3、S5〜S9 を入れた後） |
 | レビュー日 | 2026-09-28 |
 | レビュー者 | Claude（自己レビュー） |
 | 依頼 | ユーザーの指示（「2 つのスキルについて、レビューせよ」） |
